@@ -1,0 +1,337 @@
+import React, { useState, useMemo } from 'react';
+import { format, startOfYear, addYears, startOfMonth, addMonths, startOfWeek, addWeeks, addDays, getDay, isSameDay } from 'date-fns';
+
+// --- MOCK DATA & CONFIGURATION ---
+
+const View = {
+  DAY: 'Day',
+  WEEK: 'Week',
+  MONTH: 'Month',
+  YEAR: 'Year',
+};
+
+// Color mapping for submission status
+const STATUS_COLORS = {
+  // Yellow: New Record/Partial Submission
+  NEW_RECORD: 'bg-yellow-400',
+  // Faded Green: Under Review
+  UNDER_REVIEW: 'bg-green-200',
+  // Dark Green: Complete
+  COMPLETE: 'bg-green-500',
+  // Red: No Submission
+  NO_SUBMISSION: 'bg-red-500',
+  // Gray: Future/No Data
+  NO_DATA: 'bg-gray-300',
+};
+
+// Mock function to generate submission status for a given date/unit
+const generateStatus = (date) => {
+  const day = date.getDate();
+  const month = date.getMonth();
+
+  if (day === 7 || day === 15) return STATUS_COLORS.NO_SUBMISSION;
+  if (day % 3 === 0) return STATUS_COLORS.COMPLETE;
+  if (day % 5 === 0) return STATUS_COLORS.UNDER_REVIEW;
+  if (day % 2 === 1) return STATUS_COLORS.NEW_RECORD;
+
+  // Use month data for variety in other views
+  if (month === 8) return STATUS_COLORS.UNDER_REVIEW;
+  if (month === 10) return STATUS_COLORS.COMPLETE;
+
+  return STATUS_COLORS.NO_DATA;
+};
+
+// Helper to get day abbreviation
+const dayAbbreviation = (date) => {
+  const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  return days[getDay(date)];
+};
+
+// --- Custom Components (Shadcn/ui Style) ---
+
+const Button = ({ children, className = '', variant = 'default', onClick, active = false }) => {
+  let baseClasses = 'px-4 py-2 text-sm font-medium rounded-md transition-colors';
+  let variantClasses = 'bg-gray-100 text-gray-700 hover:bg-gray-200';
+
+  if (active) {
+    variantClasses = 'bg-green-600 text-white hover:bg-green-700 shadow-lg';
+  } else if (variant === 'primary') {
+    variantClasses = 'bg-green-600 text-white hover:bg-green-700';
+  }
+
+  return (
+    <button
+      className={`${baseClasses} ${variantClasses} ${className}`}
+      onClick={onClick}
+    >
+      {children}
+    </button>
+  );
+};
+
+// --- Time Unit Item Component ---
+const TimeUnitItem = ({ label, value, statusColor, isSelected }) => (
+  <div className="flex flex-col items-center">
+    {/* Label (Day Abbreviation or Year/Month Text) */}
+    <div className="text-xs font-semibold text-gray-500 mb-1">
+      {label}
+    </div>
+    {/* Value/Status Indicator Block */}
+    <div
+      className={`w-8 h-8 flex items-center justify-center text-sm font-bold text-white rounded-md ${statusColor} shadow-sm`}
+    >
+      {value}
+    </div>
+    {/* Selection Indicator */}
+    {isSelected && (
+      <div className="w-6 h-1 bg-blue-600 rounded-full mt-1"></div>
+    )}
+  </div>
+);
+
+// --- Core Logic Hook: Generate Time Units ---
+
+const useTimeUnits = (currentView) => {
+  const today = new Date();
+  const [currentDate, setCurrentDate] = useState(today);
+
+  const units = useMemo(() => {
+    let generatedUnits = [];
+
+    switch (currentView) {
+      case View.DAY:
+        // Show 10 days starting a few days before today
+        const startDay = addDays(currentDate, -4);
+        for (let i = 0; i < 10; i++) {
+          const day = addDays(startDay, i);
+          generatedUnits.push({
+            id: format(day, 'yyyy-MM-dd'),
+            date: day,
+            label: dayAbbreviation(day),
+            value: format(day, 'd'),
+            statusColor: generateStatus(day),
+            isToday: isSameDay(day, today),
+          });
+        }
+        break;
+
+      case View.WEEK:
+        // Show 10 weeks starting from a few weeks ago
+        const startWeek = startOfWeek(addWeeks(currentDate, -4), { weekStartsOn: 1 }); // Start on Monday
+        for (let i = 0; i < 10; i++) {
+          const weekStart = addWeeks(startWeek, i);
+          const weekEnd = addDays(weekStart, 6);
+          generatedUnits.push({
+            id: format(weekStart, 'yyyy-ww'),
+            date: weekStart,
+            label: `W${format(weekStart, 'w')}`,
+            value: `${format(weekStart, 'd')}-${format(weekEnd, 'd')}`,
+            statusColor: generateStatus(weekStart), // Use start date for mock status
+            isToday: false, // For simplicity in week view
+          });
+        }
+        break;
+
+      case View.MONTH:
+        // Show 10 months starting from a few months ago
+        const startMonth = startOfMonth(addMonths(currentDate, -4));
+        for (let i = 0; i < 10; i++) {
+          const month = addMonths(startMonth, i);
+          generatedUnits.push({
+            id: format(month, 'yyyy-MM'),
+            date: month,
+            label: format(month, 'MMM'),
+            value: format(month, 'M'),
+            statusColor: generateStatus(month), // Use start date for mock status
+            isToday: isSameDay(startOfMonth(month), startOfMonth(today)),
+          });
+        }
+        break;
+
+      case View.YEAR:
+        // Show 5 years centered around the current year
+        const startYr = startOfYear(addYears(currentDate, -2));
+        for (let i = 0; i < 5; i++) {
+          const year = addYears(startYr, i);
+          generatedUnits.push({
+            id: format(year, 'yyyy'),
+            date: year,
+            label: '',
+            value: format(year, 'yyyy'),
+            statusColor: generateStatus(year), // Use start date for mock status
+            isToday: isSameDay(startOfYear(year), startOfYear(today)),
+          });
+        }
+        break;
+      default:
+        break;
+    }
+    return generatedUnits;
+  }, [currentView, currentDate]);
+
+  return { units, currentDate, setCurrentDate };
+};
+
+// --- Main App Component ---
+const DataEntriesContent = () => {
+  const [activeView, setActiveView] = useState(View.DAY);
+  const [selectedUnitId, setSelectedUnitId] = useState(format(new Date(), 'yyyy-MM-dd')); // Today's ID initially
+  const { units } = useTimeUnits(activeView);
+
+  const handleUnitClick = (unitId) => {
+    setSelectedUnitId(unitId);
+    // In a real app, this would trigger data fetching for the selected unit
+    console.log(`Selected ${activeView} unit ID: ${unitId}`);
+  };
+
+  const getTimeRangeLabel = () => {
+    if (units.length === 0) return '';
+    const first = units[0].date;
+    const last = units[units.length - 1].date;
+
+    switch (activeView) {
+      case View.DAY:
+        return `${format(first, 'MMMM d')} - ${format(last, 'd, yyyy')}`;
+      case View.WEEK:
+        return `${format(first, 'MMMM d, yyyy')} - ${format(last, 'MMMM d, yyyy')}`;
+      case View.MONTH:
+        return `${format(first, 'yyyy')} - ${format(last, 'yyyy')}`;
+      case View.YEAR:
+        return `${format(first, 'yyyy')} - ${format(last, 'yyyy')}`;
+      default:
+        return 'Date Range';
+    }
+  };
+
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans antialiased">
+      <style>{`
+        /* Import Inter font */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+        .font-sans { font-family: 'Inter', sans-serif; }
+      `}</style>
+      
+      <div className="max-w-7xl mx-auto space-y-6">
+        
+        {/* Header: Location and Legend */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+          
+          {/* Location Badge */}
+          <div className="flex items-center space-x-2 bg-blue-50 py-2 px-4 rounded-full border border-blue-200">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+            </svg>
+            <span className="text-blue-700 font-semibold">Mbingo Regional Hos</span>
+          </div>
+
+          {/* Legend */}
+          <div className="flex items-center space-x-4 mt-4 md:mt-0 p-2 border rounded-lg bg-white shadow-sm">
+            <div className="flex items-center text-sm">
+              <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+              No Submission (20%)
+            </div>
+            <div className="flex items-center text-sm">
+              <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
+              New Record (40%)
+            </div>
+            <div className="flex items-center text-sm">
+              <div className="w-3 h-3 rounded-full bg-green-200 mr-2"></div>
+              Under Review (10%)
+            </div>
+            <div className="flex items-center text-sm">
+              <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+              Complete (30%)
+            </div>
+          </div>
+        </div>
+
+        {/* --- */}
+
+        {/* Time Selector and Units Display */}
+        <div className="bg-white rounded-xl shadow-lg p-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b pb-4">
+            
+            {/* Time View Buttons (Year, Month, Week, Day) */}
+            <div className="flex bg-gray-100 rounded-lg p-1 space-x-1 mb-4 md:mb-0">
+              {Object.values(View).map((view) => (
+                <Button
+                  key={view}
+                  active={activeView === view}
+                  onClick={() => {
+                    setActiveView(view);
+                    // Reset selected unit to today/this unit when switching view
+                    setSelectedUnitId(units.find(u => u.isToday)?.id || units[0]?.id || '');
+                  }}
+                  className={`${activeView === view ? 'bg-green-600 text-white' : 'bg-transparent text-gray-700 hover:bg-gray-200'}`}
+                >
+                  {view}
+                </Button>
+              ))}
+            </div>
+
+            {/* Time Units Display */}
+            <div className="flex space-x-3 overflow-x-auto pb-2">
+              <div className="flex space-x-3">
+                {units.map((unit) => (
+                  <button
+                    key={unit.id}
+                    onClick={() => handleUnitClick(unit.id)}
+                    className="focus:outline-none"
+                    aria-label={`Select ${activeView} unit: ${unit.value}`}
+                  >
+                    <TimeUnitItem
+                      label={unit.label}
+                      value={unit.value}
+                      statusColor={unit.statusColor}
+                      isSelected={unit.id === selectedUnitId}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+          
+          {/* Main Content Area Placeholder */}
+          <div className="p-4 md:p-6 bg-gray-50 rounded-lg">
+            <h3 className="text-xl font-bold text-gray-800 mb-4">
+              {activeView} Submission Overview: <span className="text-blue-600">{getTimeRangeLabel()}</span>
+            </h3>
+            <div className="bg-white p-6 rounded-xl border border-gray-200 min-h-[300px] flex items-center justify-center">
+              <p className="text-gray-500 italic">
+                Detailed Report Content for the selected **{activeView}** unit will load here, reflecting the selected date: **{selectedUnitId}**.
+              </p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Report/Search/Action Bar (from screenshot) */}
+        <div className="flex flex-col md:flex-row justify-between items-center bg-white p-4 rounded-xl shadow-lg space-y-4 md:space-y-0">
+            <div className="flex items-center space-x-4">
+                <div className="font-semibold text-lg border-r pr-4">Report</div>
+                <select className="p-2 border rounded-lg focus:ring-green-500 focus:border-green-500">
+                    <option>Disease control</option>
+                    <option>Outbreaks</option>
+                    <option>Staffing</option>
+                </select>
+                <input type="search" placeholder="Search..." className="p-2 border rounded-lg focus:ring-green-500 focus:border-green-500 w-full md:w-auto" />
+            </div>
+            
+            <div className="flex space-x-3">
+                <Button className="bg-blue-200 text-blue-800 hover:bg-blue-300 shadow-sm transition-all">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M15.536 6.758a1 1 0 00-1.414 0L10 10.879 5.879 6.758a1 1 0 10-1.414 1.414l4.95 4.95a1 1 0 001.414 0l4.95-4.95a1 1 0 000-1.414z" /><path d="M15 14h-5m-5 0h5m-5 3h10a2 2 0 002-2v-3a2 2 0 00-2-2H5a2 2 0 00-2 2v3a2 2 0 002 2z" /></svg>
+                    Files
+                </Button>
+                <Button variant="primary" className="bg-green-600 text-white hover:bg-green-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinelinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                    New Record
+                </Button>
+            </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+
+export default DataEntriesContent;
