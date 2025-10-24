@@ -116,6 +116,7 @@ export default function DataEntriesContent() {
   const baseDate = new Date('2023-06-01');
   const [activeView, setActiveView] = useState<ViewType>(View.DAY);
   const [selectedUnitId, setSelectedUnitId] = useState<string>(format(baseDate, 'yyyy-MM-dd'));
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   // Generate units based on activeView
   const units = useMemo<TimeUnit[]>(() => {
@@ -243,9 +244,21 @@ export default function DataEntriesContent() {
     if (!data.length || !startRange || !endRange) return [];
     return data.filter(p => {
       const created = p.createdAt;
-      return created >= startRange && created <= endRange;
+      const matchesDate = created >= startRange && created <= endRange;
+      const matchesSearch = searchTerm === '' || [
+        p.patientName,
+        p.case,
+        p.sex,
+        p.age?.toString(),
+        p.maritalStatus,
+        p.profession,
+        p.residence,
+        p.contact,
+        p.history
+      ].some(field => String(field || '').toLowerCase().includes(searchTerm.toLowerCase()));
+      return matchesDate && matchesSearch;
     });
-  }, [data, startRange, endRange]);
+  }, [data, startRange, endRange, searchTerm]);
 
   const handleUnitClick = (unitId: string) => {
     setSelectedUnitId(unitId);
@@ -318,7 +331,7 @@ export default function DataEntriesContent() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-3 border-b border-t pt-1 pb-1">
             
             {/* Time View Buttons (Year, Month, Week, Day) */}
-            <div className="fle  p-1 space-x-1 mb-4 md:mb-0">
+            <div className="flex  p-1 space-x-1 mb-4 md:mb-0 bg-gray-100 rounded-md px-1">
               {Object.values(View).reverse().map((view) => (
                 <Button
                   key={view}
@@ -334,7 +347,7 @@ export default function DataEntriesContent() {
 
             {/* Time Units Display */}
             <div className="flex space-x-3 pb-2">
-              <div className="flex space-x-3">
+              <div className="flex space-x-3 bg-gray-100 rounded-md px-1">
                 {units.map((unit) => (
                   <button
                     key={unit.id}
@@ -368,7 +381,13 @@ export default function DataEntriesContent() {
                       <SelectItem value="staffing">Staffing</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Input type="search" placeholder="Search..." className="w-full md:w-auto shadow-none outline-none" />
+                  <Input
+                    type="search"
+                    placeholder="Search..."
+                    className="w-full md:w-auto shadow-none outline-none"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
               </div>
               
               <div className="flex space-x-3">

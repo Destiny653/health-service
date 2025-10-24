@@ -1,10 +1,6 @@
-# TODO: Implement Real Imports and Data for Patient Table
+# TODO: Fix Search Functionality in DataEntriesContent.tsx
 
-## Approved Plan
-- Update `components/PatientsTable.tsx` to use the `Patient` interface from `hooks/usePatients.ts` and define columns matching the data fields (case, patientName, sex, age, maritalStatus, isPregnant, profession, residence, contact, history).
-- Update `components/sections/DataEntriesContent.tsx` to remove all mocks, import `Patient` from `hooks/usePatients.ts`, import `data` from `data.ts`, import `DataTable` from `components/PatientsTable.tsx`, and use real `useQuery` from `@tanstack/react-query` with a queryFn that returns the imported data.
-
-## Steps
-- [x] Update components/PatientsTable.tsx: Import Patient from hooks/usePatients.ts, update columns array to match Patient fields.
-- [x] Update components/sections/DataEntriesContent.tsx: Remove all mock code, add proper imports, use real useQuery with queryFn returning data from data.ts.
-- [x] Test the changes: Run dev server, navigate to the DataEntriesContent page, verify table displays data correctly with pagination.
+- [x] Add searchTerm state using useState<string>('')
+- [x] Add onChange handler for the search Input to update searchTerm
+- [x] Update filteredData useMemo to include search filtering across patient fields (e.g., patientName, case, etc.), combined with date range filter
+- [ ] Verify the search functionality works by testing the component
