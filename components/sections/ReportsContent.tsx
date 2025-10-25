@@ -368,7 +368,7 @@ export default function ReportsContent() {
           background-color: #f0f8ff; 
         }
       `}</style>
-      <div className="mx-auto space-y-6 font-sans antialiased max-w-7xl">
+      <div className="mx-auto space-y-6 font-sans antialiased ">
         
         {/* Header: Location and Legend */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center">

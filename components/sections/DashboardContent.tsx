@@ -55,7 +55,7 @@ const diseaseData = [
 const DashboardContent = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans antialiased">
-      <div className="max-w-7xl mx-auto space-y-6">
+      <div className=" mx-auto space-y-6">
         {/* KPI Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {kpiData.map((kpi, index) => (
