@@ -37,10 +37,12 @@ export function DataTable<TData>({
   data,
   columns,
   isLoading,
+  onRowClick,
 }: {
   data: TData[];
   columns: ColumnDef<TData>[];
   isLoading?: boolean;
+  onRowClick?: (row: TData) => void;
 }) {
   const [pageIndex, setPageIndex] = React.useState(0);
   const [pageSize] = React.useState(8); // Items per page
@@ -91,7 +93,11 @@ export function DataTable<TData>({
             </thead>
             <tbody>
               {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="hover:bg-gray-50 transition-colors">
+                <tr
+                  key={row.id}
+                  className="hover:bg-gray-50 transition-colors cursor-pointer"
+                  onClick={() => onRowClick?.(row.original)}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <td key={cell.id} className="px-4 py-2 border-b">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}

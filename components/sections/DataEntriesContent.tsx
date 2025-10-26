@@ -10,6 +10,8 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 
 // --- MOCK DATA & CONFIGURATION ---
 
@@ -117,6 +119,11 @@ export default function DataEntriesContent() {
   const [activeView, setActiveView] = useState<ViewType>(View.DAY);
   const [selectedUnitId, setSelectedUnitId] = useState<string>(format(baseDate, 'yyyy-MM-dd'));
   const [searchTerm, setSearchTerm] = useState<string>('');
+
+  // Modal states
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [activeTab, setActiveTab] = useState<'details' | 'history'>('details');
 
   // Generate units based on activeView
   const units = useMemo<TimeUnit[]>(() => {
@@ -268,6 +275,17 @@ export default function DataEntriesContent() {
     setActiveView(view);
   };
 
+  const handleRowClick = (patient: Patient) => {
+    setSelectedPatient(patient);
+    setModalOpen(true);
+    setActiveTab('details');
+  };
+
+  const closeModal = () => {
+    setModalOpen(false);
+    setSelectedPatient(null);
+  };
+
   // Define columns based on the Patient interface
   const columns = React.useMemo<ColumnDef<Patient>[]>(
     () => [
@@ -403,8 +421,139 @@ export default function DataEntriesContent() {
           </div>
           
           {/* Main Content Area: Data Table */}
-            <DataTable data={filteredData} columns={columns} isLoading={isLoading} />
+            <DataTable data={filteredData} columns={columns} isLoading={isLoading} onRowClick={handleRowClick} />
         </div>
+
+        {/* Patient Details Modal */}
+        {modalOpen && selectedPatient && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-50">
+            <div className="w-full h-2/3 bg-white rounded-t-lg shadow-lg transform transition-transform duration-300 ease-in-out translate-y-0">
+              <Card className="h-full rounded-t-lg border-0 shadow-none">
+                <CardHeader className="pb-4">
+                  <div className="flex justify-between items-center">
+                    <div className="flex space-x-2">
+                      <Button
+                        variant={activeTab === 'details' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setActiveTab('details')}
+                        className={activeTab === 'details' ? 'bg-blue-600' : ''}
+                      >
+                        Patient Details
+                      </Button>
+                      <Button
+                        variant={activeTab === 'history' ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setActiveTab('history')}
+                        className={activeTab === 'history' ? 'bg-blue-600' : ''}
+                      >
+                        Visit History
+                      </Button>
+                    </div>
+                    <Button variant="ghost" size="sm" onClick={closeModal}>
+                      ✕
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex-1 overflow-y-auto pb-20">
+                  {activeTab === 'details' && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="fullname">Full Name</Label>
+                          <Input id="fullname" defaultValue={selectedPatient.patientName} />
+                        </div>
+                        <div>
+                          <Label htmlFor="age">Age</Label>
+                          <Input id="age" type="number" defaultValue={selectedPatient.age} />
+                        </div>
+                        <div>
+                          <Label htmlFor="sex">Sex</Label>
+                          <Select defaultValue={selectedPatient.sex}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="M">Male</SelectItem>
+                              <SelectItem value="F">Female</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="maritalStatus">Marital Status</Label>
+                          <Select defaultValue={selectedPatient.maritalStatus}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="DI">Divorced</SelectItem>
+                              <SelectItem value="MP">Married</SelectItem>
+                              <SelectItem value="MM">Single</SelectItem>
+                              <SelectItem value="CE">Widowed</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="isPregnant">Is Pregnant</Label>
+                          <Select defaultValue={selectedPatient.isPregnant.toString()}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="1">Yes</SelectItem>
+                              <SelectItem value="2">No</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="profession">Profession</Label>
+                          <Input id="profession" defaultValue={selectedPatient.profession} />
+                        </div>
+                        <div className="col-span-2">
+                          <Label htmlFor="residence">Residence</Label>
+                          <Input id="residence" defaultValue={selectedPatient.residence} />
+                        </div>
+                        <div className="col-span-2">
+                          <Label htmlFor="contact">Contact</Label>
+                          <Input id="contact" defaultValue={selectedPatient.contact} />
+                        </div>
+                        <div className="col-span-2">
+                          <Label htmlFor="history">History</Label>
+                          <Input id="history" defaultValue={selectedPatient.history} />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {activeTab === 'history' && (
+                    <DataTable
+                      data={data.filter(p => p.patientName === selectedPatient.patientName)}
+                      columns={[
+                        { accessorKey: "createdAt", header: "Date", cell: ({ getValue }) => format(getValue() as Date, 'yyyy-MM-dd') },
+                        { accessorKey: "patientName", header: "Patient Name" },
+                        { accessorKey: "sex", header: "Sex" },
+                        { accessorKey: "age", header: "Age" },
+                        { accessorKey: "maritalStatus", header: "Marital Status" },
+                        { accessorKey: "isPregnant", header: "Is Pregnant" },
+                        { accessorKey: "profession", header: "Profession" },
+                        { accessorKey: "residence", header: "Residence" },
+                        { accessorKey: "contact", header: "Contact" },
+                        { accessorKey: "history", header: "History" },
+                      ]}
+                      isLoading={false}
+                    />
+                  )}
+                </CardContent>
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t flex justify-between">
+                  <Button variant="destructive" className="bg-red-600 hover:bg-red-700">
+                    Deceased
+                  </Button>
+                  <Button className="bg-green-600 hover:bg-green-700">
+                    Update Record
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
