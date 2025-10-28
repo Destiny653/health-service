@@ -6,8 +6,8 @@ export interface Patient {
   patientName: string;
   sex: "M" | "F";  // Limited to male/female if that's consistent
   age: number;
-  maritalStatus: "DI" | "MP" | "MM" | "CE"; // Based on your dataset
-  isPregnant: 1 | 2; // could also be boolean if you prefer (true/false)
+  maritalStatus: "SI" | "MA" | "WI" | "DI" | "MP" | "MM" | "CE"; // Based on your dataset
+  isPregnant: 0 | 1 | 2; // could also be boolean if you prefer (true/false)
   profession: string;
   residence: string;
   contact: string;
