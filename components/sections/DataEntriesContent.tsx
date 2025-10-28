@@ -426,25 +426,25 @@ export default function DataEntriesContent() {
 
         {/* Patient Details Modal */}
         {modalOpen && selectedPatient && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-50">
-            <div className="w-full h-2/3 bg-white rounded-t-lg shadow-lg transform transition-transform duration-300 ease-in-out translate-y-0">
-              <Card className="h-full rounded-t-lg border-0 shadow-none">
-                <CardHeader className="pb-4">
-                  <div className="flex justify-between items-center">
-                    <div className="flex space-x-2">
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black -top-6 bg-opacity-50">
+            <div className="w-full h-[90vh] transform transition-transform duration-300 ease-in-out translate-y-0">
+              <Card className="h-full p-0 m-0 bg-white rounded-none border-0 shadow-none">
+                <CardHeader className="p-0 mb-4 border-b">
+                  <div className="flex justify-between items-center p-0">
+                    <div className="flex w-full px-2">
                       <Button
-                        variant={activeTab === 'details' ? 'default' : 'outline'}
+                        // variant={activeTab === 'details' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setActiveTab('details')}
-                        className={activeTab === 'details' ? 'bg-blue-600' : ''}
+                        className={ `${activeTab === 'details' ? 'bg-blue-600' : ''} rounded-none bg-green-600 hover:bg-green-500 py-6`}
                       >
                         Patient Details
                       </Button>
                       <Button
-                        variant={activeTab === 'history' ? 'default' : 'outline'}
+                        // variant={activeTab === 'history' ? 'default' : 'outline'}
                         size="sm"
                         onClick={() => setActiveTab('history')}
-                        className={activeTab === 'history' ? 'bg-blue-600' : ''}
+                        className={`${activeTab === 'history' ? 'bg-blue-600' : ''} rounded-none py-6 bg-blue-600 hover:bg-blue-500`}
                       >
                         Visit History
                       </Button>
@@ -454,22 +454,22 @@ export default function DataEntriesContent() {
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="flex-1 overflow-y-auto pb-20">
+                <CardContent className="flex-1  mx-auto overflow-y-auto pb-20 h-full w- py-4 rounded-md">
                   {activeTab === 'details' && (
-                    <div className="space-y-4">
+                    <div className="space-y-4 max-w-5xl mx-auto">
                       <div className="grid grid-cols-2 gap-4">
-                        <div>
+                        <div className="col-span-2">
                           <Label htmlFor="fullname">Full Name</Label>
-                          <Input id="fullname" defaultValue={selectedPatient.patientName} />
+                          <Input id="fullname" className="rounded-sm shadow-none py-6 focus:outline-none" defaultValue={selectedPatient.patientName} />
                         </div>
                         <div>
                           <Label htmlFor="age">Age</Label>
-                          <Input id="age" type="number" defaultValue={selectedPatient.age} />
+                          <Input id="age" className="rounded-sm shadow-none py-6 focus:outline-none" type="number" defaultValue={selectedPatient.age} />
                         </div>
                         <div>
                           <Label htmlFor="sex">Sex</Label>
                           <Select defaultValue={selectedPatient.sex}>
-                            <SelectTrigger>
+                            <SelectTrigger className="rounded-sm shadow-none py-6 focus:outline-none">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -481,7 +481,7 @@ export default function DataEntriesContent() {
                         <div>
                           <Label htmlFor="maritalStatus">Marital Status</Label>
                           <Select defaultValue={selectedPatient.maritalStatus}>
-                            <SelectTrigger>
+                            <SelectTrigger className="rounded-sm shadow-none py-6 focus:outline-none">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -494,11 +494,11 @@ export default function DataEntriesContent() {
                         </div>
                         <div>
                           <Label htmlFor="isPregnant">Is Pregnant</Label>
-                          <Select defaultValue={selectedPatient.isPregnant.toString()}>
-                            <SelectTrigger>
+                          <Select  defaultValue={selectedPatient.isPregnant.toString()}>
+                            <SelectTrigger className="rounded-sm shadow-none py-6 focus:outline-none">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent  >
                               <SelectItem value="1">Yes</SelectItem>
                               <SelectItem value="2">No</SelectItem>
                             </SelectContent>
@@ -506,19 +506,19 @@ export default function DataEntriesContent() {
                         </div>
                         <div>
                           <Label htmlFor="profession">Profession</Label>
-                          <Input id="profession" defaultValue={selectedPatient.profession} />
+                          <Input id="profession" className="rounded-sm shadow-none py-6 focus:outline-none" defaultValue={selectedPatient.profession} />
                         </div>
-                        <div className="col-span-2">
+                        <div >
                           <Label htmlFor="residence">Residence</Label>
-                          <Input id="residence" defaultValue={selectedPatient.residence} />
+                          <Input id="residence" className="rounded-sm shadow-none py-6 focus:outline-none" defaultValue={selectedPatient.residence} />
                         </div>
-                        <div className="col-span-2">
+                        <div>
                           <Label htmlFor="contact">Contact</Label>
-                          <Input id="contact" defaultValue={selectedPatient.contact} />
+                          <Input id="contact" className="rounded-sm shadow-none py-6 focus:outline-none" defaultValue={selectedPatient.contact} />
                         </div>
-                        <div className="col-span-2">
+                        <div>
                           <Label htmlFor="history">History</Label>
-                          <Input id="history" defaultValue={selectedPatient.history} />
+                          <Input id="history" className="rounded-sm shadow-none py-6 focus:outline-none" defaultValue={selectedPatient.history} />
                         </div>
                       </div>
                     </div>
@@ -542,11 +542,11 @@ export default function DataEntriesContent() {
                     />
                   )}
                 </CardContent>
-                <div className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t flex justify-between">
-                  <Button variant="destructive" className="bg-red-600 hover:bg-red-700">
+                <div className="absolute bottom-0 left-0 right-0 p-4 bg-gray-50 border-t flex justify-between">
+                  <Button variant="destructive" className="bg-red-600 hover:bg-red-700 rounded-none">
                     Deceased
                   </Button>
-                  <Button className="bg-green-600 hover:bg-green-700">
+                  <Button className="bg-green-600 hover:bg-green-700 rounded-none">
                     Update Record
                   </Button>
                 </div>
