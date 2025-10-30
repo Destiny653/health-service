@@ -110,7 +110,7 @@ export default function DataEntriesContent() {
   const [showBottomPanel, setShowBottomPanel] = useState<boolean>(false);
 
   // Draggable divider state - flexible starting point, no reset
-  const [topPanelHeight, setTopPanelHeight] = useState<number>(70); // Initial flexible starting point
+  const [topPanelHeight, setTopPanelHeight] = useState<number>(50); // Initial flexible starting point
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const dividerRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -304,17 +304,13 @@ export default function DataEntriesContent() {
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging) return;
-      
+
       const deltaY = e.clientY - startY;
       const newHeightPx = startHeight + deltaY;
       const containerHeight = containerRef.current?.offsetHeight || window.innerHeight;
-      const minHeight = 5; // Minimal constraint for usability
-      const maxHeight = containerHeight - 5;
-      
-      if (newHeightPx >= minHeight && newHeightPx <= maxHeight) {
-        const newHeightPercent = (newHeightPx / containerHeight) * 100;
-        setTopPanelHeight(newHeightPercent);
-      }
+
+      const newHeightPercent = (newHeightPx / containerHeight) * 100;
+      setTopPanelHeight(newHeightPercent);
     };
 
     const handleMouseUp = () => {

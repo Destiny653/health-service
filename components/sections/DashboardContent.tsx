@@ -11,6 +11,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   Label,
+  Legend,
 } from 'recharts';
 
 // Colors used in the image: yellow-600, blue-600, red-600
@@ -38,7 +39,7 @@ const chartData = [
   { date: 5, consulted: 35, admitted: 30, deaths: 5 },
   { date: 6, consulted: 38, admitted: 10, deaths: 5 },
   { date: 7, consulted: 40, admitted: 25, deaths: 10 },
-  { date: 'date', consulted: 40, admitted: 25, deaths: 10 },
+  { date: '', consulted: 40, admitted: 25, deaths: 10 },
 
 ];
 
@@ -133,6 +134,7 @@ const DashboardContent = () => {
 
                   <Tooltip />
                   {/* Removed Recharts <Legend /> since we're using a custom one in the CardHeader */}
+                  {/* <Legend />  */}
 
                   {/* Lines with updated colors, thickness, and type="monotone" for smoothness */}
                   <Line type="monotone" dataKey="consulted" stroke={COLOR_CONSULTED} strokeWidth={3.5} dot={false} name="Consulted" />

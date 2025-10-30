@@ -113,7 +113,7 @@ const TimeUnitItem = ({ label, value, statusColor, isSelected }: { label: string
       {label}
     </div>
     <div
-      className={`w-8 h-8 flex items-center justify-center text-sm font-bold text-white rounded-md ${statusColor} shadow-sm`}
+      className={`w-8 h-8 p-5 flex items-center justify-center text-sm font-bold text-white rounded-md ${statusColor} shadow-sm`}
     >
       {value}
     </div>
