@@ -2,7 +2,8 @@ import * as React from "react";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { format, startOfYear, addYears, startOfMonth, addMonths, startOfWeek, addWeeks, addDays, getDay, isSameDay, endOfWeek, endOfMonth, endOfYear, isSameWeek, isSameMonth, isSameYear } from 'date-fns';
+// Import all date-fns functions needed
+import { format, startOfYear, addYears, startOfMonth, addMonths, startOfWeek, addWeeks, addDays, getDay, isSameDay, startOfDay, isSameWeek, isSameMonth, isSameYear } from 'date-fns';
 import { Patient } from "@/hooks/usePatients";
 import { PatientDataFile } from "@/data";
 import { data } from "@/data";
@@ -11,6 +12,8 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import PatientDetailsModal from '@/components/PatientDetailsModal';
 
 // --- CONFIGURATION ---
@@ -68,12 +71,12 @@ const TimeUnitItem = ({ label, value, statusColor, isSelected }: { label: string
       {label}
     </div>
     <div
-      className={`w-8 h-8 p-5 flex items-center justify-center text-sm font-bold text-white rounded-md ${statusColor} shadow-sm transition-transform ${isSelected ? 'scale-110' : 'scale-100'}`}
+      className={`w-8 h-8 p-5 flex items-center justify-center text-sm font-bold text-white rounded-md ${statusColor} shadow-sm transition-all duration-300 ease-in-out ${isSelected ? 'scale-110 ring-2 ring-blue-500' : 'scale-100 hover:scale-105'}`}
     >
       {value}
     </div>
     {isSelected && (
-      <div className="w-7 h-1 bg-blue-600 rounded-full mt-1 absolute -bottom-2"></div>
+      <div className="w-7 h-1 bg-blue-600 rounded-full mt-1 absolute -bottom-2 animate-pulse"></div>
     )}
   </div>
 );
@@ -101,14 +104,14 @@ export default function DataEntriesContent() {
   }, [error]);
 
   const baseDate = new Date('2023-06-01');
+  const baseDateStr = format(baseDate, 'yyyy-MM-dd');
   const [activeView, setActiveView] = useState<ViewType>(View.DAY);
-  const [selectedUnitId, setSelectedUnitId] = useState<string>(format(baseDate, 'yyyy-MM-dd'));
+  const [selectedUnitId, setSelectedUnitId] = useState<string>(baseDateStr);
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(baseDateStr); // Date picked from calendar
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  // Panel state
+  // Panel state (remains the same)
   const [showBottomPanel, setShowBottomPanel] = useState<boolean>(false);
-
-  // Draggable divider state (top panel height in percentage)
   const [topPanelHeight, setTopPanelHeight] = useState<number>(65);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const dividerRef = useRef<HTMLDivElement>(null);
@@ -121,15 +124,80 @@ export default function DataEntriesContent() {
   const allPatients = useMemo(() => files.flatMap(f => f.patients), [files]);
   const allImages = useMemo(() => files.flatMap(f => f.fileUrl), [files]);
 
-  // Generate time units based on active view
+  // Use selectedDateStr to create the Date object for the filter range/calendar display
+  // This is stable and only changes when selectedDateStr changes.
+  const selectedDate = useMemo(() => startOfDay(new Date(selectedDateStr)), [selectedDateStr]);
+
+  // This function calculates the unit ID corresponding to a given date and view.
+  const calculateUnitId = useCallback((date: Date, view: ViewType): string => {
+    switch (view) {
+      case View.DAY:
+        return format(date, 'yyyy-MM-dd');
+      case View.WEEK:
+        return format(startOfWeek(date, { weekStartsOn: 1 }), 'yyyy-ww');
+      case View.MONTH:
+        return format(startOfMonth(date), 'yyyy-MM');
+      case View.YEAR:
+        return format(startOfYear(date), 'yyyy');
+      default:
+        return '';
+    }
+  }, []);
+
+  // Primary function to handle ID changes. It only sets state if the ID is new.
+  const updateSelectedUnitId = useCallback((newId: string) => {
+    setSelectedUnitId(prevId => (newId !== prevId ? newId : prevId));
+  }, []);
+
+  // Effect A: **The only synchronization from Date/View to Unit ID.**
+  // When selectedDate (from calendar) or activeView changes, update the selectedUnitId.
+  useEffect(() => {
+    const newId = calculateUnitId(selectedDate, activeView);
+    updateSelectedUnitId(newId);
+  }, [selectedDate, activeView, calculateUnitId, updateSelectedUnitId]);
+
+  // --- NEW LOGIC FOR UNITS CALCULATION ---
+  // 1. Find the date that *corresponds* to the currently selected Unit ID.
+  const dateToCenterUnits = useMemo(() => {
+    if (!selectedUnitId) return selectedDate;
+    
+    // Attempt to reconstruct the start date from the selectedUnitId based on activeView
+    let date;
+    const parts = selectedUnitId.split('-');
+    
+    try {
+        if (activeView === View.DAY) {
+            date = new Date(selectedUnitId); // yyyy-MM-dd
+        } else if (activeView === View.MONTH) {
+            date = new Date(`${selectedUnitId}-01`); // yyyy-MM
+        } else if (activeView === View.YEAR) {
+            date = new Date(`${selectedUnitId}-01-01`); // yyyy
+        } else { // View.WEEK
+            // Reconstructing a date from 'yyyy-ww' is complex. 
+            // The safest bet is to rely on the previously selected date 
+            // since Unit ID is always updated by Effect A on view change.
+            // However, to keep the bar centered, we use the selectedDate.
+            date = selectedDate; 
+        }
+        
+        // Use a valid date from the ID, otherwise use the selected date as a fallback.
+        return date && !isNaN(date.getTime()) ? startOfDay(date) : selectedDate;
+    } catch {
+        return selectedDate;
+    }
+  }, [selectedUnitId, activeView, selectedDate]);
+
+  // 2. Generate time units based on active view and the **derived center date**.
   const units = useMemo<TimeUnit[]>(() => {
     let generatedUnits: TimeUnit[] = [];
 
+    const centerDate = dateToCenterUnits; 
+
     switch (activeView) {
       case View.DAY:
-        const startDay = addDays(baseDate, -4);
+        const startDay = addDays(centerDate, -4);
         for (let i = 0; i < 10; i++) {
-          const day = addDays(startDay, i);
+          const day = startOfDay(addDays(startDay, i));
           generatedUnits.push({
             id: format(day, 'yyyy-MM-dd'),
             date: day,
@@ -142,9 +210,9 @@ export default function DataEntriesContent() {
         break;
 
       case View.WEEK:
-        const startWeek = startOfWeek(addWeeks(baseDate, -4), { weekStartsOn: 1 });
+        const startWeek = startOfWeek(addWeeks(centerDate, -4), { weekStartsOn: 1 });
         for (let i = 0; i < 10; i++) {
-          const weekStart = addWeeks(startWeek, i);
+          const weekStart = startOfWeek(addWeeks(startWeek, i), { weekStartsOn: 1 });
           generatedUnits.push({
             id: format(weekStart, 'yyyy-ww'),
             date: weekStart,
@@ -157,9 +225,9 @@ export default function DataEntriesContent() {
         break;
 
       case View.MONTH:
-        const startMonth = startOfMonth(addMonths(baseDate, -4));
+        const startMonth = startOfMonth(addMonths(centerDate, -4));
         for (let i = 0; i < 10; i++) {
-          const month = addMonths(startMonth, i);
+          const month = startOfMonth(addMonths(startMonth, i));
           generatedUnits.push({
             id: format(month, 'yyyy-MM'),
             date: month,
@@ -172,9 +240,9 @@ export default function DataEntriesContent() {
         break;
 
       case View.YEAR:
-        const startYr = startOfYear(addYears(baseDate, -2));
+        const startYr = startOfYear(addYears(centerDate, -2));
         for (let i = 0; i < 5; i++) {
-          const year = addYears(startYr, i);
+          const year = startOfYear(addYears(startYr, i));
           generatedUnits.push({
             id: format(year, 'yyyy'),
             date: year,
@@ -187,65 +255,53 @@ export default function DataEntriesContent() {
         break;
     }
     return generatedUnits;
-  }, [activeView, baseDate]);
-
-  // Set initial selected unit when view changes (only when view changes, not units)
-  useEffect(() => {
-    let todayId: string;
-    switch (activeView) {
-      case View.DAY:
-        todayId = format(baseDate, 'yyyy-MM-dd');
-        break;
-      case View.WEEK:
-        const weekStart = startOfWeek(baseDate, { weekStartsOn: 1 });
-        todayId = format(weekStart, 'yyyy-ww');
-        break;
-      case View.MONTH:
-        todayId = format(startOfMonth(baseDate), 'yyyy-MM');
-        break;
-      case View.YEAR:
-        todayId = format(baseDate, 'yyyy');
-        break;
-      default:
-        todayId = '';
-    }
-    setSelectedUnitId(todayId);
-  }, [activeView, baseDate]); // Removed 'units' from dependencies to prevent overriding user selection
+  }, [activeView, dateToCenterUnits, baseDate]); 
 
   const selectedUnit = useMemo(() => {
     return units.find(u => u.id === selectedUnitId) || null;
   }, [units, selectedUnitId]);
 
+  // Effect B: **CRITICAL FIX: This effect is removed.** // The responsibility of syncing `selectedDateStr` now belongs only to the user handlers.
+
+  
+  // Date Range Calculation (Remains correct)
   const [startRange, endRange] = useMemo(() => {
     if (!selectedUnit) return [null, null] as [Date | null, Date | null];
     const d = selectedUnit.date;
+    
     switch(activeView){
       case View.DAY:
-        return [d, d];
+        const dayStart = startOfDay(d); 
+        const dayEnd = addDays(dayStart, 1);
+        return [dayStart, dayEnd];
       case View.WEEK:
         const weekStart = startOfWeek(d, {weekStartsOn: 1});
-        const weekEnd = endOfWeek(weekStart, {weekStartsOn: 1});
+        const weekEnd = addWeeks(weekStart, 1);
         return [weekStart, weekEnd];
       case View.MONTH:
         const monthStart = startOfMonth(d);
-        const monthEnd = endOfMonth(monthStart);
+        const monthEnd = addMonths(monthStart, 1);
         return [monthStart, monthEnd];
       case View.YEAR:
         const yearStart = startOfYear(d);
-        const yearEnd = endOfYear(yearStart);
+        const yearEnd = addYears(yearStart, 1);
         return [yearStart, yearEnd];
       default:
         return [null, null];
     }
   }, [selectedUnit, activeView]);
 
+  // Data Filtering Logic (Remains correct)
   const filteredData = useMemo(() => {
     if (!files.length || !startRange || !endRange) return [];
+    
     const filteredFiles = files.filter(f => {
-      const created = f.createdAt;
-      return created >= startRange && created <= endRange;
+      const created = new Date(f.createdAt); 
+      return created >= startRange && created < endRange;
     });
+
     let flatPatients = filteredFiles.flatMap(f => f.patients);
+    
     if (searchTerm !== '') {
       flatPatients = flatPatients.filter(p => [
         p.patientName,
@@ -262,10 +318,33 @@ export default function DataEntriesContent() {
     return flatPatients;
   }, [files, startRange, endRange, searchTerm]);
 
+  // Handlers
   const handleUnitClick = useCallback((unitId: string) => {
-    console.log('Unit clicked:', unitId);
+    // CRITICAL FIX: When unit is clicked, update both ID and Date String.
     setSelectedUnitId(unitId);
+    
+    // Find the corresponding unit date and set it as the new selected date string
+    const clickedUnit = units.find(u => u.id === unitId);
+    if (clickedUnit) {
+      setSelectedDateStr(format(clickedUnit.date, 'yyyy-MM-dd'));
+    }
+  }, [units]); // Units must be in dependency array now.
+
+  const handleCalendarSelect = useCallback((date: Date | undefined) => {
+    if (date) {
+      setSelectedDateStr(format(date, 'yyyy-MM-dd'));
+      // Effect A will update selectedUnitId automatically based on this new date.
+    }
   }, []);
+
+  // View Change Handler (Remains correct)
+  const handleViewChange = useCallback((view: ViewType) => {
+    setActiveView(view);
+    // Effect A will handle the update of selectedUnitId based on the new view.
+  }, []);
+
+  // ... (rest of the component logic and render remains the same)
+  // ... (Modal/Panel/Drag logic remains the same)
 
   const handleRowClick = (patient: Patient) => {
     setSelectedPatient(patient);
@@ -291,9 +370,8 @@ export default function DataEntriesContent() {
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
 
-    // Use window height for full-window dragging
     const windowHeight = window.innerHeight;
-    const headerHeight = 100; // Approximate header height
+    const headerHeight = 100; 
     const availableHeight = windowHeight - headerHeight;
     const newY = e.clientY - headerHeight;
 
@@ -393,13 +471,19 @@ export default function DataEntriesContent() {
         }
         .time-unit-button {
           cursor: pointer;
-          transition: all 0.2s ease;
+          transition: all 0.3s ease-in-out;
         }
         .time-unit-button:hover {
           transform: translateY(-2px);
         }
         .time-unit-button:active {
           transform: translateY(0);
+        }
+        .date-range-display {
+          transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+        .data-table {
+          transition: opacity 0.3s ease-in-out;
         }
       `}</style>
       
@@ -444,22 +528,42 @@ export default function DataEntriesContent() {
             {/* Time Selector */}
             <div className="p-4 border-b">
               <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-3 border-b border-t pt-1 pb-1">
-                <div className="flex p-1 space-x-1 mb-4 md:mb-0 bg-gray-100 rounded-md px-1">
-                  {Object.values(View).reverse().map((view) => (
-                    <Button
-                      key={view}
-                      variant={view === activeView ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => setActiveView(view)}
-                      className={`rounded-md px-4 ${view === activeView && 'bg-green-600 hover:bg-green-500'}`}
-                    >
-                      {view}
-                    </Button>
-                  ))}
+                <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-4 mb-4 md:mb-0">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-gray-600 whitespace-nowrap">Select Date:</span>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-[240px] justify-start text-left font-normal h-8">
+                          <span className="mr-2">{format(selectedDate, 'PPP')}</span>
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={handleCalendarSelect}
+                          className="rounded-md border"
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <div className="flex p-1 space-x-1 bg-gray-100 rounded-md px-1">
+                    {Object.values(View).reverse().map((view) => (
+                      <Button
+                        key={view}
+                        variant={view === activeView ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => handleViewChange(view)}
+                        className={`rounded-md px-4 transition-colors duration-200 ${view === activeView && 'bg-green-600 hover:bg-green-500'}`}
+                      >
+                        {view}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="flex space-x-3 pb-2">
-                  <div className="flex space-x-3 bg-gray-100 rounded-md px-1 py-2">
+                  <div className="flex space-x-3 bg-gray-100 rounded-md px-1 py-2 transition-all duration-300 ease-in-out">
                     {units.map((unit) => (
                       <button
                         key={unit.id}
@@ -482,9 +586,9 @@ export default function DataEntriesContent() {
               
               {/* Date Range Display */}
               {startRange && endRange && (
-                <div className="text-sm text-gray-600 mt-2 p-2 bg-blue-50 rounded-md border border-blue-200">
+                <div className="date-range-display text-sm text-gray-600 mt-2 p-2 bg-blue-50 rounded-md border border-blue-200">
                   <strong>Selected Range:</strong> {format(startRange, 'MMM d, yyyy')} 
-                  {!isSameDay(startRange, endRange) && ` - ${format(endRange, 'MMM d, yyyy')}`}
+                  {!isSameDay(startRange, addDays(endRange, -1)) && ` - ${format(addDays(endRange, -1), 'MMM d, yyyy')}`}
                   <span className="ml-3 text-blue-700">({filteredData.length} records)</span>
                 </div>
               )}
@@ -499,7 +603,7 @@ export default function DataEntriesContent() {
                     <SelectTrigger className="w-[180px] shadow-none outline-none">
                       <SelectValue placeholder="Disease control" />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent id="disease-select-content">
                       <SelectItem value="disease-control">Disease control</SelectItem>
                       <SelectItem value="outbreaks">Outbreaks</SelectItem>
                       <SelectItem value="staffing">Staffing</SelectItem>
@@ -526,7 +630,9 @@ export default function DataEntriesContent() {
                 </div>
               </div>
               
-              <DataTable data={filteredData} columns={columns} isLoading={isLoading} onRowClick={handleRowClick} />
+              <div className="data-table">
+                <DataTable data={filteredData} columns={columns} isLoading={isLoading} onRowClick={handleRowClick} />
+              </div>
             </div>
           </div>
         </div>
