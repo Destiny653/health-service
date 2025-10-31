@@ -17,11 +17,7 @@ const MainLayout = ({
   const ActiveComponent = NAV_ITEMS.find(item => item.id === activeTab)?.Component || DashboardContent;
 
   return (
-    <div className="min-h-screen bg-gray-100 font-sans">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-        .font-sans { font-family: 'Inter', sans-serif; }
-      `}</style>
+    <div className="min-h-screen bg-gray-100 ">
 
       {/* 1. Header Component (Reusable) */}
       <AppHeader activeTab={activeTab} setActiveTab={setActiveTab} />

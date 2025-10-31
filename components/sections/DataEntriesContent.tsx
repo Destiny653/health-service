@@ -434,10 +434,9 @@ export default function DataEntriesContent() {
   );
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden font-sans antialiased">
+    <div className={`${'h-screen'} flex flex-col overflow-hidden font-[400] antialiased`}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-        .font-sans { font-family: 'Inter', sans-serif; }
+      
         .divider {
           height: 8px;
           background: #e5e7eb;
@@ -598,7 +597,7 @@ export default function DataEntriesContent() {
             <div className="p-4">
               <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 mb-4">
                 <div className="flex items-center space-x-4">
-                  <div className="font-[500] text-lg rounded-md bg-gray-100 p-2">Report</div>
+                  <div className="font-[500] text-md rounded-md bg-gray-100 p-2">Report</div>
                   <Select>
                     <SelectTrigger className="w-[180px] shadow-none outline-none">
                       <SelectValue placeholder="Disease control" />

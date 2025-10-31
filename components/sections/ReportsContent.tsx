@@ -319,8 +319,6 @@ export default function ReportsContent() {
   return (
     <div className="min-h-screen bg-white p-4">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
-        .font-sans { font-family: 'Inter', sans-serif; }
         .disease-table {
           border-collapse: collapse;
           width: 100%;
@@ -368,7 +366,7 @@ export default function ReportsContent() {
           background-color: #f0f8ff; 
         }
       `}</style>
-      <div className="mx-auto space-y-6 font-sans antialiased ">
+      <div className="mx-auto space-y-6 antialiased ">
         
         {/* Header: Location and Legend */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
