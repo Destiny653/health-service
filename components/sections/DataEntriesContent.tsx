@@ -160,30 +160,30 @@ export default function DataEntriesContent() {
   // 1. Find the date that *corresponds* to the currently selected Unit ID.
   const dateToCenterUnits = useMemo(() => {
     if (!selectedUnitId) return selectedDate;
-    
+
     // Attempt to reconstruct the start date from the selectedUnitId based on activeView
     let date;
     const parts = selectedUnitId.split('-');
-    
+
     try {
-        if (activeView === View.DAY) {
-            date = new Date(selectedUnitId); // yyyy-MM-dd
-        } else if (activeView === View.MONTH) {
-            date = new Date(`${selectedUnitId}-01`); // yyyy-MM
-        } else if (activeView === View.YEAR) {
-            date = new Date(`${selectedUnitId}-01-01`); // yyyy
-        } else { // View.WEEK
-            // Reconstructing a date from 'yyyy-ww' is complex. 
-            // The safest bet is to rely on the previously selected date 
-            // since Unit ID is always updated by Effect A on view change.
-            // However, to keep the bar centered, we use the selectedDate.
-            date = selectedDate; 
-        }
-        
-        // Use a valid date from the ID, otherwise use the selected date as a fallback.
-        return date && !isNaN(date.getTime()) ? startOfDay(date) : selectedDate;
+      if (activeView === View.DAY) {
+        date = new Date(selectedUnitId); // yyyy-MM-dd
+      } else if (activeView === View.MONTH) {
+        date = new Date(`${selectedUnitId}-01`); // yyyy-MM
+      } else if (activeView === View.YEAR) {
+        date = new Date(`${selectedUnitId}-01-01`); // yyyy
+      } else { // View.WEEK
+        // Reconstructing a date from 'yyyy-ww' is complex. 
+        // The safest bet is to rely on the previously selected date 
+        // since Unit ID is always updated by Effect A on view change.
+        // However, to keep the bar centered, we use the selectedDate.
+        date = selectedDate;
+      }
+
+      // Use a valid date from the ID, otherwise use the selected date as a fallback.
+      return date && !isNaN(date.getTime()) ? startOfDay(date) : selectedDate;
     } catch {
-        return selectedDate;
+      return selectedDate;
     }
   }, [selectedUnitId, activeView, selectedDate]);
 
@@ -191,7 +191,7 @@ export default function DataEntriesContent() {
   const units = useMemo<TimeUnit[]>(() => {
     let generatedUnits: TimeUnit[] = [];
 
-    const centerDate = dateToCenterUnits; 
+    const centerDate = dateToCenterUnits;
 
     switch (activeView) {
       case View.DAY:
@@ -255,7 +255,7 @@ export default function DataEntriesContent() {
         break;
     }
     return generatedUnits;
-  }, [activeView, dateToCenterUnits, baseDate]); 
+  }, [activeView, dateToCenterUnits, baseDate]);
 
   const selectedUnit = useMemo(() => {
     return units.find(u => u.id === selectedUnitId) || null;
@@ -263,19 +263,19 @@ export default function DataEntriesContent() {
 
   // Effect B: **CRITICAL FIX: This effect is removed.** // The responsibility of syncing `selectedDateStr` now belongs only to the user handlers.
 
-  
+
   // Date Range Calculation (Remains correct)
   const [startRange, endRange] = useMemo(() => {
     if (!selectedUnit) return [null, null] as [Date | null, Date | null];
     const d = selectedUnit.date;
-    
-    switch(activeView){
+
+    switch (activeView) {
       case View.DAY:
-        const dayStart = startOfDay(d); 
+        const dayStart = startOfDay(d);
         const dayEnd = addDays(dayStart, 1);
         return [dayStart, dayEnd];
       case View.WEEK:
-        const weekStart = startOfWeek(d, {weekStartsOn: 1});
+        const weekStart = startOfWeek(d, { weekStartsOn: 1 });
         const weekEnd = addWeeks(weekStart, 1);
         return [weekStart, weekEnd];
       case View.MONTH:
@@ -294,14 +294,14 @@ export default function DataEntriesContent() {
   // Data Filtering Logic (Remains correct)
   const filteredData = useMemo(() => {
     if (!files.length || !startRange || !endRange) return [];
-    
+
     const filteredFiles = files.filter(f => {
-      const created = new Date(f.createdAt); 
+      const created = new Date(f.createdAt);
       return created >= startRange && created < endRange;
     });
 
     let flatPatients = filteredFiles.flatMap(f => f.patients);
-    
+
     if (searchTerm !== '') {
       flatPatients = flatPatients.filter(p => [
         p.patientName,
@@ -322,7 +322,7 @@ export default function DataEntriesContent() {
   const handleUnitClick = useCallback((unitId: string) => {
     // CRITICAL FIX: When unit is clicked, update both ID and Date String.
     setSelectedUnitId(unitId);
-    
+
     // Find the corresponding unit date and set it as the new selected date string
     const clickedUnit = units.find(u => u.id === unitId);
     if (clickedUnit) {
@@ -371,7 +371,7 @@ export default function DataEntriesContent() {
     if (!isDragging) return;
 
     const windowHeight = window.innerHeight;
-    const headerHeight = 100; 
+    const headerHeight = 100;
     const availableHeight = windowHeight - headerHeight;
     const newY = e.clientY - headerHeight;
 
@@ -485,7 +485,7 @@ export default function DataEntriesContent() {
           transition: opacity 0.3s ease-in-out;
         }
       `}</style>
-      
+
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 bg-white z-20 flex-shrink-0">
         <div className="flex items-center space-x-2 bg-blue-50 py-2 px-4 rounded-md border border-blue-200">
@@ -517,10 +517,10 @@ export default function DataEntriesContent() {
 
       {/* Main Split Container */}
       <div className="flex-1 flex flex-col overflow-hidden" ref={containerRef}>
-        
+
         {/* Top Panel */}
-        <div 
-          className="bg-white relative flex-shrink-0" 
+        <div
+          className="bg-white relative flex-shrink-0"
           style={{ height: showBottomPanel ? `${topPanelHeight}%` : '100%' }}
         >
           <div className="top-panel-content">
@@ -542,6 +542,9 @@ export default function DataEntriesContent() {
                           selected={selectedDate}
                           onSelect={handleCalendarSelect}
                           className="rounded-md border"
+                          captionLayout="dropdown"
+                          fromYear={1990}
+                          toYear={2030}
                         />
                       </PopoverContent>
                     </Popover>
@@ -582,17 +585,17 @@ export default function DataEntriesContent() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Date Range Display */}
               {startRange && endRange && (
                 <div className="date-range-display text-sm text-gray-600 mt-2 p-2 bg-blue-50 rounded-md border border-blue-200">
-                  <strong>Selected Range:</strong> {format(startRange, 'MMM d, yyyy')} 
+                  <strong>Selected Range:</strong> {format(startRange, 'MMM d, yyyy')}
                   {!isSameDay(startRange, addDays(endRange, -1)) && ` - ${format(addDays(endRange, -1), 'MMM d, yyyy')}`}
                   <span className="ml-3 text-blue-700">({filteredData.length} records)</span>
                 </div>
               )}
             </div>
-            
+
             {/* Actions and Table */}
             <div className="p-4">
               <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 mb-4">
@@ -616,7 +619,7 @@ export default function DataEntriesContent() {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                
+
                 <div className="flex space-x-3">
                   <Button variant="outline" className="bg-blue-50 text-blue-700 hover:text-white hover:bg-blue-700 shadow-none" onClick={toggleBottomPanel}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M15.536 6.758a1 1 0 00-1.414 0L10 10.879 5.879 6.758a1 1 0 10-1.414 1.414l4.95 4.95a1 1 0 001.414 0l4.95-4.95a1 1 0 000-1.414z" /><path d="M15 14h-5m-5 0h5m-5 3h10a2 2 0 002-2v-3a2 2 0 00-2-2H5a2 2 0 00-2 2v3a2 2 0 002 2z" /></svg>
@@ -628,7 +631,7 @@ export default function DataEntriesContent() {
                   </Button>
                 </div>
               </div>
-              
+
               <div className="data-table">
                 <DataTable data={filteredData} columns={columns} isLoading={isLoading} onRowClick={handleRowClick} />
               </div>
@@ -638,7 +641,7 @@ export default function DataEntriesContent() {
 
         {/* Draggable Divider */}
         {showBottomPanel && (
-          <div 
+          <div
             ref={dividerRef}
             className={`divider ${isDragging ? 'dragging' : ''}`}
             onMouseDown={handleMouseDown}
@@ -647,7 +650,7 @@ export default function DataEntriesContent() {
 
         {/* Bottom Panel */}
         {showBottomPanel && (
-          <div 
+          <div
             className="bg-gray-50 p-4 grid grid-cols-2 gap-4 overflow-auto flex-1"
             style={{ height: `${100 - topPanelHeight}%` }}
           >
