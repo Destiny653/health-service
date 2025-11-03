@@ -32,19 +32,19 @@ export default function PatientDetailsModal({
       <div className="w-full h-[90vh] transform transition-transform duration-300 ease-in-out translate-y-0">
         <Card className="h-full p-0 m-0 bg-white rounded-none border-0 shadow-none">
           <CardHeader className="p-0 mb-4 border-b">
-            <div className="flex justify-between items-center p-0">
+            <div className="flex  items-center p-0">
               <div className="flex w-full px-2">
                 <Button
                   size="sm"
                   onClick={() => setActiveTab('details')}
-                  className={`${activeTab === 'details' ? 'bg-blue-600' : ''} rounded-none bg-green-600 hover:bg-green-500 py-6`}
+                  className={`${activeTab === 'details' ? 'border-[#021EF5] border-b-2 text-[#021EF5]' : 'text-black'} rounded-none shadow-none font-semibold bg-inherit hover:bg-gray-100 py-6`}
                 >
                   Patient Details
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => setActiveTab('history')}
-                  className={`${activeTab === 'history' ? 'bg-blue-600' : ''} rounded-none py-6 bg-blue-600 hover:bg-blue-500`}
+                  className={`${activeTab === 'history' ? 'border-[#021EF5] border-b-2 text-[#021EF5]' : 'text-black'} rounded-none shadow-none font-semibold py-6 bg-inherit hover:bg-gray-100`}
                 >
                   Visit History
                 </Button>
@@ -143,10 +143,10 @@ export default function PatientDetailsModal({
             )}
           </CardContent>
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-gray-50 border-t flex justify-between">
-            <Button variant="destructive" className="bg-red-600 hover:bg-red-700 rounded-none">
+            <Button variant="destructive" className="bg-red-600 hover:bg-red-700 rounded-sm">
               Deceased
             </Button>
-            <Button className="bg-green-600 hover:bg-green-700 rounded-none">
+            <Button className="bg-green-600 hover:bg-green-700 rounded-sm">
               Update Record
             </Button>
           </div>

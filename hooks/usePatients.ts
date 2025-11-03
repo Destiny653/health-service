@@ -1,18 +1,34 @@
 import { useFetch } from "./useFetch";
 import { useMutationRequest } from "./useMutationRequest";
 
+// hooks/usePatients.ts (or types.ts)
 export interface Patient {
+  id: string;
   case: number;
   patientName: string;
-  sex: "M" | "F";  // Limited to male/female if that's consistent
+  sex: "M" | "F";
   age: number;
-  maritalStatus: "SI" | "MA" | "WI" | "DI" | "MP" | "MM" | "CE"; // Based on your dataset
-  isPregnant: 0 | 1 | 2; // could also be boolean if you prefer (true/false)
+  maritalStatus: "SI" | "MA" | "WI" | "DI" | "MP" | "MM" | "CE";  // Married, Single, Divorced, Widowed, MM (custom)
+  isPregnant: 0 | 1;
   profession: string;
   residence: string;
   contact: string;
+  patientCode?: string;
   history: string;
-  createdAt: Date; // Added timestamp for time-based filtering
+  symptoms?: string[];
+  diagnosisPrescribing?: string;
+  testsRequested?: string[];
+  confirmedResults?: string[];
+  confirmatoryDiagnosis?: string;
+  treatment?: string[];
+  careLevel?: "Ambulatory" | "Observation" | "Hospitalization";
+  receiptNumber?: string;
+  referenceHospital?: string;
+  observations?: string;
+  createdAt: Date;
+  updatedAt?: Date;
+  isRareCase?: boolean;
+  dataIssues?: string[];
 }
 
 

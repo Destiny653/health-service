@@ -74,13 +74,13 @@ export function DataTable<TData>({
           </div>
         ) : (
           <table className="min-w-[95vw] border border-gray-200 text-sm">
-            <thead className="bg-gray-100">
+            <thead className="bg-[#F2F7FB]">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="text-left px-4 py-2 border-b font-semibold"
+                      className="text-left px-4 py-2 border-b border-gray-50 font-semibold"
                     >
                       {flexRender(
                         header.column.columnDef.header,
@@ -99,7 +99,7 @@ export function DataTable<TData>({
                   onClick={() => onRowClick?.(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-4 py-2 border-b">
+                    <td key={cell.id} className="px-4 py-2 border-b  border-gray-50">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

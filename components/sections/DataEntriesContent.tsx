@@ -2,7 +2,6 @@ import * as React from "react";
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-// Import all date-fns functions needed
 import { format, startOfYear, addYears, startOfMonth, addMonths, startOfWeek, addWeeks, addDays, getDay, isSameDay, startOfDay, isSameWeek, isSameMonth, isSameYear } from 'date-fns';
 import { Patient } from "@/hooks/usePatients";
 import { PatientDataFile } from "@/data";
@@ -15,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import PatientDetailsModal from '@/components/PatientDetailsModal';
+import ImageViewer from "../ImageViewer";
 
 // --- CONFIGURATION ---
 const View = {
@@ -26,29 +26,85 @@ const View = {
 
 type ViewType = typeof View[keyof typeof View];
 
+/* --------------------------------------------------------------
+   UPDATED: Status colors based on submissionStatus + date logic
+   -------------------------------------------------------------- */
 const STATUS_COLORS = {
-  NEW_RECORD: 'bg-yellow-400',
-  UNDER_REVIEW: 'bg-green-200',
-  COMPLETE: 'bg-green-500',
-  NO_SUBMISSION: 'bg-red-500',
-  NO_DATA: 'bg-gray-300',
+  GREEN: 'bg-green-500',
+  YELLOW: 'bg-yellow-400',
+  RED: 'bg-red-500',
+  GRAY: 'bg-gray-300',
 } as const;
 
 type StatusColor = typeof STATUS_COLORS[keyof typeof STATUS_COLORS];
 
-const generateStatus = (date: Date): StatusColor => {
-  const day = date.getDate();
-  const month = date.getMonth();
+/* --------------------------------------------------------------
+   Helper: Is a date in the past (before today)?
+   -------------------------------------------------------------- */
+const isPastDate = (d: Date): boolean => d < startOfDay(new Date());
 
-  if (day === 7 || day === 15) return STATUS_COLORS.NO_SUBMISSION;
-  if (day % 3 === 0) return STATUS_COLORS.COMPLETE;
-  if (day % 5 === 0) return STATUS_COLORS.UNDER_REVIEW;
-  if (day % 2 === 1) return STATUS_COLORS.NEW_RECORD;
+/* --------------------------------------------------------------
+   NEW: generateStatus uses real file data + date logic
+   -------------------------------------------------------------- */
+const generateStatus = (
+  unitDate: Date,
+  files: PatientDataFile[],
+  view: ViewType
+): StatusColor => {
+  // Define the time range for the current unit
+  let unitStart: Date, unitEnd: Date;
 
-  if (month === 8) return STATUS_COLORS.UNDER_REVIEW;
-  if (month === 10) return STATUS_COLORS.COMPLETE;
+  switch (view) {
+    case View.DAY:
+      unitStart = startOfDay(unitDate);
+      unitEnd = addDays(unitStart, 1);
+      break;
+    case View.WEEK:
+      unitStart = startOfWeek(unitDate, { weekStartsOn: 1 });
+      unitEnd = addWeeks(unitStart, 1);
+      break;
+    case View.MONTH:
+      unitStart = startOfMonth(unitDate);
+      unitEnd = addMonths(unitStart, 1);
+      break;
+    case View.YEAR:
+      unitStart = startOfYear(unitDate);
+      unitEnd = addYears(unitStart, 1);
+      break;
+    default:
+      unitStart = unitDate;
+      unitEnd = addDays(unitDate, 1);
+  }
 
-  return STATUS_COLORS.NO_DATA;
+  // Find files created within this time unit
+  const filesInUnit = files.filter(f => {
+    const created = new Date(f.createdAt);
+    return created >= unitStart && created < unitEnd;
+  });
+
+  // No files in this unit
+  if (filesInUnit.length === 0) {
+    return isPastDate(unitDate) ? STATUS_COLORS.RED : STATUS_COLORS.GRAY;
+  }
+
+  // Determine the "worst" status (progress > pending > N/A)
+  const worstStatus = filesInUnit.reduce((worst, file) => {
+    if (worst === 'confirmed') return worst;
+    if (file.submissionStatus === 'confirmed') return worst;
+    return file.submissionStatus;
+  }, filesInUnit[0].submissionStatus);
+
+  // Map status to color
+  switch (worstStatus) {
+    case 'confirmed':
+      return STATUS_COLORS.GREEN;
+    case 'progress':
+      return STATUS_COLORS.YELLOW;
+    case 'pending':
+      return STATUS_COLORS.GRAY;
+    default:
+      return isPastDate(unitDate) ? STATUS_COLORS.RED : STATUS_COLORS.GRAY;
+  }
 };
 
 const dayAbbreviation = (date: Date): string => {
@@ -107,10 +163,9 @@ export default function DataEntriesContent() {
   const baseDateStr = format(baseDate, 'yyyy-MM-dd');
   const [activeView, setActiveView] = useState<ViewType>(View.DAY);
   const [selectedUnitId, setSelectedUnitId] = useState<string>(baseDateStr);
-  const [selectedDateStr, setSelectedDateStr] = useState<string>(baseDateStr); // Date picked from calendar
+  const [selectedDateStr, setSelectedDateStr] = useState<string>(baseDateStr);
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  // Panel state (remains the same)
   const [showBottomPanel, setShowBottomPanel] = useState<boolean>(false);
   const [topPanelHeight, setTopPanelHeight] = useState<number>(65);
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -124,11 +179,8 @@ export default function DataEntriesContent() {
   const allPatients = useMemo(() => files.flatMap(f => f.patients), [files]);
   const allImages = useMemo(() => files.flatMap(f => f.fileUrl), [files]);
 
-  // Use selectedDateStr to create the Date object for the filter range/calendar display
-  // This is stable and only changes when selectedDateStr changes.
   const selectedDate = useMemo(() => startOfDay(new Date(selectedDateStr)), [selectedDateStr]);
 
-  // This function calculates the unit ID corresponding to a given date and view.
   const calculateUnitId = useCallback((date: Date, view: ViewType): string => {
     switch (view) {
       case View.DAY:
@@ -144,127 +196,97 @@ export default function DataEntriesContent() {
     }
   }, []);
 
-  // Primary function to handle ID changes. It only sets state if the ID is new.
   const updateSelectedUnitId = useCallback((newId: string) => {
     setSelectedUnitId(prevId => (newId !== prevId ? newId : prevId));
   }, []);
 
-  // Effect A: **The only synchronization from Date/View to Unit ID.**
-  // When selectedDate (from calendar) or activeView changes, update the selectedUnitId.
   useEffect(() => {
     const newId = calculateUnitId(selectedDate, activeView);
     updateSelectedUnitId(newId);
   }, [selectedDate, activeView, calculateUnitId, updateSelectedUnitId]);
 
-  // --- NEW LOGIC FOR UNITS CALCULATION ---
-  // 1. Find the date that *corresponds* to the currently selected Unit ID.
   const dateToCenterUnits = useMemo(() => {
     if (!selectedUnitId) return selectedDate;
 
-    // Attempt to reconstruct the start date from the selectedUnitId based on activeView
     let date;
     const parts = selectedUnitId.split('-');
 
     try {
       if (activeView === View.DAY) {
-        date = new Date(selectedUnitId); // yyyy-MM-dd
+        date = new Date(selectedUnitId);
       } else if (activeView === View.MONTH) {
-        date = new Date(`${selectedUnitId}-01`); // yyyy-MM
+        date = new Date(`${selectedUnitId}-01`);
       } else if (activeView === View.YEAR) {
-        date = new Date(`${selectedUnitId}-01-01`); // yyyy
-      } else { // View.WEEK
-        // Reconstructing a date from 'yyyy-ww' is complex. 
-        // The safest bet is to rely on the previously selected date 
-        // since Unit ID is always updated by Effect A on view change.
-        // However, to keep the bar centered, we use the selectedDate.
+        date = new Date(`${selectedUnitId}-01-01`);
+      } else {
         date = selectedDate;
       }
 
-      // Use a valid date from the ID, otherwise use the selected date as a fallback.
       return date && !isNaN(date.getTime()) ? startOfDay(date) : selectedDate;
     } catch {
       return selectedDate;
     }
   }, [selectedUnitId, activeView, selectedDate]);
 
-  // 2. Generate time units based on active view and the **derived center date**.
+  /* --------------------------------------------------------------
+     UPDATED: units now use real submission status + date logic
+     -------------------------------------------------------------- */
   const units = useMemo<TimeUnit[]>(() => {
     let generatedUnits: TimeUnit[] = [];
-
     const centerDate = dateToCenterUnits;
 
+    const pushUnit = (date: Date, label: string, value: string, id: string) => {
+      generatedUnits.push({
+        id,
+        date,
+        label,
+        value,
+        statusColor: generateStatus(date, files, activeView),
+        isToday: isSameDay(date, new Date()),
+      });
+    };
+
     switch (activeView) {
-      case View.DAY:
+      case View.DAY: {
         const startDay = addDays(centerDate, -4);
         for (let i = 0; i < 10; i++) {
           const day = startOfDay(addDays(startDay, i));
-          generatedUnits.push({
-            id: format(day, 'yyyy-MM-dd'),
-            date: day,
-            label: dayAbbreviation(day),
-            value: format(day, 'd'),
-            statusColor: generateStatus(day),
-            isToday: isSameDay(day, baseDate),
-          });
+          pushUnit(day, dayAbbreviation(day), format(day, 'd'), format(day, 'yyyy-MM-dd'));
         }
         break;
-
-      case View.WEEK:
+      }
+      case View.WEEK: {
         const startWeek = startOfWeek(addWeeks(centerDate, -4), { weekStartsOn: 1 });
         for (let i = 0; i < 10; i++) {
           const weekStart = startOfWeek(addWeeks(startWeek, i), { weekStartsOn: 1 });
-          generatedUnits.push({
-            id: format(weekStart, 'yyyy-ww'),
-            date: weekStart,
-            label: `W${format(weekStart, 'w')}`,
-            value: format(weekStart, 'w'),
-            statusColor: generateStatus(weekStart),
-            isToday: isSameWeek(weekStart, baseDate, { weekStartsOn: 1 }),
-          });
+          pushUnit(weekStart, `W${format(weekStart, 'w')}`, format(weekStart, 'w'), format(weekStart, 'yyyy-ww'));
         }
         break;
-
-      case View.MONTH:
+      }
+      case View.MONTH: {
         const startMonth = startOfMonth(addMonths(centerDate, -4));
         for (let i = 0; i < 10; i++) {
           const month = startOfMonth(addMonths(startMonth, i));
-          generatedUnits.push({
-            id: format(month, 'yyyy-MM'),
-            date: month,
-            label: format(month, 'MMM'),
-            value: format(month, 'M'),
-            statusColor: generateStatus(month),
-            isToday: isSameMonth(month, baseDate),
-          });
+          pushUnit(month, format(month, 'MMM'), format(month, 'M'), format(month, 'yyyy-MM'));
         }
         break;
-
-      case View.YEAR:
+      }
+      case View.YEAR: {
         const startYr = startOfYear(addYears(centerDate, -2));
         for (let i = 0; i < 5; i++) {
           const year = startOfYear(addYears(startYr, i));
-          generatedUnits.push({
-            id: format(year, 'yyyy'),
-            date: year,
-            label: '',
-            value: format(year, 'yyyy'),
-            statusColor: generateStatus(year),
-            isToday: isSameYear(year, baseDate),
-          });
+          pushUnit(year, '', format(year, 'yyyy'), format(year, 'yyyy'));
         }
         break;
+      }
     }
     return generatedUnits;
-  }, [activeView, dateToCenterUnits, baseDate]);
+  }, [activeView, dateToCenterUnits, files]);
 
   const selectedUnit = useMemo(() => {
     return units.find(u => u.id === selectedUnitId) || null;
   }, [units, selectedUnitId]);
 
-  // Effect B: **CRITICAL FIX: This effect is removed.** // The responsibility of syncing `selectedDateStr` now belongs only to the user handlers.
-
-
-  // Date Range Calculation (Remains correct)
   const [startRange, endRange] = useMemo(() => {
     if (!selectedUnit) return [null, null] as [Date | null, Date | null];
     const d = selectedUnit.date;
@@ -291,7 +313,6 @@ export default function DataEntriesContent() {
     }
   }, [selectedUnit, activeView]);
 
-  // Data Filtering Logic (Remains correct)
   const filteredData = useMemo(() => {
     if (!files.length || !startRange || !endRange) return [];
 
@@ -318,33 +339,23 @@ export default function DataEntriesContent() {
     return flatPatients;
   }, [files, startRange, endRange, searchTerm]);
 
-  // Handlers
   const handleUnitClick = useCallback((unitId: string) => {
-    // CRITICAL FIX: When unit is clicked, update both ID and Date String.
     setSelectedUnitId(unitId);
-
-    // Find the corresponding unit date and set it as the new selected date string
     const clickedUnit = units.find(u => u.id === unitId);
     if (clickedUnit) {
       setSelectedDateStr(format(clickedUnit.date, 'yyyy-MM-dd'));
     }
-  }, [units]); // Units must be in dependency array now.
+  }, [units]);
 
   const handleCalendarSelect = useCallback((date: Date | undefined) => {
     if (date) {
       setSelectedDateStr(format(date, 'yyyy-MM-dd'));
-      // Effect A will update selectedUnitId automatically based on this new date.
     }
   }, []);
 
-  // View Change Handler (Remains correct)
   const handleViewChange = useCallback((view: ViewType) => {
     setActiveView(view);
-    // Effect A will handle the update of selectedUnitId based on the new view.
   }, []);
-
-  // ... (rest of the component logic and render remains the same)
-  // ... (Modal/Panel/Drag logic remains the same)
 
   const handleRowClick = (patient: Patient) => {
     setSelectedPatient(patient);
@@ -366,7 +377,6 @@ export default function DataEntriesContent() {
     }
   };
 
-  // --- DRAGGABLE DIVIDER LOGIC ---
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
 
@@ -436,7 +446,6 @@ export default function DataEntriesContent() {
   return (
     <div className={`${'h-screen'} flex flex-col overflow-hidden font-[400] antialiased`}>
       <style>{`
-      
         .divider {
           height: 8px;
           background: #e5e7eb;
@@ -488,36 +497,36 @@ export default function DataEntriesContent() {
 
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 bg-white z-20 flex-shrink-0">
-        <div className="flex items-center space-x-2 bg-blue-50 py-2 px-4 rounded-md border border-blue-200">
+        <div className="flex items-center space-x-2 bg-[#021EF533] py-2 px-4 rounded-md border border-blue-200">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
           </svg>
           <span className="text-blue-700">Bonaberi Health Center</span>
         </div>
 
+        {/* UPDATED LEGEND */}
         <div className="flex items-center space-x-4 mt-4 md:mt-0 p-2 border rounded-md bg-white">
           <div className="flex items-center text-sm">
             <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-            No Submission (20%)
-          </div>
-          <div className="flex items-center text-sm">
-            <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
-            New Record (40%)
-          </div>
-          <div className="flex items-center text-sm">
-            <div className="w-3 h-3 rounded-full bg-green-200 mr-2"></div>
-            Under Review (10%)
+            No Submission (Past)
           </div>
           <div className="flex items-center text-sm">
             <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-            Complete (30%)
+            Confirmed
+          </div>
+          <div className="flex items-center text-sm">
+            <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
+            In Progress
+          </div>
+          <div className="flex items-center text-sm">
+            <div className="w-3 h-3 rounded-full bg-gray-300 mr-2"></div>
+            Pending / N/A
           </div>
         </div>
       </div>
 
       {/* Main Split Container */}
       <div className="flex-1 flex flex-col overflow-hidden" ref={containerRef}>
-
         {/* Top Panel */}
         <div
           className="bg-white relative flex-shrink-0"
@@ -556,7 +565,7 @@ export default function DataEntriesContent() {
                         variant={view === activeView ? "default" : "ghost"}
                         size="sm"
                         onClick={() => handleViewChange(view)}
-                        className={`rounded-md px-4 transition-colors duration-200 ${view === activeView && 'bg-green-600 hover:bg-green-500'}`}
+                        className={`rounded-md px-4 transition-colors duration-200 ${view === activeView && 'bg-[#028700] hover:bg-[#028700c9]'}`}
                       >
                         {view}
                       </Button>
@@ -586,7 +595,6 @@ export default function DataEntriesContent() {
                 </div>
               </div>
 
-              {/* Date Range Display */}
               {startRange && endRange && (
                 <div className="date-range-display text-sm text-gray-600 mt-2 p-2 bg-blue-50 rounded-md border border-blue-200">
                   <strong>Selected Range:</strong> {format(startRange, 'MMM d, yyyy')}
@@ -621,11 +629,11 @@ export default function DataEntriesContent() {
                 </div>
 
                 <div className="flex space-x-3">
-                  <Button variant="outline" className="bg-blue-50 text-blue-700 hover:text-white hover:bg-blue-700 shadow-none" onClick={toggleBottomPanel}>
+                  <Button variant="outline" className="bg-[#021EF533] text-blue-700 hover:text-white hover:[#021EF5] shadow-none" onClick={toggleBottomPanel}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path d="M15.536 6.758a1 1 0 00-1.414 0L10 10.879 5.879 6.758a1 1 0 10-1.414 1.414l4.95 4.95a1 1 0 001.414 0l4.95-4.95a1 1 0 000-1.414z" /><path d="M15 14h-5m-5 0h5m-5 3h10a2 2 0 002-2v-3a2 2 0 00-2-2H5a2 2 0 00-2 2v3a2 2 0 002 2z" /></svg>
                     {showBottomPanel ? 'Hide Files' : 'Files'}
                   </Button>
-                  <Button className="bg-green-600 text-white hover:bg-green-700 shadow-none">
+                  <Button className="bg-[#028700] text-white hover:bg-[#028700c5] shadow-none">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
                     New Record
                   </Button>
@@ -651,18 +659,15 @@ export default function DataEntriesContent() {
         {/* Bottom Panel */}
         {showBottomPanel && (
           <div
-            className="bg-gray-50 p-4 grid grid-cols-2 gap-4 overflow-auto flex-1"
+            className="bg-gray-50 p-4 overflow-auto flex-1"
             style={{ height: `${100 - topPanelHeight}%` }}
           >
             {allImages.length > 0 ? (
-              allImages.map((url, index) => (
-                <img
-                  key={index}
-                  src={url}
-                  alt={`File preview ${index + 1}`}
-                  className="w-full h-48 object-cover rounded border shadow-md"
-                />
-              ))
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+                {allImages.map((url, index) => (
+                  <ImageViewer key={index} src={url} />
+                ))}
+              </div>
             ) : (
               <p className="col-span-2 text-center text-gray-500">No files to preview</p>
             )}

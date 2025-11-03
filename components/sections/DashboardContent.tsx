@@ -60,7 +60,7 @@ const DashboardContent = () => {
         {/* KPI Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {kpiData.map((kpi, index) => (
-            <Card key={index} className="text-center rounded-sm shadow-none">
+            <Card key={index} className="text-center rounded-sm border-none shadow-sm">
               <CardContent className="p-6 pt-8 pb-6 flex flex-col items-center space-y-2">
                 <kpi.icon className={`h-8 w-8 ${kpi.color}`} />
                 <div className="text-4xl font-extrabold text-gray-900">{kpi.value}</div>
@@ -71,7 +71,7 @@ const DashboardContent = () => {
         </div>
 
         {/* Patient Admission Report - UPDATED TO MATCH IMAGE */}
-        <Card className='rounded-sm shadow-none'>
+        <Card className='rounded-sm  border-none shadow-sm'>
           <CardHeader className="p-4 md:p-6 pb-2">
             <div className="flex flex-wrap items-center justify-between gap-3">
               {/* Title (Left) */}
@@ -149,7 +149,7 @@ const DashboardContent = () => {
         {/* Disease Occurrence and Map Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Disease Occurrence Report */}
-          <Card className='rounded-sm shadow-none'>
+          <Card className='rounded-sm border-none shadow-sm'>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-semibold">Disease Occurrence Report</CardTitle>
               <Button variant="ghost" size="sm" className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
@@ -174,7 +174,7 @@ const DashboardContent = () => {
           </Card>
 
           {/* Location Map */}
-          <Card className='rounded-sm shadow-none'>
+          <Card className='rounded-sm border-none shadow-sm'>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg font-semibold">Location: Rond Point Maiture</CardTitle>

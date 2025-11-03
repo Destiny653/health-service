@@ -391,7 +391,7 @@ export default function ReportsContent() {
               Under Review (10%)
             </div>
             <div className="flex items-center text-sm">
-              <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+              <div className="w-3 h-3 rounded-full bg-[#028700] mr-2"></div>
               Complete (30%)
             </div>
           </div>
@@ -407,7 +407,7 @@ export default function ReportsContent() {
                   variant={activeView === view ? "default" : "ghost"}
                   size="sm"
                   onClick={() => handleViewChange(view)}
-                  className={`rounded-md px-4 ${activeView === view && 'bg-green-600 hover:bg-green-500'}`}
+                  className={`rounded-md px-4 ${activeView === view && 'bg-[#028700] hover:bg-[#028700d8]'}`}
                 >
                   {view}
                 </Button>
