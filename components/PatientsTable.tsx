@@ -66,14 +66,14 @@ export function DataTable<TData>({
   const totalPages = table.getPageCount();
 
   return (
-    <Card className="w-fit  bg-inherit mx-auto shadow-none rounded-md border-none p-0 m-0">
+    <Card className="w-full  bg-inherit mx-auto shadow-none rounded-md border-none p-0 m-0">
       <CardContent className="overflow-x-auto p-0 ">
         {isLoading ? (
           <div className="flex justify-center items-center py-10">
             <Loader2 className="animate-spin text-primary" size={28} />
           </div>
         ) : (
-          <table className="min-w-[95vw] border border-gray-200 text-sm">
+          <table className={`border w-full border-gray-200 text-s"`}>
             <thead className="bg-[#F2F7FB]">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>

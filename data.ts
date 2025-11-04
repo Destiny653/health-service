@@ -34,15 +34,55 @@ interface ContactPersonnel {
     role: string;
     tel1: string;
     tel2: string;
+    institution: string;
     email: string;
 }
 
-const contactPersonnels: ContactPersonnel[] = [
+interface Notification {
+    upcomingVaccinationCampaigns: string;
+    pregnancyKitsAvailable: string;
+    nationalAidsActivities: string;
+    breastCancerMonth: string;
+}
+
+export const notification: Notification = {
+  upcomingVaccinationCampaigns: `
+  📅 Date: October 17
+  🏥 The Ministry notifies everyone about the upcoming vaccination campaigns 
+  that will take place across all health districts. Citizens are encouraged 
+  to participate and ensure their vaccination cards are updated.
+  `,
+  
+  pregnancyKitsAvailable: `
+  📅 Date: October 18
+  💊 The Ministry informs all health centers and the general public that 
+  pregnancy kits are now available in designated facilities. Kindly visit 
+  your nearest health center for assistance.
+  `,
+  
+  nationalAidsActivities: `
+  📅 Date: October 19
+  ❤️ The Ministry announces the commencement of National AIDS awareness 
+  activities aimed at prevention, testing, and counseling. Everyone is 
+  invited to participate and spread awareness.
+  `,
+  
+  breastCancerMonth: `
+  📅 Date: October 20
+  🎗️ The Ministry reminds all citizens that October is Breast Cancer 
+  Awareness Month. Early detection saves lives—visit the nearest hospital 
+  for screening and education programs.
+  `,
+};
+
+
+export const contactPersonnels: ContactPersonnel[] = [
     {
         firstName: "Emmanuel",
         lastName: "Ngong",
         role: "Chief Medical Officer",
         tel1: "+237 677 543 210",
+        institution: 'The Martins',
         tel2: "+237 699 102 334",
         email: "emmanuel.ngong@stmaryhealth.org",
     },
@@ -50,6 +90,7 @@ const contactPersonnels: ContactPersonnel[] = [
         firstName: "Brenda",
         lastName: "Ewane",
         role: "Nursing Supervisor",
+        institution: 'St. Bless',
         tel1: "+237 670 998 877",
         tel2: "+237 680 112 009",
         email: "b.ewane@bamendaregional.cm",
