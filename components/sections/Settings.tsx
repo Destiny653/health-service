@@ -182,7 +182,7 @@ export default function Settings() {
             {/* === MAIN CONTENT === */}
             <main className="flex-1 ">
 
-                <div className="p-8 px-12 bg-white space-y-4">
+                <div className="p-8 px-12 bg-white space-y-4  min-h-[94vh]">
                     {/* === NOTIFICATIONS === */}
                     {activeMenu === 'Notifications' && (
                         <div>
