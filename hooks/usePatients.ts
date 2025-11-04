@@ -29,6 +29,7 @@ export interface Patient {
   updatedAt?: Date;
   isRareCase?: boolean;
   dataIssues?: string[];
+  role?: string;
 }
 
 

@@ -23,8 +23,6 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Check, X, AlertTriangle, Minus, MapPin } from "lucide-react";
 
-import { FacilityDetailSheet } from "../FacilityDetailSheet";
-
 /* ────────────────────── CONFIG ────────────────────── */
 const View = { DAY: 'Day', WEEK: 'Week', MONTH: 'Month', YEAR: 'Year' } as const;
 type ViewType = typeof View[keyof typeof View];
@@ -110,11 +108,14 @@ const TimeUnitItem = ({
     </div>
 );
 
+const fetchFiles = async (): Promise<PatientDataFile[]> =>
+    new Promise((resolve) => setTimeout(() => resolve(data), 500));
+
 /* ────────────────────── MAIN COMPONENT ────────────────────── */
 export default function FacilitiesContent() {
     const { data: files = [], isLoading, error } = useQuery<PatientDataFile[]>({
         queryKey: ["files"],
-        queryFn: async () => new Promise(resolve => setTimeout(() => resolve(data), 500)),
+        queryFn: fetchFiles,
     });
 
     React.useEffect(() => { if (error) toast.error("Error fetching files data"); }, [error]);
@@ -126,7 +127,6 @@ export default function FacilitiesContent() {
     const [selectedUnitId, setSelectedUnitId] = useState<string>(baseDateStr);
     const [selectedDateStr, setSelectedDateStr] = useState<string>(baseDateStr);
     const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(null);
-    const [sheetOpen, setSheetOpen] = useState(false);
 
     const selectedDate = useMemo(() => startOfDay(new Date(selectedDateStr)), [selectedDateStr]);
 
@@ -212,6 +212,20 @@ export default function FacilitiesContent() {
         return generated;
     }, [activeView, dateToCenterUnits, files]);
 
+    const selectedUnit = useMemo(() => units.find(u => u.id === selectedUnitId) || null, [units, selectedUnitId]);
+
+    const [startRange, endRange] = useMemo(() => {
+        if (!selectedUnit) return [null, null];
+        const d = selectedUnit.date;
+        switch (activeView) {
+            case View.DAY: return [startOfDay(d), addDays(d, 1)];
+            case View.WEEK: return [startOfWeek(d, { weekStartsOn: 1 }), addWeeks(d, 1)];
+            case View.MONTH: return [startOfMonth(d), addMonths(d, 1)];
+            case View.YEAR: return [startOfYear(d), addYears(d, 1)];
+            default: return [null, null];
+        }
+    }, [selectedUnit, activeView]);
+
     const handleUnitClick = useCallback((id: string) => {
         setSelectedUnitId(id);
         const unit = units.find(u => u.id === id);
@@ -220,15 +234,13 @@ export default function FacilitiesContent() {
 
     const handleViewChange = useCallback((view: ViewType) => setActiveView(view), []);
 
-    /* ──────── Build facility rows ──────── */
+    /* ──────── Build facility rows based on selected units ──────── */
     interface FacilityRow {
         id: string;
         facilityName: string;
         address: string;
         recordCount?: number;
         statusByUnit: StatusColor[];
-        details?: PatientDataFile['facility'];
-        contacts?: PatientDataFile['contactPersonnels'];
     }
 
     const starkRows = useMemo<FacilityRow[]>(() => {
@@ -244,9 +256,7 @@ export default function FacilitiesContent() {
             const statusByUnit = units.map(u => generateStatus(u.date, facFiles, View.DAY));
             const id = facFiles[0].id;
             const recordCount = facFiles.reduce((s, f) => s + (f.recordCount ?? 0), 0);
-            const details = facFiles[0].facility;
-            const contacts = facFiles[0].contactPersonnels;
-            return { id, facilityName: name, address, recordCount, statusByUnit, details, contacts };
+            return { id, facilityName: name, address, recordCount, statusByUnit };
         });
     }, [files, units]);
 
@@ -264,22 +274,11 @@ export default function FacilitiesContent() {
         [STATUS_COLORS.GRAY]: 'bg-gray-400 text-white rounded-full p-1',
     };
 
-    // Find the selected facility for the sheet
-    const selectedFacility = useMemo(() => {
-        if (!selectedFacilityId) return null;
-        return starkRows.find(r => r.id === selectedFacilityId) ?? null;
-    }, [selectedFacilityId, starkRows]);
-
-    const openSheet = (id: string) => {
-        setSelectedFacilityId(id);
-        setSheetOpen(true);
-    };
-
     return (
         <div className="flex flex-col h-screen bg-white overflow-hidden">
 
-            {/* ───── Badge + Legend ───── */}
-            <div className="flex items-center justify-between p-4 border-b bg-gray-50">
+            {/* ───── Header: Badge + Legend ───── */}
+            <div className="flex items-center justify-between p-4 border-b">
                 <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1 text-sm bg-purple-100 text-purple-700">
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
@@ -300,7 +299,7 @@ export default function FacilitiesContent() {
                 </div>
             </div>
 
-            {/* ───── Table Body ───── */}
+            {/* ───── Table with integrated view toggle and date filter ───── */}
             <div className="flex-1 overflow-auto  p-4">
                 <div className="bg-white overflow-hidden">
                     <table className="w-full text-sm">
@@ -357,7 +356,7 @@ export default function FacilitiesContent() {
                                 return (
                                     <tr
                                         key={row.id}
-                                        onClick={() => openSheet(row.id)}
+                                        onClick={() => setSelectedFacilityId(row.id)}
                                         className={`border-b cursor-pointer transition-colors ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}
                                     >
                                         <td className="px-4 py-3 font-medium text-blue-600">{row.id}</td>
@@ -394,13 +393,13 @@ export default function FacilitiesContent() {
                                     </tr>
                                 );
                             })}
-                            <tr>
-                                <td className="px-4 py-3 text-left" colSpan={3}>Supervised By</td>
-                                <td className="py-3 text-center border border-b-0">A</td>
-                                <td className="py-3 text-center border border-b-0">B</td>
-                                <td className="py-3 text-center border border-b-0">C</td>
-                                <td className="py-3 text-center border border-b-0">D</td>
-                            </tr>
+                                <tr>
+                                    <td className="px-4 py-3 text-left" colSpan={3}>Supervised By</td>
+                                    <td className="py-3 text-center border border-b-0">A</td>
+                                    <td className="py-3 text-center border border-b-0">B</td>
+                                    <td className="py-3 text-center border border-b-0">C</td>
+                                    <td className="py-3 text-center border border-b-0">D</td>
+                                </tr>
                         </tbody>
                     </table>
 
@@ -413,19 +412,6 @@ export default function FacilitiesContent() {
                     )}
                 </div>
             </div>
-
-            {/* ───── Bottom Sheet ───── */}
-            <FacilityDetailSheet
-                open={sheetOpen}
-                onOpenChange={setSheetOpen}
-                facility={selectedFacility ? {
-                    id: selectedFacility.id,
-                    facilityName: selectedFacility.facilityName,
-                    address: selectedFacility.address,
-                    details: selectedFacility.details,
-                    contacts: selectedFacility.contacts,
-                } : undefined}
-            />
         </div>
     );
 }

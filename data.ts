@@ -9,18 +9,74 @@ export interface PatientDataFile {
     updatedAt: Date;
     address: string;
     facilityName: string;
-    recordCount: number; 
+    recordCount: number;
     submissionStatus: 'N/A' | 'pending' | 'confirmed' | 'progress'
     patients: Patient[];
+    facility?: FacilityDetails;
+    contactPersonnels?: ContactPersonnel[];
 }
+
+
+interface FacilityDetails {
+    facilityName: string;
+    address: string;
+    division: string;
+    healthDistrict: string;
+    municipality: string;
+    phone: string;
+    email: string;
+    site: string;
+}
+
+interface ContactPersonnel {
+    firstName: string;
+    lastName: string;
+    role: string;
+    tel1: string;
+    tel2: string;
+    email: string;
+}
+
+const contactPersonnels: ContactPersonnel[] = [
+    {
+        firstName: "Emmanuel",
+        lastName: "Ngong",
+        role: "Chief Medical Officer",
+        tel1: "+237 677 543 210",
+        tel2: "+237 699 102 334",
+        email: "emmanuel.ngong@stmaryhealth.org",
+    },
+    {
+        firstName: "Brenda",
+        lastName: "Ewane",
+        role: "Nursing Supervisor",
+        tel1: "+237 670 998 877",
+        tel2: "+237 680 112 009",
+        email: "b.ewane@bamendaregional.cm",
+    }
+];
+
+const facility: FacilityDetails =
+{
+    facilityName: "St. Mary’s Health Center",
+    address: "12 Independence Avenue, Buea",
+    division: "Fako",
+    healthDistrict: "Buea District",
+    municipality: "Buea",
+    phone: "+237 677 123 456",
+    email: "stmaryhealthcenter@gmail.com",
+    site: "www.stmaryhealth.org",
+};
+
+
 
 export const data: PatientDataFile[] = [
     {
         id: 'LTV0214',
         fileId: "file-001",
         fileUrl: [
-    "https://images-cdn.ubuy.com.sa/68bf86ddb87fc146c50136e6-home-accent-furnishings-72-rustic-solid.jpg",
-    "https://i5.walmartimages.com/asr/f966de1e-c7c1-4017-b290-d657f99dd3d4_1.14f6b9cd1aa9561752e0d138b0167e68.jpeg",
+            "https://images-cdn.ubuy.com.sa/68bf86ddb87fc146c50136e6-home-accent-furnishings-72-rustic-solid.jpg",
+            "https://i5.walmartimages.com/asr/f966de1e-c7c1-4017-b290-d657f99dd3d4_1.14f6b9cd1aa9561752e0d138b0167e68.jpeg",
         ],
         createdAt: new Date("2023-01-01"),
         updatedAt: new Date("2023-03-31"),
@@ -28,6 +84,8 @@ export const data: PatientDataFile[] = [
         address: 'Grand hanga',
         facilityName: 'Mbingo Hospital',
         submissionStatus: 'confirmed',
+        facility,
+        contactPersonnels,
         patients: [
             {
                 id: 'LTV0214',
@@ -595,15 +653,17 @@ export const data: PatientDataFile[] = [
         id: 'LTV0215',
         fileId: "file-002",
         fileUrl: [
-  "https://images-cdn.ubuy.co.in/6523def57282053646118bd9-mhaosehu-industrial-coffee-table-for.jpg",
-    "https://images.thdstatic.com/productImages/52238ccc-13d8-4ca9-8bc0-e4e678cadeeb/svn/silver-home-decorators-collection-coffee-tables-dc14-8445-64_1000.jpg"
-  ],
+            "https://images-cdn.ubuy.co.in/6523def57282053646118bd9-mhaosehu-industrial-coffee-table-for.jpg",
+            "https://images.thdstatic.com/productImages/52238ccc-13d8-4ca9-8bc0-e4e678cadeeb/svn/silver-home-decorators-collection-coffee-tables-dc14-8445-64_1000.jpg"
+        ],
         createdAt: new Date("2023-04-01"),
         updatedAt: new Date("2023-06-30"),
         recordCount: 20,
         address: 'Bonassama',
         facilityName: 'Bonassama Hospital',
         submissionStatus: 'pending',
+        facility,
+        contactPersonnels,
         patients: [
             {
                 id: 'LTV0214',
