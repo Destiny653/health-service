@@ -1,4 +1,3 @@
-// data.ts (updated)
 import { Patient } from "./hooks/usePatients";
 
 export interface PatientDataFile {
@@ -17,7 +16,7 @@ export interface PatientDataFile {
 }
 
 
-interface FacilityDetails {
+export interface FacilityDetails {
     facilityName: string;
     address: string;
     division: string;
@@ -28,7 +27,7 @@ interface FacilityDetails {
     site: string;
 }
 
-interface ContactPersonnel {
+export interface ContactPersonnel {
     firstName: string;
     lastName: string;
     role: string;
@@ -36,44 +35,37 @@ interface ContactPersonnel {
     tel2: string;
     institution: string;
     email: string;
+    lastActivity: string;
 }
 
 interface Notification {
-    upcomingVaccinationCampaigns: string;
-    pregnancyKitsAvailable: string;
-    nationalAidsActivities: string;
-    breastCancerMonth: string;
+    title: string;
+    date: string;
+    content: string;
 }
 
-export const notification: Notification = {
-  upcomingVaccinationCampaigns: `
-  📅 Date: October 17
-  🏥 The Ministry notifies everyone about the upcoming vaccination campaigns 
-  that will take place across all health districts. Citizens are encouraged 
-  to participate and ensure their vaccination cards are updated.
-  `,
-  
-  pregnancyKitsAvailable: `
-  📅 Date: October 18
-  💊 The Ministry informs all health centers and the general public that 
-  pregnancy kits are now available in designated facilities. Kindly visit 
-  your nearest health center for assistance.
-  `,
-  
-  nationalAidsActivities: `
-  📅 Date: October 19
-  ❤️ The Ministry announces the commencement of National AIDS awareness 
-  activities aimed at prevention, testing, and counseling. Everyone is 
-  invited to participate and spread awareness.
-  `,
-  
-  breastCancerMonth: `
-  📅 Date: October 20
-  🎗️ The Ministry reminds all citizens that October is Breast Cancer 
-  Awareness Month. Early detection saves lives—visit the nearest hospital 
-  for screening and education programs.
-  `,
-};
+export const notification: Notification[] = [
+    {
+        title: 'Upcoming vaccination campaigns',
+        date: 'oct 17',
+        content: `Date: October 17\nThe Ministry notifies everyone about the upcoming vaccination campaigns that will take place across all health districts. Citizens are encouraged to participate and ensure their vaccination cards are updated.`,
+    },
+    {
+        title: 'Pregnancy Kits Available',
+        date: 'oct 18',
+        content: `Date: October 18\nThe Ministry informs all health centers and the general public that pregnancy kits are now available in designated facilities. Kindly visit your nearest health center for assistance.`,
+    },
+    {
+        title: 'National AIDS activities',
+        date: 'oct 19',
+        content: `Date: October 19\nThe Ministry announces the commencement of National AIDS awareness activities aimed at prevention, testing, and counseling. Everyone is invited to participate and spread awareness.`,
+    },
+    {
+        title: 'Breast Cancer Month',
+        date: 'oct 20',
+        content: `Date: October 20\nThe Ministry reminds all citizens that October is Breast Cancer Awareness Month. Early detection saves lives—visit the nearest hospital for screening and education programs.`,
+    },
+];
 
 
 export const contactPersonnels: ContactPersonnel[] = [
@@ -85,6 +77,7 @@ export const contactPersonnels: ContactPersonnel[] = [
         institution: 'The Martins',
         tel2: "+237 699 102 334",
         email: "emmanuel.ngong@stmaryhealth.org",
+        lastActivity: '2023-03-31',
     },
     {
         firstName: "Brenda",
@@ -94,6 +87,7 @@ export const contactPersonnels: ContactPersonnel[] = [
         tel1: "+237 670 998 877",
         tel2: "+237 680 112 009",
         email: "b.ewane@bamendaregional.cm",
+        lastActivity: 'Yesterday',
     }
 ];
 

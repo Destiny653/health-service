@@ -40,67 +40,68 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { DataTable } from '../PatientsTable';
+import { ContactPersonnel, contactPersonnels, notification } from '@/data';
 
-// === DATA ===
-interface ContactPersonnel {
-    id: string;
-    firstName: string;
-    lastName: string;
-    role: string;
-    tel1: string;
-    tel2?: string;
-    institution: string;
-    email: string;
-    lastActivity: string;
-}
 
-const contactPersonnels: ContactPersonnel[] = [
-    {
-        id: '1',
-        firstName: 'Emmanuel',
-        lastName: 'Ngong',
-        role: 'Chief Medical Officer',
-        tel1: '+237 677 543 210',
-        tel2: '+237 699 102 334',
-        institution: 'The Martins',
-        email: 'emmanuel.ngong@stmaryhealth.org',
-        lastActivity: 'oct 19 | 15:16',
-    },
-    {
-        id: '2',
-        firstName: 'Brenda',
-        lastName: 'Ewane',
-        role: 'Nursing Supervisor',
-        institution: 'St. Bless',
-        tel1: '+237 670 998 877',
-        tel2: '+237 680 112 009',
-        email: 'b.ewane@bamendaregional.cm',
-        lastActivity: 'Yesterday',
-    },
-];
+// interface ContactPersonnel {
+//     id: string;
+//     firstName: string;
+//     lastName: string;
+//     role: string;
+//     tel1: string;
+//     tel2?: string;
+//     institution: string;
+//     email: string;
+//     lastActivity: string;
+// }
 
-const notifications = [
-    {
-        title: 'Upcoming vaccination campaigns',
-        date: 'oct 17',
-        content: `Date: October 17\nThe Ministry notifies everyone about the upcoming vaccination campaigns that will take place across all health districts. Citizens are encouraged to participate and ensure their vaccination cards are updated.`,
-    },
-    {
-        title: 'Pregnancy Kits Available',
-        date: 'oct 18',
-        content: `Date: October 18\nThe Ministry informs all health centers and the general public that pregnancy kits are now available in designated facilities. Kindly visit your nearest health center for assistance.`,
-    },
-    {
-        title: 'National AIDS activities',
-        date: 'oct 19',
-        content: `Date: October 19\nThe Ministry announces the commencement of National AIDS awareness activities aimed at prevention, testing, and counseling. Everyone is invited to participate and spread awareness.`,
-    },
-    {
-        title: 'Breast Cancer Month',
-        date: 'oct 20',
-        content: `Date: October 20\nThe Ministry reminds all citizens that October is Breast Cancer Awareness Month. Early detection saves lives—visit the nearest hospital for screening and education programs.`,
-    },
-];
+// const contactPersonnels: ContactPersonnel[] = [
+//     {
+//         id: '1',
+//         firstName: 'Emmanuel',
+//         lastName: 'Ngong',
+//         role: 'Chief Medical Officer',
+//         tel1: '+237 677 543 210',
+//         tel2: '+237 699 102 334',
+//         institution: 'The Martins',
+//         email: 'emmanuel.ngong@stmaryhealth.org',
+//         lastActivity: 'oct 19 | 15:16',
+//     },
+//     {
+//         id: '2',
+//         firstName: 'Brenda',
+//         lastName: 'Ewane',
+//         role: 'Nursing Supervisor',
+//         institution: 'St. Bless',
+//         tel1: '+237 670 998 877',
+//         tel2: '+237 680 112 009',
+//         email: 'b.ewane@bamendaregional.cm',
+//         lastActivity: 'Yesterday',
+//     },
+// ];
+
+// const notifications = [
+//     {
+//         title: 'Upcoming vaccination campaigns',
+//         date: 'oct 17',
+//         content: `Date: October 17\nThe Ministry notifies everyone about the upcoming vaccination campaigns that will take place across all health districts. Citizens are encouraged to participate and ensure their vaccination cards are updated.`,
+//     },
+//     {
+//         title: 'Pregnancy Kits Available',
+//         date: 'oct 18',
+//         content: `Date: October 18\nThe Ministry informs all health centers and the general public that pregnancy kits are now available in designated facilities. Kindly visit your nearest health center for assistance.`,
+//     },
+//     {
+//         title: 'National AIDS activities',
+//         date: 'oct 19',
+//         content: `Date: October 19\nThe Ministry announces the commencement of National AIDS awareness activities aimed at prevention, testing, and counseling. Everyone is invited to participate and spread awareness.`,
+//     },
+//     {
+//         title: 'Breast Cancer Month',
+//         date: 'oct 20',
+//         content: `Date: October 20\nThe Ministry reminds all citizens that October is Breast Cancer Awareness Month. Early detection saves lives—visit the nearest hospital for screening and education programs.`,
+//     },
+// ];
 
 // === MAIN COMPONENT ===
 export default function Settings() {
@@ -187,7 +188,7 @@ export default function Settings() {
                         <div>
                             <h1 className="text-xl font-semibold mb-6">Notifications</h1>
                             <div className="space-y-4 flex flex-col gap-4">
-                                {notifications.map((notif, index) => (
+                                {notification.map((notif, index) => (
                                     <div key={index} className="bg-white border-gray-200">
                                         <div className="flex justify-between items-start ">
                                             <div className="flex-1">
