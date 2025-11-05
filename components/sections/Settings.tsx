@@ -119,6 +119,21 @@ export default function Settings() {
         repeatPassword: '',
     });
 
+    const [searchQuery, setSearchQuery] = useState('');
+
+    const filteredContactPersonnels = contactPersonnels.filter(person => {
+        const query = searchQuery.toLowerCase();
+        return (
+            person.firstName.toLowerCase().includes(query) ||
+            person.lastName.toLowerCase().includes(query) ||
+            person.email.toLowerCase().includes(query) ||
+            person.role.toLowerCase().includes(query) ||
+            person.institution.toLowerCase().includes(query) ||
+            person.tel1.toLowerCase().includes(query) ||
+            (person.tel2 && person.tel2.toLowerCase().includes(query))
+        );
+    });
+
     const currentUser = contactPersonnels[0];
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -245,6 +260,8 @@ export default function Settings() {
                                     <Input
                                         type="search"
                                         placeholder="Search..."
+                                        value={searchQuery}
+                                        onChange={(e) => setSearchQuery(e.target.value)}
                                         className="w-full md:w-auto pl-6 shadow-none outline-none"
                                     />
                                     <MagnifyingGlassIcon color={'#D9D9D9'} className='absolute top-1/4 left-1'/>
@@ -255,7 +272,7 @@ export default function Settings() {
                             </div>
                             <div className='w-full'>
                                 <DataTable
-                                    data={contactPersonnels}
+                                    data={filteredContactPersonnels}
                                     columns={columns}
                                     isLoading={false}
                                     onRowClick={(row: ContactPersonnel) => console.log('Clicked:', row)}
