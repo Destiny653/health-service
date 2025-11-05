@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, Bed, Heart, ExternalLink, Download, MapPin } from 'lucide-react';
+import {  ExternalLink, Download, MapPin } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -13,6 +13,7 @@ import {
   Label,
   Legend,
 } from 'recharts';
+import { ArrowSquareOutIcon, BedIcon, HeartIcon, UsersIcon } from '@phosphor-icons/react';
 
 // Colors used in the image: yellow-600, blue-600, red-600
 const COLOR_CONSULTED = '#f59e0b'; // Tailwind yellow-600
@@ -21,10 +22,10 @@ const COLOR_DEATHS = '#dc2626'; // Tailwind red-600
 
 // Mock Data for KPI Cards
 const kpiData = [
-  { title: 'Patient count', value: 18, icon: Users, color: 'text-blue-600' },
-  { title: 'Currently Admitted', value: 26, icon: Bed, color: 'text-blue-600' },
-  { title: 'Deaths', value: 0, icon: Heart, color: 'text-red-600' },
-  { title: 'Referred Cases', value: 6, icon: ExternalLink, color: 'text-gray-600' },
+  { title: 'Patient count', value: 18, icon: UsersIcon, color: 'text-blue-600' },
+  { title: 'Currently Admitted', value: 26, icon: BedIcon, color: 'text-blue-600' },
+  { title: 'Deaths', value: 0, icon: HeartIcon, color: 'text-red-600' },
+  { title: 'Referred Cases', value: 6, icon: ArrowSquareOutIcon, color: 'text-gray-600' },
 ];
 
 // ADJUSTED: Mock Data for Patient Admission Line Chart to match the shape in the uploaded image

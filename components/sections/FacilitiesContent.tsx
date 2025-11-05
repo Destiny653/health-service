@@ -22,8 +22,18 @@ import { Button } from '@/components/ui/button';
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Check, X, AlertTriangle, Minus, MapPin } from "lucide-react";
+import { Calendar } from '@/components/ui/calendar'; // Added Calendar import
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'; // Added Popover imports
 
 import { FacilityDetailSheet } from "../FacilityDetailSheet";
+
+/* ────────────────────── DATE MANAGEMENT UTILITY ────────────────────── */
+/**
+ * Utility function to always get the current date set to midnight (start of the day).
+ * This is used for consistent default date initialization.
+ */
+const getStartOfToday = (): Date => startOfDay(new Date());
+/* ────────────────────── END OF DATE MANAGEMENT UTILITY ────────────────────── */
 
 /* ────────────────────── CONFIG ────────────────────── */
 const View = { DAY: 'Day', WEEK: 'Week', MONTH: 'Month', YEAR: 'Year' } as const;
@@ -119,7 +129,8 @@ export default function FacilitiesContent() {
 
     React.useEffect(() => { if (error) toast.error("Error fetching files data"); }, [error]);
 
-    const baseDate = new Date('2023-06-01');
+    // UPDATED: Use the start of the current date as the base date
+    const baseDate = getStartOfToday();
     const baseDateStr = format(baseDate, 'yyyy-MM-dd');
 
     const [activeView, setActiveView] = useState<ViewType>(View.DAY);
@@ -218,6 +229,13 @@ export default function FacilitiesContent() {
         if (unit) setSelectedDateStr(format(unit.date, 'yyyy-MM-dd'));
     }, [units]);
 
+    // UPDATED: Normalize date to start of day
+    const handleCalendarSelect = useCallback((date: Date | undefined) => {
+        if (date) {
+            setSelectedDateStr(format(startOfDay(date), 'yyyy-MM-dd'));
+        }
+    }, []);
+
     const handleViewChange = useCallback((view: ViewType) => setActiveView(view), []);
 
     /* ──────── Build facility rows ──────── */
@@ -241,6 +259,7 @@ export default function FacilitiesContent() {
 
         return Array.from(map.entries()).map(([key, facFiles]) => {
             const [name, address] = key.split('|||');
+            // Statuses are generated based on the day view units for the table structure
             const statusByUnit = units.map(u => generateStatus(u.date, facFiles, View.DAY));
             const id = facFiles[0].id;
             const recordCount = facFiles.reduce((s, f) => s + (f.recordCount ?? 0), 0);
@@ -308,18 +327,42 @@ export default function FacilitiesContent() {
                             {/* First Header Row: View Toggle + Date Filters */}
                             <tr className="border-b">
                                 <th className="px-4 py-3 text-left" colSpan={3}>
-                                    <div className="flex p-1 bg-gray-100 rounded-md w-fit">
-                                        {Object.values(View).reverse().map(v => (
-                                            <Button
-                                                key={v}
-                                                variant={activeView === v ? "default" : "ghost"}
-                                                size="sm"
-                                                onClick={() => handleViewChange(v)}
-                                                className={`rounded-md ${activeView === v ? 'bg-[#028700] hover:bg-[#028700dc]' : ''}`}
-                                            >
-                                                {v}
-                                            </Button>
-                                        ))}
+                                    {/* UPDATED: Date Picker + View Selector */}
+                                    <div className="flex items-center space-x-4">
+                                        {/* Date Picker */}
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button variant="outline" className="w-[180px] justify-start text-left font-normal h-9 shadow-none">
+                                                    {format(selectedDate, 'PPP')}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={selectedDate}
+                                                    onSelect={handleCalendarSelect}
+                                                    className="rounded-md border"
+                                                    captionLayout="dropdown"
+                                                    fromYear={1990}
+                                                    toYear={2030}
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+
+                                        {/* View Selector */}
+                                        <div className="flex p-1 bg-gray-100 rounded-md w-fit">
+                                            {Object.values(View).reverse().map(v => (
+                                                <Button
+                                                    key={v}
+                                                    variant={activeView === v ? "default" : "ghost"}
+                                                    size="sm"
+                                                    onClick={() => handleViewChange(v)}
+                                                    className={`rounded-md ${activeView === v ? 'bg-[#028700] hover:bg-[#028700dc]' : ''}`}
+                                                >
+                                                    {v}
+                                                </Button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </th>
                                 {units.map(u => (

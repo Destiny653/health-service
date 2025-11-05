@@ -16,6 +16,22 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import PatientDetailsModal from '@/components/PatientDetailsModal';
 import ImageViewer from "../ImageViewer";
 
+// =========================================================================
+// DATE MANAGEMENT UTILITY (New 'import-like' date logic)
+// Ensures the default date is consistently the current date at midnight.
+// =========================================================================
+
+/**
+ * Utility function to always get the current date set to midnight (start of the day).
+ * This ensures calendar dates and filtering ranges are always consistent.
+ */
+const getStartOfToday = (): Date => startOfDay(new Date());
+
+// =========================================================================
+// END OF DATE MANAGEMENT UTILITY
+// =========================================================================
+
+
 // --- CONFIGURATION ---
 const View = {
   DAY: 'Day',
@@ -159,7 +175,8 @@ export default function DataEntriesContent() {
     if (error) toast.error("Error fetching files data");
   }, [error]);
 
-  const baseDate = new Date('2023-06-01');
+  // --- UPDATED: Use the current date as the default base date ---
+  const baseDate = getStartOfToday();
   const baseDateStr = format(baseDate, 'yyyy-MM-dd');
   const [activeView, setActiveView] = useState<ViewType>(View.DAY);
   const [selectedUnitId, setSelectedUnitId] = useState<string>(baseDateStr);
@@ -349,7 +366,8 @@ export default function DataEntriesContent() {
 
   const handleCalendarSelect = useCallback((date: Date | undefined) => {
     if (date) {
-      setSelectedDateStr(format(date, 'yyyy-MM-dd'));
+      // Ensure the selection is also set to the start of the day for consistency
+      setSelectedDateStr(format(startOfDay(date), 'yyyy-MM-dd'));
     }
   }, []);
 

@@ -60,16 +60,16 @@ export default function PatientDetailsModal({
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
                     <Label htmlFor="fullname">Full Name</Label>
-                    <Input id="fullname" className="rounded-sm shadow-none py-6 focus:outline-none" defaultValue={selectedPatient.patientName} />
+                    <Input id="fullname" className="rounded-sm bg-[#F2F7FB] border-[#D9D9D9] outline-none border-t-0 border-x-0  active:border-b-2 border-b-2 focus:border-[#028700] shadow-none py-6" defaultValue={selectedPatient.patientName} />
                   </div>
                   <div>
                     <Label htmlFor="age">Age</Label>
-                    <Input id="age" className="rounded-sm shadow-none py-6 focus:outline-none" type="number" defaultValue={selectedPatient.age} />
+                    <Input id="age" className="rounded-sm bg-[#F2F7FB] border-[#D9D9D9] outline-none border-t-0 border-x-0  active:border-b-2 border-b-2 focus:border-[#028700] shadow-none py-6 focus:outline-none" type="number" defaultValue={selectedPatient.age} />
                   </div>
                   <div>
                     <Label htmlFor="sex">Sex</Label>
                     <Select defaultValue={selectedPatient.sex}>
-                      <SelectTrigger className="rounded-sm shadow-none py-6 focus:outline-none">
+                      <SelectTrigger className="rounded-sm bg-[#F2F7FB] border-[#D9D9D9] outline-none border-t-0 border-x-0  active:border-b-2 border-b-2 focus:border-[#028700] shadow-none py-6 focus:outline-none">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -81,7 +81,7 @@ export default function PatientDetailsModal({
                   <div>
                     <Label htmlFor="maritalStatus">Marital Status</Label>
                     <Select defaultValue={selectedPatient.maritalStatus}>
-                      <SelectTrigger className="rounded-sm shadow-none py-6 focus:outline-none">
+                      <SelectTrigger className="rounded-sm bg-[#F2F7FB] border-[#D9D9D9] outline-none border-t-0 border-x-0  active:border-b-2 border-b-2 focus:border-[#028700] shadow-none py-6 focus:outline-none">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -95,7 +95,7 @@ export default function PatientDetailsModal({
                   <div>
                     <Label htmlFor="isPregnant">Is Pregnant</Label>
                     <Select defaultValue={selectedPatient.isPregnant.toString()}>
-                      <SelectTrigger className="rounded-sm shadow-none py-6 focus:outline-none">
+                      <SelectTrigger className="rounded-sm bg-[#F2F7FB] border-[#D9D9D9] outline-none border-t-0 border-x-0  active:border-b-2 border-b-2 focus:border-[#028700] shadow-none py-6 focus:outline-none">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -106,19 +106,19 @@ export default function PatientDetailsModal({
                   </div>
                   <div>
                     <Label htmlFor="profession">Profession</Label>
-                    <Input id="profession" className="rounded-sm shadow-none py-6 focus:outline-none" defaultValue={selectedPatient.profession} />
+                    <Input id="profession" className="rounded-sm bg-[#F2F7FB] border-[#D9D9D9] outline-none border-t-0 border-x-0  active:border-b-2 border-b-2 focus:border-[#028700] shadow-none py-6 focus:outline-none" defaultValue={selectedPatient.profession} />
                   </div>
                   <div>
                     <Label htmlFor="residence">Residence</Label>
-                    <Input id="residence" className="rounded-sm shadow-none py-6 focus:outline-none" defaultValue={selectedPatient.residence} />
+                    <Input id="residence" className="rounded-sm  bg-[#F2F7FB] border-[#D9D9D9] outline-none border-t-0 border-x-0  active:border-b-2 border-b-2 focus:border-[#028700] shadow-none py-6 focus:outline-none" defaultValue={selectedPatient.residence} />
                   </div>
                   <div>
                     <Label htmlFor="contact">Contact</Label>
-                    <Input id="contact" className="rounded-sm shadow-none py-6 focus:outline-none" defaultValue={selectedPatient.contact} />
+                    <Input id="contact" className="rounded-sm bg-[#F2F7FB] border-[#D9D9D9] outline-none border-t-0 border-x-0  active:border-b-2 border-b-2 focus:border-[#028700] shadow-none py-6 focus:outline-none" defaultValue={selectedPatient.contact} />
                   </div>
                   <div>
                     <Label htmlFor="history">History</Label>
-                    <Input id="history" className="rounded-sm shadow-none py-6 focus:outline-none" defaultValue={selectedPatient.history} />
+                    <Input id="history" className="rounded-sm bg-[#F2F7FB] border-[#D9D9D9] outline-none border-t-0 border-x-0  active:border-b-2 border-b-2 focus:border-[#028700] shadow-none py-6 focus:outline-none" defaultValue={selectedPatient.history} />
                   </div>
                 </div>
               </div>
