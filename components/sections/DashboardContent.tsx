@@ -13,7 +13,7 @@ import {
   Label,
   Legend,
 } from 'recharts';
-import { ArrowSquareOutIcon, BedIcon, HeartIcon, UsersIcon } from '@phosphor-icons/react';
+import { ArrowSquareOutIcon, BedIcon, BoxArrowDownIcon, DatabaseIcon, HeartIcon, UsersIcon } from '@phosphor-icons/react';
 
 // Colors used in the image: yellow-600, blue-600, red-600
 const COLOR_CONSULTED = '#f59e0b'; // Tailwind yellow-600
@@ -98,7 +98,7 @@ const DashboardContent = () => {
 
               {/* Button (Right) */}
               <Button variant="outline" size="sm" className="flex items-center gap-2 whitespace-nowrap order-3">
-                <Download className="h-4 w-4" />
+                <BoxArrowDownIcon className="h-4 w-4" />
                 Download Report
               </Button>
             </div>
@@ -154,7 +154,7 @@ const DashboardContent = () => {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-semibold">Disease Occurrence Report</CardTitle>
               <Button variant="ghost" size="sm" className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
-                <Download className="h-4 w-4" />
+                <DatabaseIcon size={40} className="h-4 w-4" />
                 Export
               </Button>
             </CardHeader>

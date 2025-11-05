@@ -41,6 +41,7 @@ import {
     FileIcon,
     PlusIcon,
     EyeSlashIcon,
+    MagnifyingGlassIcon,
 } from "@phosphor-icons/react";
 
 // interface ContactPersonnel {
@@ -240,6 +241,14 @@ export default function Settings() {
                         <div className='shadow-lg p-6 min-h-[60vh] rounded-sm'>
                             <h1 className="text-xl font-bold pb-6">Manage Users</h1>
                             <div className="flex justify-between items-center mb-6">
+                                <div className='relative'>
+                                    <Input
+                                        type="search"
+                                        placeholder="Search..."
+                                        className="w-full md:w-auto pl-6 shadow-none outline-none"
+                                    />
+                                    <MagnifyingGlassIcon color={'#D9D9D9'} className='absolute top-1/4 left-1'/>
+                                </div>
                                 <Button onClick={() => setIsSheetOpen(true)} className="bg-[#028700] py-4 ml-auto rounded-sm hover:bg-[#028700dd]">
                                     <PlusIcon className="w-4 h-4 mr-2" /> Add User
                                 </Button>
