@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {  ExternalLink, Download, MapPin } from 'lucide-react';
+import { ExternalLink, Download, MapPin } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -22,10 +22,10 @@ const COLOR_DEATHS = '#dc2626'; // Tailwind red-600
 
 // Mock Data for KPI Cards
 const kpiData = [
-  { title: 'Patient count', value: 18, icon: UsersIcon, color: 'text-blue-600' },
-  { title: 'Currently Admitted', value: 26, icon: BedIcon, color: 'text-blue-600' },
-  { title: 'Deaths', value: 0, icon: HeartIcon, color: 'text-red-600' },
-  { title: 'Referred Cases', value: 6, icon: ArrowSquareOutIcon, color: 'text-gray-600' },
+  { title: 'Patient count', value: 18, icon: UsersIcon, color: 'text-green-600', rate:18 },
+  { title: 'Currently Admitted', value: 10, icon: BedIcon, color: 'text-red-600', rate:9 },
+  { title: 'Deaths', value: 0, icon: HeartIcon, color: 'text-red-600', rate:0 },
+  { title: 'Referred Cases', value: 26, icon: ArrowSquareOutIcon, color: 'text-green-600', rate:12 },
 ];
 
 // ADJUSTED: Mock Data for Patient Admission Line Chart to match the shape in the uploaded image
@@ -60,12 +60,12 @@ const DashboardContent = () => {
       <div className=" mx-auto space-y-6">
         {/* KPI Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {kpiData.map((kpi, index) => (
+          {kpiData.map((kpi:any, index:number) => (
             <Card key={index} className="text-center rounded-sm border-none shadow-sm">
               <CardContent className="p-6 pt-8 pb-6 flex flex-col items-center space-y-2">
-                <kpi.icon className={`h-8 w-8 ${kpi.color}`} />
-                <div className="text-4xl font-extrabold text-gray-900">{kpi.value}</div>
                 <p className="text-sm text-gray-600">{kpi.title}</p>
+                <div className="text-4xl font-extrabold text-gray-900">{kpi.value}</div>
+                <span className={`${kpi.color} text-sm font-[400]`} >{kpi.rate}%</span>
               </CardContent>
             </Card>
           ))}
