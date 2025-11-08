@@ -552,11 +552,10 @@ export default function DataEntriesContent() {
         >
           <div className="top-panel-content">
             {/* Time Selector */}
-            <div className="p-4 border-b">
-              <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-3 border-b border-t pt-1 pb-1">
+            <div className="px-4">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center  border-b border-t pt-1 pb-1">
                 <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-4 mb-4 md:mb-0">
                   <div className="flex items-center space-x-2">
-                    <span className="text-xs text-gray-600 whitespace-nowrap">Select Date:</span>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="w-[240px] shadow-none justify-start text-left font-normal h-10">
@@ -613,13 +612,13 @@ export default function DataEntriesContent() {
                 </div>
               </div>
 
-              {startRange && endRange && (
+              {/* {startRange && endRange && (
                 <div className="date-range-display text-sm text-gray-600 mt-2 p-2 bg-blue-50 rounded-md border border-blue-200">
                   <strong>Selected Range:</strong> {format(startRange, 'MMM d, yyyy')}
                   {!isSameDay(startRange, addDays(endRange, -1)) && ` - ${format(addDays(endRange, -1), 'MMM d, yyyy')}`}
                   <span className="ml-3 text-blue-700">({filteredData.length} records)</span>
                 </div>
-              )}
+              )} */}
             </div>
 
             {/* Actions and Table */}

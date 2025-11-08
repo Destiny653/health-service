@@ -18,22 +18,15 @@ import {
     SheetContent,
     SheetHeader,
     SheetTitle,
-    SheetDescription,
 } from '@/components/ui/sheet';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Card, CardContent} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { DataTable } from '../PatientsTable';
 import { ContactPersonnel, contactPersonnels, notification } from '@/data';
 import {
-    Smiley,
-    Heart,
-    HorseIcon,
     BellIcon,
     UserIcon,
     UsersIcon,
@@ -173,7 +166,7 @@ export default function Settings() {
     return (
         <div className="min-h-screen max-w-[100vw] bg-gray-50 flex">
             {/* === SIDEBAR === */}
-            <aside className="w-64 bg-white border-r border-gray-200 pt-5">
+            <aside className="w-64 bg-gray-50  pt-5">
 
                 <NavigationMenu orientation="vertical" className="[&>div>svg]:hidden" >
                     <NavigationMenuList className="flex flex-col space-y-0 pt-5">
@@ -197,20 +190,20 @@ export default function Settings() {
             </aside>
 
             {/* === MAIN CONTENT === */}
-            <main className="flex-1 pt-5 bg-white">
+            <main className="flex-1 pt-5 bg-gray-50">
 
-                <div className="p-8 px-12 bg-white space-y-4  min-h-[94vh]">
+                <div className="p-8 px-12 bg-gray-50 space-y-4  min-h-[94vh]">
                     {/* === NOTIFICATIONS === */}
                     {activeMenu === 'Notifications' && (
                         <div>
-                            <Card className="max-w-4xl mx-auto rounded-none shadow-l p-4">
+                            <Card className="max-w-4xl mx-auto -none border-none rounded-sm p-4">
                                 <h1 className="text-xl font-semibold mb-6">Notifications</h1>
                                 <Separator className='bg-gray-50' />
                                 <CardContent className="p-6 space-y-5">
 
                                     <div className="space-y-4 flex flex-col gap-4">
                                         {notification.map((notif, index) => (
-                                            <div key={index} className="bg-white border-gray-200">
+                                            <div key={index} className="bg-white">
                                                 <div className="flex justify-between items-start ">
                                                     <div className="flex-1">
                                                         <h3 className="font-semibold text-gray-900">{notif.title}</h3>
@@ -229,7 +222,7 @@ export default function Settings() {
                     {/* === PROFILEIcon === */}
                     {activeMenu === 'Profile' && (
                         <div className='mx-auto'>
-                            <Card className="max-w-3xl mx-auto rounded-none shadow-l p-4">
+                            <Card className="max-w-3xl mx-auto shadow-none border-none rounded-sm p-4">
                                 <h1 className="text-xl font-bold pb-6 border-b border-gray-50">ProfileIcon Details</h1>
                                 <CardContent className="p-6 space-y-5">
                                     {[
@@ -253,7 +246,7 @@ export default function Settings() {
 
                     {/* === TEAM === */}
                     {activeMenu === 'Team' && (
-                        <div className='shadow-lg p-6 min-h-[60vh] rounded-sm'>
+                        <div className='shadow-none border-none p-6 min-h-[60vh] bg-white rounded-sm'>
                             <h1 className="text-xl font-bold pb-6">Manage Users</h1>
                             <div className="flex justify-between items-center mb-6">
                                 <div className='relative'>
@@ -284,7 +277,7 @@ export default function Settings() {
                     {/* === SECURITY === */}
                     {activeMenu === 'Security' && (
                         <div>
-                            <Card className="max-w-3xl mx-auto rounded-sm shadow-lg p-6 border-none">
+                            <Card className="max-w-3xl mx-auto -none rounded-sm  p-6 border-none">
                                 <h1 className="text-xl font-bold mb-6">Update Password</h1>
                                 <CardContent className="p-6 space-y-5">
                                     <div>
@@ -310,7 +303,7 @@ export default function Settings() {
                     {/* === TERMS === */}
                     {activeMenu === 'Terms' && (
                         <div>
-                            <Card className="max-w-4xl p-6 rounded-sm shadow-lg border-none mx-auto">
+                            <Card className="max-w-4xl p-6 shadow-none rounded-sm  border-none mx-auto">
                                 <h1 className="text-2xl font-bold mb-6">Terms of Service</h1>
                                 <Separator className='bg-gray-50' />
                                 <CardContent className="p-6 text-sm text-gray-600 leading-relaxed space-y-4">
@@ -332,7 +325,7 @@ export default function Settings() {
 
             {/* === ADD USER SHEET (SLIDES FROM RIGHT) === */}
             <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-                <SheetContent side="right" className="min-w-[30vw] p-0">
+                <SheetContent side="right" className="min-w-[40vw] p-0">
                     <SheetHeader className="p-4 border-b">
                         <div className="flex justify-between items-center">
                             <SheetTitle>Create User</SheetTitle>

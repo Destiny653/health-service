@@ -73,14 +73,14 @@ export function DataTable<TData>({
             <Loader2 className="animate-spin text-primary" size={28} />
           </div>
         ) : (
-          <table className={`border w-full border-gray-200 text-s"`}>
-            <thead className="bg-[#F2F7FB]">
+          <table className={`border-none w-full border-gray-200 text-s"`}>
+            <thead className="bg-gray-50">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="text-left px-4 py-2 border-b border-gray-50 font-semibold"
+                      className="text-left px-4 py-2 border-b border-gray-50 font-[500]"
                     >
                       {flexRender(
                         header.column.columnDef.header,
