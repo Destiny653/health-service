@@ -13,7 +13,7 @@ import {
   Label,
   Legend,
 } from 'recharts';
-import { ArrowSquareOutIcon, BedIcon, BoxArrowDownIcon, DatabaseIcon, HeartIcon, UsersIcon } from '@phosphor-icons/react';
+import { ArrowSquareOutIcon, BedIcon, BoxArrowDownIcon, DatabaseIcon, HeartIcon, TrendDownIcon, TrendUpIcon, UsersIcon } from '@phosphor-icons/react';
 
 // Colors used in the image: yellow-600, blue-600, red-600
 const COLOR_CONSULTED = '#f59e0b'; // Tailwind yellow-600
@@ -22,10 +22,10 @@ const COLOR_DEATHS = '#dc2626'; // Tailwind red-600
 
 // Mock Data for KPI Cards
 const kpiData = [
-  { title: 'Patient count', value: 18, icon: UsersIcon, color: 'text-green-600', rate:18 },
-  { title: 'Currently Admitted', value: 10, icon: BedIcon, color: 'text-red-600', rate:9 },
-  { title: 'Deaths', value: 0, icon: HeartIcon, color: 'text-red-600', rate:0 },
-  { title: 'Referred Cases', value: 26, icon: ArrowSquareOutIcon, color: 'text-green-600', rate:12 },
+  { title: 'Patient count', value: 18, iconUp: TrendDownIcon, iconD: TrendUpIcon, color: 'text-green-600', rate: 18 },
+  { title: 'Currently Admitted', value: 10, iconUp: TrendDownIcon, iconD: TrendUpIcon, color: 'text-red-600', rate: 9 },
+  { title: 'Deaths', value: 0, iconUp: TrendDownIcon, iconD: TrendUpIcon, color: 'text-red-600', rate: 0 },
+  { title: 'Referred Cases', value: 26, iconUp: TrendDownIcon, iconD: TrendUpIcon, color: 'text-green-600', rate: 12 },
 ];
 
 // ADJUSTED: Mock Data for Patient Admission Line Chart to match the shape in the uploaded image
@@ -60,12 +60,20 @@ const DashboardContent = () => {
       <div className=" mx-auto space-y-6">
         {/* KPI Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {kpiData.map((kpi:any, index:number) => (
+          {kpiData.map((kpi: any, index: number) => (
             <Card key={index} className="text-center rounded-sm border-none shadow-sm">
               <CardContent className="p-6 pt-8 pb-6 flex flex-col items-center space-y-2">
                 <p className="text-sm text-gray-600">{kpi.title}</p>
                 <div className="text-4xl font-extrabold text-gray-900">{kpi.value}</div>
-                <span className={`${kpi.color} text-sm font-[400]`} >{kpi.rate}%</span>
+                <div className='flex gap-1'>
+                  {
+                    kpi.rate > 9 ?
+                      <kpi.iconD className={`${kpi.color}`} />
+                      :
+                      <kpi.iconUp className={`${kpi.color}`} />
+                  }
+                  <span className={`${kpi.color} text-sm font-[400]`} >{kpi.rate}%</span>
+                </div>
               </CardContent>
             </Card>
           ))}
