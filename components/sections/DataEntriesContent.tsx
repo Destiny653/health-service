@@ -192,9 +192,21 @@ export default function DataEntriesContent() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<'details' | 'history'>('details');
+  const [selectedHealthDistrict, setSelectedHealthDistrict] = useState<string>('Buea District');
+  const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
 
   const allPatients = useMemo(() => files.flatMap(f => f.patients), [files]);
   const allImages = useMemo(() => files.flatMap(f => f.fileUrl), [files]);
+
+  const healthDistricts = useMemo(() => {
+    const districts = new Set<string>();
+    files.forEach(file => {
+      if (file.facility?.healthDistrict) {
+        districts.add(file.facility.healthDistrict);
+      }
+    });
+    return Array.from(districts).sort();
+  }, [files]);
 
   const selectedDate = useMemo(() => startOfDay(new Date(selectedDateStr)), [selectedDateStr]);
 
@@ -335,7 +347,10 @@ export default function DataEntriesContent() {
 
     const filteredFiles = files.filter(f => {
       const created = new Date(f.createdAt);
-      return created >= startRange && created < endRange;
+      const inDateRange = created >= startRange && created < endRange;
+      const inHealthDistrict = selectedHealthDistrict === '' || f.facility?.healthDistrict === selectedHealthDistrict;
+      const inStatus = selectedStatus === null || f.submissionStatus === selectedStatus;
+      return inDateRange && inHealthDistrict && inStatus;
     });
 
     let flatPatients = filteredFiles.flatMap(f => f.patients);
@@ -354,7 +369,7 @@ export default function DataEntriesContent() {
       ].some(field => String(field || '').toLowerCase().includes(searchTerm.toLowerCase())));
     }
     return flatPatients;
-  }, [files, startRange, endRange, searchTerm]);
+  }, [files, startRange, endRange, searchTerm, selectedHealthDistrict, selectedStatus]);
 
   const handleUnitClick = useCallback((unitId: string) => {
     setSelectedUnitId(unitId);
@@ -515,32 +530,88 @@ export default function DataEntriesContent() {
 
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 bg-white z-20 flex-shrink-0">
-        <div className="flex items-center space-x-2 bg-[#021EF533] py-2 px-4 rounded-md border border-blue-200">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-          </svg>
-          <span className="text-blue-700">Bonaberi Health Center</span>
-        </div>
+        <Select value={selectedHealthDistrict} onValueChange={setSelectedHealthDistrict}>
+          <SelectTrigger className="w-[240px] bg-[#021EF533] py-5 border border-blue-200">
+            <div className="flex items-center space-x-2">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+              </svg>
+              <SelectValue placeholder="Select Health District" />
+            </div>
+          </SelectTrigger>
+          <SelectContent className="font-[500]">
+            {healthDistricts.map((district) => (
+              <SelectItem key={district} value={district}>
+                {district}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {/* UPDATED LEGEND */}
-        <div className="flex items-center space-x-4 mt-4 md:mt-0 p-2 border rounded-md bg-white">
-          <div className="flex items-center text-sm">
-            <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-            No Submission (Past)
-          </div>
-          <div className="flex items-center text-sm">
-            <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-            Confirmed
-          </div>
-          <div className="flex items-center text-sm">
-            <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
-            In Progress
-          </div>
-          <div className="flex items-center text-sm">
-            <div className="w-3 h-3 rounded-full bg-gray-300 mr-2"></div>
-            Pending / N/A
-          </div>
+        <div className="flex items-center mt-4 md:mt-0 p-2 border rounded-md bg-gray-100 h-12">
+          {/* Button 1 */}
+          <button
+            onClick={() => setSelectedStatus(selectedStatus === 'N/A' ? null : 'N/A')}
+            className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === 'N/A' ? 'bg-white rounded-md p-1' : ''
+              }`}
+          >
+            <div className="w-3 h-3 rounded-full bg-red-500 p-3 mr-2"></div>
+            {selectedStatus === 'N/A' ? 'No Submission (Past)' : ''}
+            <span className="ml-1 text-xs text-gray-500">
+              ({files.filter(f => f.submissionStatus === 'N/A').length})
+            </span>
+          </button>
+
+          {/* Vertical Separator */}
+          <div className="h-8 w-px bg-gray-300 mx-4"></div>
+
+          {/* Button 2 */}
+          <button
+            onClick={() => setSelectedStatus(selectedStatus === 'confirmed' ? null : 'confirmed')}
+            className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === 'confirmed' ? 'bg-white rounded-md p-1' : ''
+              }`}
+          >
+            <div className="w-3 h-3 rounded-full bg-green-500 p-3 mr-2"></div>
+            {selectedStatus === 'confirmed' ? 'Confirmed' : ''}
+            <span className="ml-1 text-xs text-gray-500">
+              ({files.filter(f => f.submissionStatus === 'confirmed').length})
+            </span>
+          </button>
+
+          {/* Vertical Separator */}
+          <div className="h-8 w-px bg-gray-300 mx-4"></div>
+
+          {/* Button 3 */}
+          <button
+            onClick={() => setSelectedStatus(selectedStatus === 'progress' ? null : 'progress')}
+            className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === 'progress' ? 'bg-white rounded-md p-1' : ''
+              }`}
+          >
+            <div className="w-3 h-3 rounded-full bg-yellow-400 p-3 mr-2"></div>
+            {selectedStatus === 'progress' ? 'In Progress' : ''}
+            <span className="ml-1 text-xs text-gray-500">
+              ({files.filter(f => f.submissionStatus === 'progress').length})
+            </span>
+          </button>
+
+          {/* Vertical Separator */}
+          <div className="h-8 w-px bg-gray-300 mx-4"></div>
+
+          {/* Button 4 */}
+          <button
+            onClick={() => setSelectedStatus(selectedStatus === 'pending' ? null : 'pending')}
+            className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === 'pending' ? 'bg-white rounded-md p-1' : ''
+              }`}
+          >
+            <div className="w-3 h-3 rounded-full bg-gray-300 p-3 mr-2"></div>
+            {selectedStatus === 'pending' ? 'Pending / N/A' : ''}
+            <span className="ml-1 text-xs text-gray-500">
+              ({files.filter(f => f.submissionStatus === 'pending').length})
+            </span>
+          </button>
         </div>
+
       </div>
 
       {/* Main Split Container */}

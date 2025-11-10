@@ -57,100 +57,17 @@ export default function ImageViewer({ src }: ImageViewerProps) {
                                     loading="lazy"
                                 />
                             </TransformComponent>
+                            <button
+                                className="absolute top-2 right-2 bg-white/90 p-1.5 rounded hover:bg-white transition-colors"
+                                onClick={() => resetTransform()}
+                            >
+                                <FullscreenIcon />
+                            </button>
                         </>
                     )}
                 </TransformWrapper>
 
-                {/* Bottom overlay icons */}
-                {/* <div className="absolute inset-x-0 bottom-0 flex justify-center space-x-3 p-2">
-                    <button
-                        className="hover:scale-110 transition-transform bg-white rounded-full p-1"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setOpen(true);
-                        }}
-                    >
-                        <SearchPlusIcon />
-                    </button>
-                    <button
-                        className="hover:scale-110 transition-transform bg-white rounded-full p-1"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setOpen(true);
-                        }}
-                    >
-                        <SearchMinusIcon />
-                    </button>
-                    <button
-                        className="hover:scale-110 transition-transform bg-white rounded-full p-1"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            const link = document.createElement('a');
-                            link.href = src;
-                            link.download = src.split('/').pop() || 'image';
-                            link.click();
-                        }}
-                    >
-                        <CursorGrab />
-                    </button>
-                </div> */}
-
-                {/* Fullscreen icon in top-right corner */}
-                <button
-                    className="absolute top-2 right-2 bg-white/90 p-1.5 rounded hover:bg-white transition-colors"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setOpen(true);
-                    }}
-                >
-                    <FullscreenIcon />
-                </button>
             </div>
-
-            {/* ----- Full-screen light-box ----- */}
-            <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="max-w-7xl max-h-[90vh] p-0 overflow-hidden bg-black">
-                    <TransformWrapper
-                        initialScale={1}
-                        minScale={0.5}
-                        maxScale={8}
-                        wheel={{ step: 0.2 }}
-                        panning={{ disabled: false }}
-                        doubleClick={{ mode: "reset" }}
-                    >
-                        {({ zoomIn, zoomOut, resetTransform }) => (
-                            <>
-                                {/* Toolbar (top-right) */}
-                                <div className="absolute top-4 right-4 z-10 flex space-x-2 bg-white/80 backdrop-blur-sm rounded-md p-1">
-                                    <ToolbarButton onClick={() => zoomIn()}>
-                                        <PlusIcon />
-                                    </ToolbarButton>
-                                    <ToolbarButton onClick={() => zoomOut()}>
-                                        <MinusIcon />
-                                    </ToolbarButton>
-                                    <ToolbarButton onClick={() => resetTransform()}>
-                                        <ResetIcon />
-                                    </ToolbarButton>
-                                    <ToolbarButton onClick={() => setOpen(false)}>
-                                        <CloseIcon />
-                                    </ToolbarButton>
-                                </div>
-
-                                {/* Image */}
-                                <TransformComponent wrapperClass="!w-full !h-full" contentClass="!w-full !h-full">
-                                    <img
-                                        ref={imgRef}
-                                        src={src}
-                                        alt="Full view"
-                                        className="max-w-none"
-                                        style={{ touchAction: "none" }}
-                                    />
-                                </TransformComponent>
-                            </>
-                        )}
-                    </TransformWrapper>
-                </DialogContent>
-            </Dialog>
         </>
     );
 }
@@ -158,22 +75,6 @@ export default function ImageViewer({ src }: ImageViewerProps) {
 /* --------------------------------------------------------------
    Tiny SVG icons – matching the image exactly
    -------------------------------------------------------------- */
-const SearchPlusIcon = () => (
-    <svg className="h-6 w-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <circle cx="11" cy="11" r="7" strokeWidth={2} />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 8v6M8 11h6" />
-    </svg>
-);
-
-const SearchMinusIcon = () => (
-    <svg className="h-6 w-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <circle cx="11" cy="11" r="7" strokeWidth={2} />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 11h6" />
-    </svg>
-);
-
 const CursorGrab = () => (
     <img src="/images/frame.svg" alt="palm" width={'25'} />
 );

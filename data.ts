@@ -697,7 +697,16 @@ export const data: PatientDataFile[] = [
         address: 'Bonassama',
         facilityName: 'Bonassama Hospital',
         submissionStatus: 'pending',
-        facility,
+        facility: {
+            facilityName: "The Martins",
+            address: "12 Independence Avenue, Buea",
+            division: "Fako",
+            healthDistrict: "Bamenda District",
+            municipality: "Bamenda",
+            phone: "+237 677 123 456",
+            email: "stmaryhealthcenter@gmail.com",
+            site: "www.stmaryhealth.org",
+        },
         contactPersonnels,
         patients: [
             {
