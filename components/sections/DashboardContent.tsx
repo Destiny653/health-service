@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ExternalLink, Download, MapPin } from 'lucide-react';
@@ -12,6 +12,9 @@ import {
   ResponsiveContainer,
   Label,
   Legend,
+  PieChart,
+  Pie,
+  Cell,
 } from 'recharts';
 import { ArrowSquareOutIcon, BedIcon, BoxArrowDownIcon, DatabaseIcon, HeartIcon, TrendDownIcon, TrendUpIcon, UsersIcon } from '@phosphor-icons/react';
 
@@ -55,6 +58,8 @@ const diseaseData = [
 ];
 
 const DashboardContent = () => {
+  const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 antialiased">
       <div className=" mx-auto space-y-6">
@@ -161,24 +166,58 @@ const DashboardContent = () => {
           <Card className='rounded-sm border-none shadow-sm'>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-lg font-semibold">Disease Occurrence Report</CardTitle>
-              <Button variant="ghost" size="sm" className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
-                <DatabaseIcon size={40} className="h-4 w-4" />
-                Export
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setChartType(chartType === 'bar' ? 'pie' : 'bar')}
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  {chartType === 'bar' ? 'Pie Chart' : 'Bar Chart'}
+                </Button>
+                <Button variant="ghost" size="sm" className="flex items-center gap-2 text-gray-600 hover:text-gray-900">
+                  <DatabaseIcon size={40} className="h-4 w-4" />
+                  Export
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              {diseaseData.map((disease, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-gray-700 w-24">{disease.name}</span>
-                  <div className="w-64 bg-gray-200 h-6">
-                    <div
-                      className="bg-blue-600 h-6 transition-all duration-300 ease-in-out"
-                      style={{ width: `${disease.value}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-sm font-medium text-gray-700 w-8 text-right">{disease.value}%</span>
+            <CardContent className="p-6">
+              {chartType === 'bar' ? (
+                <div className="space-y-4">
+                  {diseaseData.map((disease, index) => (
+                    <div key={index} className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700 w-24">{disease.name}</span>
+                      <div className="w-64 bg-gray-200 h-6">
+                        <div
+                          className="bg-blue-600 h-6 transition-all duration-300 ease-in-out"
+                          style={{ width: `${disease.value}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-sm font-medium text-gray-700 w-8 text-right">{disease.value}%</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={diseaseData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={({ name, value }) => `${name}: ${value}%`}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {diseaseData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={`hsl(${index * 60}, 70%, 50%)`} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
 
