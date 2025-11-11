@@ -11,3 +11,7 @@ export const NAV_ITEMS = [
   { id: 'facilities', label: 'Facilities', Component: FacilitiesContent },
   { id: 'reports', label: 'Reports', Component: ReportsContent },
 ];
+
+export const DataEntriesId = NAV_ITEMS[2].id;
+export const DATA_ENTRIES_TAB_ID = "data_entries";
+export const FACILITIES_TAB_ID = "facilities";

@@ -27,7 +27,7 @@ const AppHeader: FC<AppHeaderProps> = ({ activeTab, setActiveTab }) => {
       <div className=" mx-auto flex justify-between items-stretch h-16 px-4 sm:px-6 lg:px-8">
 
         {/* Logo Section */}
-        <div className="flex items-center space-x-4">
+        <div  onClick={() => setActiveTab(NAV_ITEMS[1].id)} className="flex items-center space-x-4">
           {/* <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-green-700 font-extrabold text-sm">
             L
           </div>

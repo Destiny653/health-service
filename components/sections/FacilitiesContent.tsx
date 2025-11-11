@@ -17,66 +17,36 @@ import {
     isSameDay,
     startOfDay,
 } from 'date-fns';
-import { PatientDataFile, data } from "@/data";
+import { PatientDataFile, data } from "@/data"; // Import real data + types
 import { Button } from '@/components/ui/button';
 import { Badge } from "@/components/ui/badge";
 import { Check, X, AlertTriangle, Minus, MapPin } from "lucide-react";
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import * as XLSX from "xlsx";
 import { FacilityDetailSheet } from "../FacilityDetailSheet";
 import GoogleMapViewer from "@/components/GoogleMapViewer";
-
-// IMPORT EXPORT UTILS
 import { exportToCSV, exportToExcel, generateExportFilename } from "@/utils/export";
+import { DATA_ENTRIES_TAB_ID, DataEntriesId } from "@/utils/data";
+
+interface FacilitiesContentProps {
+    setActiveTab?: React.Dispatch<React.SetStateAction<string>>;
+}
 
 /* ────────────────────── TYPES ────────────────────── */
-type SubmissionStatus = 'confirmed' | 'progress' | 'pending' | 'N/A';
+type SubmissionStatus = PatientDataFile['submissionStatus']; // Use real type!
 
 const View = { DAY: 'DAY', WEEK: 'WEEK', MONTH: 'MONTH', YEAR: 'YEAR' } as const;
 type ViewType = keyof typeof View;
 
-const STATUS_COLORS = {
-    GREEN: 'bg-green-500',
-    YELLOW: 'bg-yellow-400',
-    RED: 'bg-red-500',
-    GRAY: 'bg-gray-300',
+// Map submissionStatus → Tailwind classes + icons
+const STATUS_CONFIG = {
+    confirmed: { color: 'bg-[#028700]', icon: Check, label: 'Confirmed' },
+    progress: { color: 'bg-yellow-400', icon: AlertTriangle, label: 'In Progress' },
+    pending: { color: 'bg-gray-300', icon: Minus, label: 'Pending' },
+    'N/A': { color: 'bg-red-500', icon: X, label: 'No Submission' },
 } as const;
-type StatusColor = typeof STATUS_COLORS[keyof typeof STATUS_COLORS];
 
-const IconMap: Record<StatusColor, React.FC<{ className?: string }>> = {
-    [STATUS_COLORS.GREEN]: Check,
-    [STATUS_COLORS.YELLOW]: AlertTriangle,
-    [STATUS_COLORS.RED]: X,
-    [STATUS_COLORS.GRAY]: Minus,
-};
-
-const ColorMap: Record<StatusColor, string> = {
-    [STATUS_COLORS.GREEN]: 'text-white bg-[#028700] rounded-full',
-    [STATUS_COLORS.YELLOW]: 'text-white bg-yellow-400 rounded-full',
-    [STATUS_COLORS.RED]: 'text-white bg-red-500 rounded-full',
-    [STATUS_COLORS.GRAY]: 'text-white bg-gray-300 rounded-full',
-};
-
-interface TimeUnit {
-    id: string;
-    date: Date;
-    label: string;
-    value: string;
-    statusColor: StatusColor;
-    isToday: boolean;
-}
-
-interface FacilityRow {
-    id: string;
-    facilityName: string;
-    address: string;
-    recordCount?: number;
-    statusByUnit: StatusColor[];
-    details?: any;
-    contacts?: any;
-    allFiles: PatientDataFile[];
-}
+type StatusKey = keyof typeof STATUS_CONFIG;
 
 /* ────────────────────── UTILS ────────────────────── */
 const getStartOfToday = (): Date => startOfDay(new Date());
@@ -103,10 +73,11 @@ const getUnitEnd = (start: Date, view: ViewType): Date => {
     }
 };
 
-/* ────────────────────── STATUS LOGIC ────────────────────── */
-const generateStatus = (unitDate: Date, files: PatientDataFile[], view: ViewType): StatusColor => {
+/* ────────────────────── STATUS LOGIC (SIMPLIFIED & CLEAN) ────────────────────── */
+const getStatusForUnit = (unitDate: Date, files: PatientDataFile[], view: ViewType): StatusKey => {
     const start = getUnitStart(unitDate, view);
     const end = getUnitEnd(start, view);
+    const todayStart = getStartOfToday();
 
     const filesInUnit = files.filter(f => {
         const created = new Date(f.createdAt);
@@ -114,37 +85,38 @@ const generateStatus = (unitDate: Date, files: PatientDataFile[], view: ViewType
     });
 
     if (filesInUnit.length === 0) {
-        return unitDate < getStartOfToday() ? STATUS_COLORS.RED : STATUS_COLORS.GRAY;
+        return unitDate < todayStart ? 'N/A' : 'pending';
     }
 
-    const hasConfirmed = filesInUnit.some(f => f.submissionStatus?.toLowerCase() === 'confirmed');
-    const hasProgress = filesInUnit.some(f => f.submissionStatus?.toLowerCase() === 'progress');
-    const hasPending = filesInUnit.some(f => f.submissionStatus?.toLowerCase() === 'pending');
-
-    if (hasConfirmed) return STATUS_COLORS.GREEN;
-    if (hasProgress) return STATUS_COLORS.YELLOW;
-    if (hasPending) return STATUS_COLORS.GRAY;
-    return unitDate < getStartOfToday() ? STATUS_COLORS.RED : STATUS_COLORS.GRAY;
+    // Priority: confirmed > progress > pending > N/A
+    if (filesInUnit.some(f => f.submissionStatus === 'confirmed')) return 'confirmed';
+    if (filesInUnit.some(f => f.submissionStatus === 'progress')) return 'progress';
+    if (filesInUnit.some(f => f.submissionStatus === 'pending')) return 'pending';
+    return 'N/A';
 };
 
 /* ────────────────────── TIME UNIT ITEM ────────────────────── */
-const TimeUnitItem = ({ label, value, statusColor, isSelected }: {
+const TimeUnitItem = ({ label, value, status, isSelected }: {
     label: string;
     value: string;
-    statusColor: StatusColor;
+    status: StatusKey;
     isSelected: boolean;
-}) => (
-    <div className="flex flex-col items-center relative">
-        <div className="text-xs font-semibold text-gray-500 mb-1">{label}</div>
-        <div className={`w-8 h-8 flex items-center justify-center p-5 text-sm font-bold text-white rounded-md ${statusColor} shadow-sm transition-all ${isSelected ? 'scale-110 ring-2 ring-blue-500' : 'hover:scale-105'}`}>
-            {value}
+}) => {
+    const { color, icon: Icon } = STATUS_CONFIG[status];
+
+    return (
+        <div className="flex flex-col items-center relative">
+            <div className="text-xs font-semibold text-gray-500 mb-1">{label}</div>
+            <div className={`w-8 h-8 flex items-center justify-center p-5 text-sm font-bold text-white rounded-md ${color} shadow-sm transition-all ${isSelected ? 'scale-110 ring-2 ring-blue-500' : 'hover:scale-105'}`}>
+                {value}
+            </div>
+            {isSelected && <div className="w-7 h-1 bg-blue-600 rounded-full mt-1 absolute -bottom-2 animate-pulse"></div>}
         </div>
-        {isSelected && <div className="w-7 h-1 bg-blue-600 rounded-full mt-1 absolute -bottom-2 animate-pulse"></div>}
-    </div>
-);
+    );
+};
 
 /* ────────────────────── MAIN COMPONENT ────────────────────── */
-export default function FacilitiesContent() {
+export default function FacilitiesContent({ setActiveTab }: FacilitiesContentProps) {
     const { data: files = [], isLoading, error } = useQuery<PatientDataFile[]>({
         queryKey: ["files"],
         queryFn: async () => new Promise(resolve => setTimeout(() => resolve(data), 500)),
@@ -153,7 +125,7 @@ export default function FacilitiesContent() {
     useEffect(() => { if (error) toast.error("Error fetching files"); }, [error]);
 
     const today = getStartOfToday();
-    const [activeView, setActiveView] = useState<ViewType>('DAY');
+    const [activeView, setActiveView] = useState<ViewType>('YEAR');
     const [selectedDate, setSelectedDate] = useState<Date>(today);
     const [selectedUnitId, setSelectedUnitId] = useState<string>(format(today, 'yyyy-MM-dd'));
     const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(null);
@@ -161,9 +133,9 @@ export default function FacilitiesContent() {
     const [selectedStatus, setSelectedStatus] = useState<SubmissionStatus | null>(null);
 
     // ALL POSSIBLE UNITS
-    const allPossibleUnits = useMemo<TimeUnit[]>(() => {
+    const allPossibleUnits = useMemo(() => {
         const center = selectedDate;
-        const units: TimeUnit[] = [];
+        const units: { id: string; date: Date; label: string; value: string; isToday: boolean }[] = [];
 
         const push = (date: Date, label: string, value: string, id: string) => {
             units.push({
@@ -171,7 +143,6 @@ export default function FacilitiesContent() {
                 date,
                 label,
                 value,
-                statusColor: generateStatus(date, files, activeView),
                 isToday: isSameDay(date, new Date())
             });
         };
@@ -202,34 +173,37 @@ export default function FacilitiesContent() {
             }
         }
         return units;
-    }, [selectedDate, activeView, files]);
+    }, [selectedDate, activeView]);
 
-    // FILTERED UNITS
+    // UNITS WITH STATUS
     const units = useMemo(() => {
-        let filtered = allPossibleUnits;
+        let filtered = allPossibleUnits.map(unit => ({
+            ...unit,
+            status: getStatusForUnit(unit.date, files, activeView)
+        }));
 
-        if (selectedStatus && selectedStatus !== 'N/A') {
+        // Apply status filter
+        if (selectedStatus) {
             filtered = filtered.filter(unit => {
                 const start = getUnitStart(unit.date, activeView);
                 const end = getUnitEnd(start, activeView);
+
+                if (selectedStatus === 'N/A') {
+                    const hasFile = files.some(f => {
+                        const created = new Date(f.createdAt);
+                        return created >= start && created < end;
+                    });
+                    return !hasFile && start < getStartOfToday();
+                }
+
                 return files.some(f => {
                     const created = new Date(f.createdAt);
-                    return f.submissionStatus?.toLowerCase() === selectedStatus && created >= start && created < end;
+                    return f.submissionStatus === selectedStatus && created >= start && created < end;
                 });
-            });
-        } else if (selectedStatus === 'N/A') {
-            filtered = filtered.filter(unit => {
-                const start = getUnitStart(unit.date, activeView);
-                const end = getUnitEnd(start, activeView);
-                const hasFile = files.some(f => {
-                    const created = new Date(f.createdAt);
-                    return created >= start && created < end;
-                });
-                return !hasFile && start < getStartOfToday();
             });
         }
 
-        if (filtered.length === 0) return allPossibleUnits;
+        if (filtered.length === 0) return allPossibleUnits.map(u => ({ ...u, status: 'pending' as StatusKey }));
 
         const selectedIndex = filtered.findIndex(u => u.id === selectedUnitId);
         const startIdx = selectedIndex === -1 ? Math.max(0, Math.floor(filtered.length / 2) - 4) : Math.max(0, selectedIndex - 4);
@@ -246,12 +220,12 @@ export default function FacilitiesContent() {
     }, [units, selectedUnitId]);
 
     // FACILITY ROWS
-    const starkRows = useMemo<FacilityRow[]>(() => {
-        const filteredFiles = selectedStatus && selectedStatus !== 'N/A'
-            ? files.filter(f => f.submissionStatus?.toLowerCase() === selectedStatus)
-            : selectedStatus === 'N/A'
+    const starkRows = useMemo(() => {
+        const filteredFiles = selectedStatus
+            ? selectedStatus === 'N/A'
                 ? files.filter(f => !f.submissionStatus || f.submissionStatus === 'N/A')
-                : files;
+                : files.filter(f => f.submissionStatus === selectedStatus)
+            : files;
 
         const map = new Map<string, PatientDataFile[]>();
         filteredFiles.forEach(f => {
@@ -262,7 +236,7 @@ export default function FacilitiesContent() {
 
         return Array.from(map.entries()).map(([key, facFiles]) => {
             const [name, address] = key.split('|||');
-            const statusByUnit = units.map(u => generateStatus(u.date, facFiles, activeView));
+            const statusByUnit = units.map(u => getStatusForUnit(u.date, facFiles, activeView));
             const recordCount = facFiles.reduce((s, f) => s + (f.recordCount ?? 0), 0);
 
             return {
@@ -295,27 +269,12 @@ export default function FacilitiesContent() {
     };
 
     const selectedFacility = starkRows.find(r => r.id === selectedFacilityId);
-
     const openSheet = (id: string) => {
         setSelectedFacilityId(id);
         setSheetOpen(true);
     };
 
-    // EXPORT FILENAME
-    const exportFilename = generateExportFilename(
-        "Rail District",
-        activeView,
-        selectedDate,
-        selectedStatus
-    );
-
-    // COLUMNS FOR EXPORT
-    const columns = [
-        { accessorKey: "id", header: "ID" },
-        { accessorKey: "facilityName", header: "Facility" },
-        { accessorKey: "address", header: "Address" },
-        { accessorKey: "recordCount", header: "Records" },
-    ] as any;
+    const exportFilename = generateExportFilename("Rail District", activeView, selectedDate, selectedStatus);
 
     return (
         <div className="flex flex-col h-screen bg-white overflow-hidden">
@@ -328,31 +287,29 @@ export default function FacilitiesContent() {
                     Rail District Area
                 </Badge>
 
-                {/* EXACT LEGEND FROM YOUR WORKING MODULE */}
                 <div className="flex items-center p-2 border rounded-md bg-gray-100 h-12">
-                    <button onClick={() => setSelectedStatus(s => s === "N/A" ? null : "N/A")} className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "N/A" ? "bg-white rounded-md p-1" : ""}`}>
-                        <div className="w-3 h-3 rounded-full bg-red-500 p-3 mr-2" />
-                        {selectedStatus === "N/A" && "No Submission"}
-                        <span className="ml-1 text-xs text-gray-500">({files.filter(f => !f.submissionStatus || f.submissionStatus === "N/A").length})</span>
-                    </button>
-                    <div className="h-8 w-px bg-gray-300 mx-4" />
-                    <button onClick={() => setSelectedStatus(s => s === "confirmed" ? null : "confirmed")} className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "confirmed" ? "bg-white rounded-md p-1" : ""}`}>
-                        <div className="w-3 h-3 rounded-full bg-green-500 p-3 mr-2" />
-                        {selectedStatus === "confirmed" && "Confirmed"}
-                        <span className="ml-1 text-xs text-gray-500">({files.filter(f => f.submissionStatus === "confirmed").length})</span>
-                    </button>
-                    <div className="h-8 w-px bg-gray-300 mx-4" />
-                    <button onClick={() => setSelectedStatus(s => s === "progress" ? null : "progress")} className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "progress" ? "bg-white rounded-md p-1" : ""}`}>
-                        <div className="w-3 h-3 rounded-full bg-yellow-400 p-3 mr-2" />
-                        {selectedStatus === "progress" && "In Progress"}
-                        <span className="ml-1 text-xs text-gray-500">({files.filter(f => f.submissionStatus === "progress").length})</span>
-                    </button>
-                    <div className="h-8 w-px bg-gray-300 mx-4" />
-                    <button onClick={() => setSelectedStatus(s => s === "pending" ? null : "pending")} className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "pending" ? "bg-white rounded-md p-1" : ""}`}>
-                        <div className="w-3 h-3 rounded-full bg-gray-300 p-3 mr-2" />
-                        {selectedStatus === "pending" && "Pending"}
-                        <span className="ml-1 text-xs text-gray-500">({files.filter(f => f.submissionStatus === "pending").length})</span>
-                    </button>
+                    {(['N/A', 'confirmed', 'progress', 'pending'] as const).map(status => {
+                        const config = STATUS_CONFIG[status];
+                        const count = files.filter(f =>
+                            status === 'N/A'
+                                ? !f.submissionStatus || f.submissionStatus === 'N/A'
+                                : f.submissionStatus === status
+                        ).length;
+
+                        return (
+                            <React.Fragment key={status}>
+                                <button
+                                    onClick={() => setSelectedStatus(s => s === status ? null : status)}
+                                    className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === status ? "bg-white rounded-md p-1" : ""}`}
+                                >
+                                    <div className={`w-3 h-3 rounded-full ${config.color} p-3 mr-2`} />
+                                    {selectedStatus === status && config.label}
+                                    <span className="ml-1 text-xs text-gray-500">({count})</span>
+                                </button>
+                                {status !== 'pending' && <div className="h-8 w-px bg-gray-300 mx-4" />}
+                            </React.Fragment>
+                        );
+                    })}
                 </div>
             </div>
 
@@ -388,7 +345,7 @@ export default function FacilitiesContent() {
                                 {units.map(u => (
                                     <th key={u.id} className="py-3 text-center border border-b-0 border-t-0">
                                         <button onClick={() => handleUnitClick(u.id)} className="p-1 rounded hover:bg-gray-50 transition">
-                                            <TimeUnitItem label={u.label} value={u.value} statusColor={u.statusColor} isSelected={u.id === selectedUnitId} />
+                                            <TimeUnitItem label={u.label} value={u.value} status={u.status} isSelected={u.id === selectedUnitId} />
                                         </button>
                                     </th>
                                 ))}
@@ -421,12 +378,60 @@ export default function FacilitiesContent() {
                                     </td>
 
                                     {row.statusByUnit.map((status, idx) => {
-                                        const Icon = IconMap[status];
-                                        const color = ColorMap[status];
+                                        const { icon: Icon, color } = STATUS_CONFIG[status];
+                                        const unit = units[idx];
+
+                                        const handleStatusClick = () => {
+                                            const newStatus = status === selectedStatus ? null : status;
+                                            setSelectedStatus(newStatus);
+
+                                            // Save filter
+                                            if (newStatus) {
+                                                localStorage.setItem('facilities:selectedStatus', newStatus);
+                                            } else {
+                                                localStorage.removeItem('facilities:selectedStatus');
+                                            }
+
+                                            // SWITCH TO DATA ENTRIES TAB
+                                            if (setActiveTab) {
+                                                setActiveTab(DATA_ENTRIES_TAB_ID);
+                                                localStorage.setItem('app:activeTab', DATA_ENTRIES_TAB_ID);
+                                            }
+
+                                            // Feedback
+                                            toast.success(
+                                                newStatus
+                                                    ? `${STATUS_CONFIG[newStatus].label} → Switched to Data Entries`
+                                                    : 'Filter cleared'
+                                            );
+                                        };
+
+                                        const isActive = selectedStatus === status;
+
                                         return (
-                                            <td key={idx} className="py-3 text-center border border-t-0">
+                                            <td
+                                                key={idx}
+                                                className="py-3 text-center border border-t-0 cursor-pointer transition-all hover:bg-gray-50"
+                                                onClick={handleStatusClick}
+                                            >
                                                 <div className="flex justify-center">
-                                                    <Icon className={`w-6 h-6 p-1 ${color}`} />
+                                                    <div
+                                                        className={`
+            relative transition-all duration-200
+            ${isActive ? 'scale-125 ring-4 ring-blue-400 ring-opacity-50' : 'scale-100'}
+          `}
+                                                    >
+                                                        <Icon
+                                                            className={`
+              w-6 h-6 p-1 text-white ${color} rounded-full shadow-md
+              ${isActive ? 'animate-pulse' : ''}
+              hover:shadow-lg transition-shadow
+            `}
+                                                        />
+                                                        {isActive && (
+                                                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-600 rounded-full animate-ping" />
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </td>
                                         );
@@ -445,7 +450,6 @@ export default function FacilitiesContent() {
                 </div>
             </div>
 
-            {/* REMOVED initialTab PROP */}
             <FacilityDetailSheet
                 open={sheetOpen}
                 onOpenChange={setSheetOpen}

@@ -47,10 +47,10 @@ import { exportToCSV, exportToExcel } from "@/utils/export";
 const getStartOfToday = (): Date => startOfDay(new Date());
 
 const View = {
-  DAY: "Day",
-  WEEK: "Week",
-  MONTH: "Month",
   YEAR: "Year",
+  MONTH: "Month",
+  WEEK: "Week",
+  DAY: "Day",
 } as const;
 
 type ViewType = keyof typeof View;
@@ -143,9 +143,8 @@ const TimeUnitItem = ({
   <div className="flex flex-col items-center relative">
     <div className="text-xs font-semibold text-gray-500 mb-1">{label}</div>
     <div
-      className={`w-8 h-8 p-5 flex items-center justify-center text-sm font-bold text-white rounded-md ${statusColor} shadow-sm transition-all duration-300 ease-in-out ${
-        isSelected ? "scale-110 ring-2 ring-blue-500" : "scale-100 hover:scale-105"
-      }`}
+      className={`w-8 h-8 p-5 flex items-center justify-center text-sm font-bold text-white rounded-md ${statusColor} shadow-sm transition-all duration-300 ease-in-out ${isSelected ? "scale-110 ring-2 ring-blue-500" : "scale-100 hover:scale-105"
+        }`}
     >
       {value}
     </div>
@@ -182,10 +181,15 @@ const generateExportFilename = (
   return `Patients_${cleanDistrict}_${period}${statusPart}`;
 };
 
+
 // =========================================================================
 // MAIN COMPONENT - ONLY EXPORT ADDED
 // =========================================================================
-export default function DataEntriesContent() {
+interface DataEntriesContentProps {
+  setActiveTab?: React.Dispatch<React.SetStateAction<string>>;
+}
+
+export default function DataEntriesContent({ setActiveTab }: DataEntriesContentProps) {
   const {
     data: files = [],
     isLoading,
@@ -198,12 +202,12 @@ export default function DataEntriesContent() {
   React.useEffect(() => {
     if (error) toast.error("Error fetching files data");
   }, [error]);
-  
+
 
   // SINGLE SOURCE OF TRUTH
   const today = getStartOfToday();
   const [selectedDate, setSelectedDate] = useState<Date>(today);
-  const [activeView, setActiveView] = useState<ViewType>("DAY");
+  const [activeView, setActiveView] = useState<ViewType>("YEAR");
 
   // DERIVED VALUES (always in sync)
   const selectedUnitId = useMemo(() => {
@@ -223,9 +227,16 @@ export default function DataEntriesContent() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
-  const [activeTab, setActiveTab] = useState<"details" | "history">("details");
+  const [activeTabCon, setActiveTabCon] = useState<"details" | "history">("details");
   const [selectedHealthDistrict, setSelectedHealthDistrict] = useState<string>("Buea District");
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    const savedStatus = localStorage.getItem('facilities:selectedStatus');
+    if (savedStatus && ['confirmed', 'progress', 'pending', 'N/A'].includes(savedStatus)) {
+      setSelectedStatus(savedStatus);
+    }
+  }, []);
 
   const allPatients = useMemo(() => files.flatMap((f) => f.patients), [files]);
   const allImages = useMemo(() => files.flatMap((f) => f.fileUrl), [files]);
@@ -263,11 +274,11 @@ export default function DataEntriesContent() {
     const center = selectedDate;
 
     const push = (date: Date, label: string, value: string) => {
-      const id = 
+      const id =
         activeView === "DAY" ? format(date, "yyyy-MM-dd") :
-        activeView === "WEEK" ? format(startOfWeek(date, { weekStartsOn: 1 }), "yyyy-ww") :
-        activeView === "MONTH" ? format(startOfMonth(date), "yyyy-MM") :
-        format(startOfYear(date), "yyyy");
+          activeView === "WEEK" ? format(startOfWeek(date, { weekStartsOn: 1 }), "yyyy-ww") :
+            activeView === "MONTH" ? format(startOfMonth(date), "yyyy-MM") :
+              format(startOfYear(date), "yyyy");
 
       units.push({
         id,
@@ -408,7 +419,7 @@ export default function DataEntriesContent() {
   const handleRowClick = (patient: Patient) => {
     setSelectedPatient(patient);
     setModalOpen(true);
-    setActiveTab("details");
+    setActiveTabCon("details");
   };
 
   const closeModal = () => {
@@ -557,7 +568,20 @@ export default function DataEntriesContent() {
             {selectedStatus === "pending" && "Pending"}
             <span className="ml-1 text-xs text-gray-500">({files.filter(f => f.submissionStatus === "pending").length})</span>
           </button>
-
+          {selectedStatus && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSelectedStatus(null);
+                localStorage.removeItem('facilities:selectedStatus');
+                toast.info('Filter cleared');
+              }}
+              className="ml-4 text-xs"
+            >
+              Clear filter
+            </Button>
+          )}
           {/* EXPORT BUTTONS - ADDED HERE */}
           <div className="ml-6 flex items-center space-x-2">
             <Button
@@ -596,10 +620,10 @@ export default function DataEntriesContent() {
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-[240px] shadow-none justify-start text-left font-normal h-10">
                         <span className="mr-2">
-                          {activeView === "DAY" && format(selectedDate, "PPP")}
-                          {activeView === "WEEK" && `Week ${format(startOfWeek(selectedDate, { weekStartsOn: 1 }), 'w, yyyy')}`}
-                          {activeView === "MONTH" && format(selectedDate, "MMMM yyyy")}
                           {activeView === "YEAR" && format(selectedDate, "yyyy")}
+                          {activeView === "MONTH" && format(selectedDate, "MMMM yyyy")}
+                          {activeView === "WEEK" && `Week ${format(startOfWeek(selectedDate, { weekStartsOn: 1 }), 'w, yyyy')}`}
+                          {activeView === "DAY" && format(selectedDate, "PPP")}
                         </span>
                       </Button>
                     </PopoverTrigger>
@@ -622,7 +646,7 @@ export default function DataEntriesContent() {
                   </Popover>
 
                   <div className="flex p-1 space-x-1 bg-gray-100 rounded-md px-1">
-                    {(["DAY", "WEEK", "MONTH", "YEAR"] as ViewType[]).map((view) => (
+                    {(["YEAR", "MONTH", "WEEK", "DAY"] as ViewType[]).map((view) => (
                       <Button
                         key={view}
                         variant={view === activeView ? "default" : "ghost"}
@@ -730,8 +754,8 @@ export default function DataEntriesContent() {
       <PatientDetailsModal
         modalOpen={modalOpen}
         selectedPatient={selectedPatient}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        activeTab={activeTabCon}
+        setActiveTab={setActiveTabCon}
         closeModal={closeModal}
         data={allPatients}
       />

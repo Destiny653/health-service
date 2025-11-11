@@ -2,7 +2,7 @@
 import DashboardContent from "@/components/sections/DashboardContent";
 import AppHeader from "@/components/sections/Header";
 import { NAV_ITEMS } from "@/utils/data";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 // --- MAIN APPLICATION COMPONENT ---
 const MainLayout = ({
@@ -11,8 +11,15 @@ const MainLayout = ({
   children: React.ReactNode;
 }>) => {
   // State to track which content view is currently active
-  const [activeTab, setActiveTab] = useState('data_entries'); // 'Data Entries' is highlighted in the screenshot
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    if (typeof window === 'undefined') return 'data_entries';
+    return localStorage.getItem('app:activeTab') || 'data_entries';
+  });
 
+  // Save tab on change
+  useEffect(() => {
+    localStorage.setItem('app:activeTab', activeTab);
+  }, [activeTab]);
   // Find the component corresponding to the active tab ID
   const ActiveComponent = NAV_ITEMS.find(item => item.id === activeTab)?.Component || DashboardContent;
 
@@ -25,7 +32,7 @@ const MainLayout = ({
       {/* 2. Main Content Container */}
       <main className=" mx-auto">
         {/* 3. The Active Content Component (Conditional Rendering) */}
-        <ActiveComponent />
+        <ActiveComponent setActiveTab={setActiveTab} />
       </main>
     </div>
   );
