@@ -27,13 +27,15 @@ import * as XLSX from "xlsx";
 import { FacilityDetailSheet } from "../FacilityDetailSheet";
 import GoogleMapViewer from "@/components/GoogleMapViewer";
 
+// IMPORT EXPORT UTILS
+import { exportToCSV, exportToExcel, generateExportFilename } from "@/utils/export";
+
 /* ────────────────────── TYPES ────────────────────── */
 type SubmissionStatus = 'confirmed' | 'progress' | 'pending' | 'N/A';
 
 const View = { DAY: 'DAY', WEEK: 'WEEK', MONTH: 'MONTH', YEAR: 'YEAR' } as const;
 type ViewType = keyof typeof View;
 
-/* ────────────────────── STATUS COLORS ────────────────────── */
 const STATUS_COLORS = {
     GREEN: 'bg-green-500',
     YELLOW: 'bg-yellow-400',
@@ -42,29 +44,18 @@ const STATUS_COLORS = {
 } as const;
 type StatusColor = typeof STATUS_COLORS[keyof typeof STATUS_COLORS];
 
-/* ────────────────────── NORMALIZE STATUS (CRITICAL FIX) ────────────────────── */
-const normalizeStatus = (status: string | undefined): SubmissionStatus => {
-    if (!status) return 'N/A';
-    const s = status.toLowerCase().trim();
-    if (['confirmed', 'complete', 'yes', 'success', 'done', 'valid', 'approved'].includes(s)) return 'confirmed';
-    if (['progress', 'inprogress', 'in progress', 'ongoing', 'working'].includes(s)) return 'progress';
-    if (['pending', 'review', 'waiting', 'submitted'].includes(s)) return 'pending';
-    return 'N/A';
-};
-
-/* ────────────────────── ICON & COLOR MAP (FIXED FOR SVG) ────────────────────── */
-const IconMap: Record<StatusColor, React.ElementType> = {
-    'bg-green-500': Check,
-    'bg-yellow-400': AlertTriangle,
-    'bg-red-500': X,
-    'bg-gray-300': Minus,
+const IconMap: Record<StatusColor, React.FC<{ className?: string }>> = {
+    [STATUS_COLORS.GREEN]: Check,
+    [STATUS_COLORS.YELLOW]: AlertTriangle,
+    [STATUS_COLORS.RED]: X,
+    [STATUS_COLORS.GRAY]: Minus,
 };
 
 const ColorMap: Record<StatusColor, string> = {
-    'bg-green-500': 'text-[#028700]',
-    'bg-yellow-400': 'text-yellow-600',
-    'bg-red-500': 'text-red-600',
-    'bg-gray-300': 'text-gray-500',
+    [STATUS_COLORS.GREEN]: 'text-white bg-[#028700] rounded-full',
+    [STATUS_COLORS.YELLOW]: 'text-white bg-yellow-400 rounded-full',
+    [STATUS_COLORS.RED]: 'text-white bg-red-500 rounded-full',
+    [STATUS_COLORS.GRAY]: 'text-white bg-gray-300 rounded-full',
 };
 
 interface TimeUnit {
@@ -91,65 +82,44 @@ interface FacilityRow {
 const getStartOfToday = (): Date => startOfDay(new Date());
 const dayAbbreviation = (date: Date): string => ['S', 'M', 'T', 'W', 'T', 'F', 'S'][getDay(date)];
 
-/* ────────────────────── STATUS LOGIC (FIXED) ────────────────────── */
-const getStatusForDate = (date: Date, files: PatientDataFile[]): StatusColor => {
-    const dayStart = startOfDay(date);
-    const dayEnd = addDays(dayStart, 1);
-
-    const filesForDay = files.filter(f => {
-        const created = new Date(f.createdAt);
-        return created >= dayStart && created < dayEnd;
-    });
-
-    if (filesForDay.length === 0) {
-        return date < getStartOfToday() ? STATUS_COLORS.RED : STATUS_COLORS.GRAY;
+/* ────────────────────── DATE RANGE HELPERS ────────────────────── */
+const getUnitStart = (date: Date, view: ViewType): Date => {
+    switch (view) {
+        case 'DAY': return startOfDay(date);
+        case 'WEEK': return startOfWeek(date, { weekStartsOn: 1 });
+        case 'MONTH': return startOfMonth(date);
+        case 'YEAR': return startOfYear(date);
+        default: return date;
     }
-
-    const hasConfirmed = filesForDay.some(f => normalizeStatus(f.submissionStatus) === 'confirmed');
-    const hasProgress = filesForDay.some(f => normalizeStatus(f.submissionStatus) === 'progress');
-    const hasPending = filesForDay.some(f => normalizeStatus(f.submissionStatus) === 'pending');
-
-    if (hasConfirmed) return STATUS_COLORS.GREEN;
-    if (hasProgress) return STATUS_COLORS.YELLOW;
-    if (hasPending) return STATUS_COLORS.GRAY;
-    return date < getStartOfToday() ? STATUS_COLORS.RED : STATUS_COLORS.GRAY;
 };
 
-const generateStatus = (unitDate: Date, files: PatientDataFile[], view: ViewType): StatusColor => {
-    let unitStart: Date, unitEnd: Date;
-
+const getUnitEnd = (start: Date, view: ViewType): Date => {
     switch (view) {
-        case 'DAY':
-            return getStatusForDate(unitDate, files);
-        case 'WEEK':
-            unitStart = startOfWeek(unitDate, { weekStartsOn: 1 });
-            unitEnd = addWeeks(unitStart, 1);
-            break;
-        case 'MONTH':
-            unitStart = startOfMonth(unitDate);
-            unitEnd = addMonths(unitStart, 1);
-            break;
-        case 'YEAR':
-            unitStart = startOfYear(unitDate);
-            unitEnd = addYears(unitStart, 1);
-            break;
-        default:
-            unitStart = unitDate;
-            unitEnd = addDays(unitDate, 1);
+        case 'DAY': return addDays(start, 1);
+        case 'WEEK': return addWeeks(start, 1);
+        case 'MONTH': return addMonths(start, 1);
+        case 'YEAR': return addYears(start, 1);
+        default: return addDays(start, 1);
     }
+};
+
+/* ────────────────────── STATUS LOGIC ────────────────────── */
+const generateStatus = (unitDate: Date, files: PatientDataFile[], view: ViewType): StatusColor => {
+    const start = getUnitStart(unitDate, view);
+    const end = getUnitEnd(start, view);
 
     const filesInUnit = files.filter(f => {
         const created = new Date(f.createdAt);
-        return created >= unitStart && created < unitEnd;
+        return created >= start && created < end;
     });
 
     if (filesInUnit.length === 0) {
         return unitDate < getStartOfToday() ? STATUS_COLORS.RED : STATUS_COLORS.GRAY;
     }
 
-    const hasConfirmed = filesInUnit.some(f => normalizeStatus(f.submissionStatus) === 'confirmed');
-    const hasProgress = filesInUnit.some(f => normalizeStatus(f.submissionStatus) === 'progress');
-    const hasPending = filesInUnit.some(f => normalizeStatus(f.submissionStatus) === 'pending');
+    const hasConfirmed = filesInUnit.some(f => f.submissionStatus?.toLowerCase() === 'confirmed');
+    const hasProgress = filesInUnit.some(f => f.submissionStatus?.toLowerCase() === 'progress');
+    const hasPending = filesInUnit.some(f => f.submissionStatus?.toLowerCase() === 'pending');
 
     if (hasConfirmed) return STATUS_COLORS.GREEN;
     if (hasProgress) return STATUS_COLORS.YELLOW;
@@ -166,36 +136,12 @@ const TimeUnitItem = ({ label, value, statusColor, isSelected }: {
 }) => (
     <div className="flex flex-col items-center relative">
         <div className="text-xs font-semibold text-gray-500 mb-1">{label}</div>
-        <div className={`w-8 h-8 flex items-center justify-center text-sm font-bold text-white rounded-md ${statusColor} shadow-sm transition-all ${isSelected ? 'scale-110 ring-2 ring-blue-500' : 'hover:scale-105'}`}>
+        <div className={`w-8 h-8 flex items-center justify-center p-5 text-sm font-bold text-white rounded-md ${statusColor} shadow-sm transition-all ${isSelected ? 'scale-110 ring-2 ring-blue-500' : 'hover:scale-105'}`}>
             {value}
         </div>
         {isSelected && <div className="w-7 h-1 bg-blue-600 rounded-full mt-1 absolute -bottom-2 animate-pulse"></div>}
     </div>
 );
-
-/* ────────────────────── EXPORT FUNCTIONS ────────────────────── */
-const exportToCSV = (data: any[], filename: string) => {
-    if (data.length === 0) return toast.warning("No data to export");
-    const headers = Object.keys(data[0]).join(",");
-    const rows = data.map(row => Object.values(row).map(v => `"${String(v ?? "").replace(/"/g, '""')}"`).join(","));
-    const csv = [headers, ...rows].join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${filename}.csv`;
-    link.click();
-    toast.success("CSV exported!");
-};
-
-const exportToExcel = (data: any[], filename: string) => {
-    if (data.length === 0) return toast.warning("No data to export");
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Facilities");
-    XLSX.writeFile(wb, `${filename}.xlsx`);
-    toast.success("Excel exported!");
-};
 
 /* ────────────────────── MAIN COMPONENT ────────────────────── */
 export default function FacilitiesContent() {
@@ -212,27 +158,15 @@ export default function FacilitiesContent() {
     const [selectedUnitId, setSelectedUnitId] = useState<string>(format(today, 'yyyy-MM-dd'));
     const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(null);
     const [sheetOpen, setSheetOpen] = useState(false);
-    const [initialTab, setInitialTab] = useState<"details" | "map">("details");
     const [selectedStatus, setSelectedStatus] = useState<SubmissionStatus | null>(null);
 
-    // STATUS COUNTS (FIXED WITH normalizeStatus)
-    const statusCounts = useMemo(() => {
-        const normalized = files.map(f => normalizeStatus(f.submissionStatus));
-        return {
-            noSubmission: normalized.filter(s => s === 'N/A').length,
-            progress: normalized.filter(s => s === 'progress').length,
-            confirmed: normalized.filter(s => s === 'confirmed').length,
-            pending: normalized.filter(s => s === 'pending').length,
-        };
-    }, [files]);
-
-    // ALL UNITS
-    const allUnits = useMemo<TimeUnit[]>(() => {
+    // ALL POSSIBLE UNITS
+    const allPossibleUnits = useMemo<TimeUnit[]>(() => {
         const center = selectedDate;
-        const generated: TimeUnit[] = [];
+        const units: TimeUnit[] = [];
 
         const push = (date: Date, label: string, value: string, id: string) => {
-            generated.push({
+            units.push({
                 id,
                 date,
                 label,
@@ -267,34 +201,60 @@ export default function FacilitiesContent() {
                 push(y, '', format(y, 'yyyy'), format(y, 'yyyy'));
             }
         }
-        return generated;
-    }, [activeView, selectedDate, files]);
+        return units;
+    }, [selectedDate, activeView, files]);
 
     // FILTERED UNITS
-    const filteredUnits = useMemo(() => {
-        if (!selectedStatus) return allUnits;
+    const units = useMemo(() => {
+        let filtered = allPossibleUnits;
 
-        const statusToColor: Record<SubmissionStatus, StatusColor> = {
-            'confirmed': STATUS_COLORS.GREEN,
-            'progress': STATUS_COLORS.YELLOW,
-            'pending': STATUS_COLORS.GRAY,
-            'N/A': STATUS_COLORS.RED,
-        };
+        if (selectedStatus && selectedStatus !== 'N/A') {
+            filtered = filtered.filter(unit => {
+                const start = getUnitStart(unit.date, activeView);
+                const end = getUnitEnd(start, activeView);
+                return files.some(f => {
+                    const created = new Date(f.createdAt);
+                    return f.submissionStatus?.toLowerCase() === selectedStatus && created >= start && created < end;
+                });
+            });
+        } else if (selectedStatus === 'N/A') {
+            filtered = filtered.filter(unit => {
+                const start = getUnitStart(unit.date, activeView);
+                const end = getUnitEnd(start, activeView);
+                const hasFile = files.some(f => {
+                    const created = new Date(f.createdAt);
+                    return created >= start && created < end;
+                });
+                return !hasFile && start < getStartOfToday();
+            });
+        }
 
-        const target = statusToColor[selectedStatus];
-        return allUnits.filter(u => u.statusColor === target);
-    }, [allUnits, selectedStatus]);
+        if (filtered.length === 0) return allPossibleUnits;
 
-    const units = filteredUnits;
+        const selectedIndex = filtered.findIndex(u => u.id === selectedUnitId);
+        const startIdx = selectedIndex === -1 ? Math.max(0, Math.floor(filtered.length / 2) - 4) : Math.max(0, selectedIndex - 4);
+        return filtered.slice(startIdx, startIdx + 10);
+    }, [allPossibleUnits, selectedStatus, selectedUnitId, activeView, files]);
 
-    // FACILITY ROWS (FIXED FILTERING)
+    // AUTO-JUMP
+    useEffect(() => {
+        if (units.length > 0 && !units.some(u => u.id === selectedUnitId)) {
+            const first = units[0];
+            setSelectedUnitId(first.id);
+            setSelectedDate(first.date);
+        }
+    }, [units, selectedUnitId]);
+
+    // FACILITY ROWS
     const starkRows = useMemo<FacilityRow[]>(() => {
-        const statusFilteredFiles = !selectedStatus
-            ? files
-            : files.filter(f => normalizeStatus(f.submissionStatus) === selectedStatus);
+        const filteredFiles = selectedStatus && selectedStatus !== 'N/A'
+            ? files.filter(f => f.submissionStatus?.toLowerCase() === selectedStatus)
+            : selectedStatus === 'N/A'
+                ? files.filter(f => !f.submissionStatus || f.submissionStatus === 'N/A')
+                : files;
 
         const map = new Map<string, PatientDataFile[]>();
-        statusFilteredFiles.forEach(f => {
+        filteredFiles.forEach(f => {
             const key = `${f.facilityName}|||${f.address}`;
             if (!map.has(key)) map.set(key, []);
             map.get(key)!.push(f);
@@ -302,7 +262,7 @@ export default function FacilitiesContent() {
 
         return Array.from(map.entries()).map(([key, facFiles]) => {
             const [name, address] = key.split('|||');
-            const statusByUnit = units.map(u => getStatusForDate(u.date, facFiles));
+            const statusByUnit = units.map(u => generateStatus(u.date, facFiles, activeView));
             const recordCount = facFiles.reduce((s, f) => s + (f.recordCount ?? 0), 0);
 
             return {
@@ -316,7 +276,7 @@ export default function FacilitiesContent() {
                 allFiles: facFiles,
             };
         });
-    }, [files, units, selectedStatus]);
+    }, [files, units, selectedStatus, activeView]);
 
     const handleUnitClick = (id: string) => {
         setSelectedUnitId(id);
@@ -330,29 +290,36 @@ export default function FacilitiesContent() {
 
     const handleViewChange = (view: ViewType) => {
         setActiveView(view);
+        const aligned = getUnitStart(selectedDate, view);
+        setSelectedDate(aligned);
     };
 
-    const selectedFacility = useMemo(() =>
-        starkRows.find(r => r.id === selectedFacilityId),
-        [starkRows, selectedFacilityId]
-    );
+    const selectedFacility = starkRows.find(r => r.id === selectedFacilityId);
 
-    const openSheet = (id: string, tab: "details" | "map" = "details") => {
+    const openSheet = (id: string) => {
         setSelectedFacilityId(id);
-        setInitialTab(tab);
         setSheetOpen(true);
     };
 
-    const exportFilename = `Facilities_RailDistrict_${
-        activeView === 'DAY' ? format(selectedDate, 'yyyy-MM-dd') :
-        activeView === 'WEEK' ? `Week-${format(selectedDate, 'w-yyyy')}` :
-        activeView === 'MONTH' ? format(selectedDate, 'MMM-yyyy') :
-        format(selectedDate, 'yyyy')
-    }${selectedStatus ? `_${selectedStatus}` : ''}`;
+    // EXPORT FILENAME
+    const exportFilename = generateExportFilename(
+        "Rail District",
+        activeView,
+        selectedDate,
+        selectedStatus
+    );
+
+    // COLUMNS FOR EXPORT
+    const columns = [
+        { accessorKey: "id", header: "ID" },
+        { accessorKey: "facilityName", header: "Facility" },
+        { accessorKey: "address", header: "Address" },
+        { accessorKey: "recordCount", header: "Records" },
+    ] as any;
 
     return (
         <div className="flex flex-col h-screen bg-white overflow-hidden">
-            {/* Badge + Legend */}
+            {/* HEADER WITH LEGEND */}
             <div className="flex items-center justify-between p-4 border-b bg-gray-50">
                 <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1 text-sm bg-purple-100 text-purple-700">
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
@@ -361,40 +328,35 @@ export default function FacilitiesContent() {
                     Rail District Area
                 </Badge>
 
-                <div className="flex items-center gap-6 text-sm">
-                    <button onClick={() => setSelectedStatus(s => s === "N/A" ? null : "N/A")}
-                        className={`flex items-center gap-2 hover:scale-105 transition px-2 py-1 rounded-md ${selectedStatus === "N/A" ? "font-bold ring-2 ring-red-400 bg-red-50" : ""}`}>
-                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                        No Submission ({statusCounts.noSubmission})
+                {/* EXACT LEGEND FROM YOUR WORKING MODULE */}
+                <div className="flex items-center p-2 border rounded-md bg-gray-100 h-12">
+                    <button onClick={() => setSelectedStatus(s => s === "N/A" ? null : "N/A")} className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "N/A" ? "bg-white rounded-md p-1" : ""}`}>
+                        <div className="w-3 h-3 rounded-full bg-red-500 p-3 mr-2" />
+                        {selectedStatus === "N/A" && "No Submission"}
+                        <span className="ml-1 text-xs text-gray-500">({files.filter(f => !f.submissionStatus || f.submissionStatus === "N/A").length})</span>
                     </button>
-                    <button onClick={() => setSelectedStatus(s => s === "progress" ? null : "progress")}
-                        className={`flex items-center gap-2 hover:scale-105 transition px-2 py-1 rounded-md ${selectedStatus === "progress" ? "font-bold ring-2 ring-yellow-400 bg-yellow-50" : ""}`}>
-                        <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
-                        In Progress ({statusCounts.progress})
+                    <div className="h-8 w-px bg-gray-300 mx-4" />
+                    <button onClick={() => setSelectedStatus(s => s === "confirmed" ? null : "confirmed")} className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "confirmed" ? "bg-white rounded-md p-1" : ""}`}>
+                        <div className="w-3 h-3 rounded-full bg-green-500 p-3 mr-2" />
+                        {selectedStatus === "confirmed" && "Confirmed"}
+                        <span className="ml-1 text-xs text-gray-500">({files.filter(f => f.submissionStatus === "confirmed").length})</span>
                     </button>
-                    <button onClick={() => setSelectedStatus(s => s === "confirmed" ? null : "confirmed")}
-                        className={`flex items-center gap-2 hover:scale-105 transition px-2 py-1 rounded-md ${selectedStatus === "confirmed" ? "font-bold ring-2 ring-green-400 bg-green-50" : ""}`}>
-                        <div className="w-3 h-3 rounded-full bg-[#028700]"></div>
-                        Confirmed ({statusCounts.confirmed})
+                    <div className="h-8 w-px bg-gray-300 mx-4" />
+                    <button onClick={() => setSelectedStatus(s => s === "progress" ? null : "progress")} className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "progress" ? "bg-white rounded-md p-1" : ""}`}>
+                        <div className="w-3 h-3 rounded-full bg-yellow-400 p-3 mr-2" />
+                        {selectedStatus === "progress" && "In Progress"}
+                        <span className="ml-1 text-xs text-gray-500">({files.filter(f => f.submissionStatus === "progress").length})</span>
                     </button>
-                    <button onClick={() => setSelectedStatus(s => s === "pending" ? null : "pending")}
-                        className={`flex items-center gap-2 hover:scale-105 transition px-2 py-1 rounded-md ${selectedStatus === "pending" ? "font-bold ring-2 ring-gray-400 bg-gray-50" : ""}`}>
-                        <div className="w-3 h-3 rounded-full bg-gray-300"></div>
-                        Pending ({statusCounts.pending})
+                    <div className="h-8 w-px bg-gray-300 mx-4" />
+                    <button onClick={() => setSelectedStatus(s => s === "pending" ? null : "pending")} className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "pending" ? "bg-white rounded-md p-1" : ""}`}>
+                        <div className="w-3 h-3 rounded-full bg-gray-300 p-3 mr-2" />
+                        {selectedStatus === "pending" && "Pending"}
+                        <span className="ml-1 text-xs text-gray-500">({files.filter(f => f.submissionStatus === "pending").length})</span>
                     </button>
-
-                    <div className="ml-6 flex gap-2">
-                        <Button variant="outline" size="sm" onClick={() => exportToCSV(starkRows.map(r => ({ ID: r.id, Facility: r.facilityName, Address: r.address, Records: r.recordCount })), exportFilename)}>
-                            CSV
-                        </Button>
-                        <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => exportToExcel(starkRows.map(r => ({ ID: r.id, Facility: r.facilityName, Address: r.address, Records: r.recordCount })), exportFilename)}>
-                            Excel
-                        </Button>
-                    </div>
                 </div>
             </div>
 
-            {/* Table */}
+            {/* TABLE */}
             <div className="flex-1 overflow-auto p-4">
                 <div className="bg-white overflow-hidden">
                     <table className="w-full text-sm">
@@ -409,12 +371,12 @@ export default function FacilitiesContent() {
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar mode="single" selected={selectedDate} onSelect={handleCalendarSelect} className="rounded-md border" captionLayout="dropdown" fromYear={1990} toYear={2030} />
+                                                <Calendar mode="single" selected={selectedDate} onSelect={handleCalendarSelect} captionLayout="dropdown" className="rounded-md border" />
                                             </PopoverContent>
                                         </Popover>
 
                                         <div className="flex p-1 bg-gray-100 rounded-md w-fit">
-                                            {Object.values(View).reverse().map(v => (
+                                            {(['YEAR', 'MONTH', 'WEEK', 'DAY'] as const).map(v => (
                                                 <Button key={v} variant={activeView === v ? "default" : "ghost"} size="sm" onClick={() => handleViewChange(v)}
                                                     className={`rounded-md ${activeView === v ? 'bg-[#028700] hover:bg-[#028700dc]' : ''}`}>
                                                     {v}
@@ -441,57 +403,49 @@ export default function FacilitiesContent() {
                         </thead>
 
                         <tbody>
-                            {starkRows.map(row => {
-                                const isSelected = selectedFacilityId === row.id;
-                                return (
-                                    <tr key={row.id} className={`border-b transition-colors ${isSelected ? 'bg-blue-50' : 'hover:bg-gray-50'}`}>
-                                        <td className="px-4 py-3 font-medium text-blue-600">{row.id}</td>
-                                        <td className="px-4 py-3">
-                                            <button onClick={(e) => { e.stopPropagation(); openSheet(row.id, "details"); }} className="text-left hover:underline">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="font-medium">{row.facilityName}</span>
-                                                    {row.recordCount != null && (
-                                                        <Badge variant="secondary" className="text-xs bg-blue-100 text-blue-700">
-                                                            {row.recordCount} x 19
-                                                        </Badge>
-                                                    )}
-                                                </div>
-                                            </button>
-                                        </td>
-                                        <td className="px-4 py-3">
-                                            <button onClick={(e) => { e.stopPropagation(); openSheet(row.id, "map"); }} className="text-left hover:underline flex items-center gap-1 text-blue-600">
-                                                <MapPin className="w-4 h-4" />
-                                                {row.address}
-                                            </button>
-                                        </td>
+                            {starkRows.map(row => (
+                                <tr key={row.id} className={`border-b transition-colors hover:bg-gray-50 ${selectedFacilityId === row.id ? 'bg-blue-50' : ''}`}>
+                                    <td className="px-4 py-3 font-medium text-blue-600">{row.id}</td>
+                                    <td className="px-4 py-3">
+                                        <button onClick={(e) => { e.stopPropagation(); openSheet(row.id); }} className="text-left hover:underline">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-medium">{row.facilityName}</span>
+                                            </div>
+                                        </button>
+                                    </td>
+                                    <td className="px-4 py-3">
+                                        <button onClick={(e) => { e.stopPropagation(); openSheet(row.id); }} className="text-left hover:underline flex items-center gap-1 text-blue-600">
+                                            <MapPin className="w-4 h-4" />
+                                            {row.address}
+                                        </button>
+                                    </td>
 
-                                        {/* FIXED ICON RENDERING */}
-                                        {row.statusByUnit.map((status, idx) => {
-                                            const Icon = IconMap[status];
-                                            const color = ColorMap[status];
-                                            return (
-                                                <td key={idx} className="py-3 text-center border border-t-0">
-                                                    <div className="flex justify-center">
-                                                        <Icon className={`w-6 h-6 ${color}`} />
-                                                    </div>
-                                                </td>
-                                            );
-                                        })}
-                                    </tr>
-                                );
-                            })}
+                                    {row.statusByUnit.map((status, idx) => {
+                                        const Icon = IconMap[status];
+                                        const color = ColorMap[status];
+                                        return (
+                                            <td key={idx} className="py-3 text-center border border-t-0">
+                                                <div className="flex justify-center">
+                                                    <Icon className={`w-6 h-6 p-1 ${color}`} />
+                                                </div>
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            ))}
                         </tbody>
                     </table>
 
                     {isLoading && <div className="p-8 text-center text-gray-500">Loading facilities...</div>}
                     {!isLoading && starkRows.length === 0 && (
                         <div className="p-8 text-center text-gray-500">
-                            {selectedStatus ? `No facilities with "${selectedStatus}" status in visible timeline.` : 'No facilities found.'}
+                            No facilities found for selected filters.
                         </div>
                     )}
                 </div>
             </div>
 
+            {/* REMOVED initialTab PROP */}
             <FacilityDetailSheet
                 open={sheetOpen}
                 onOpenChange={setSheetOpen}
@@ -502,7 +456,6 @@ export default function FacilitiesContent() {
                     details: selectedFacility.details,
                     contacts: selectedFacility.contacts,
                 } : undefined}
-                initialTab={initialTab}
                 mapComponent={selectedFacility && (
                     <GoogleMapViewer
                         address={selectedFacility.address}

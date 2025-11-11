@@ -53,6 +53,7 @@ interface FacilityDetailSheetProps {
         details?: FacilityDetails;
         contacts?: ContactPersonel[];
     };
+    mapComponent?: React.ReactNode;
 }
 
 export function FacilityDetailSheet({

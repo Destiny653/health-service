@@ -16,6 +16,7 @@ export interface PatientDataFile {
 }
 
 
+
 export interface FacilityDetails {
     facilityName: string;
     address: string;
@@ -696,7 +697,7 @@ export const data: PatientDataFile[] = [
         recordCount: 20,
         address: 'Bonassama',
         facilityName: 'Bonassama Hospital',
-        submissionStatus: 'pending',
+        submissionStatus: 'progress',
         facility: {
             facilityName: "The Martins",
             address: "12 Independence Avenue, Buea",
