@@ -12,6 +12,7 @@ interface ImageViewerProps {
 
 export default function ImageViewer({ src }: ImageViewerProps) {
     const [open, setOpen] = useState(false);
+    const [isPanningMode, setIsPanningMode] = useState(false);
     const imgRef = useRef<HTMLImageElement>(null);
 
     return (
@@ -26,7 +27,7 @@ export default function ImageViewer({ src }: ImageViewerProps) {
                     minScale={0.5}
                     maxScale={8}
                     wheel={{ step: 0.2 }}
-                    panning={{ disabled: false }}
+                    panning={{ disabled: !isPanningMode }}
                     doubleClick={{ mode: "reset" }}
                 >
                     {({ zoomIn, zoomOut, resetTransform }) => (
@@ -43,8 +44,8 @@ export default function ImageViewer({ src }: ImageViewerProps) {
                                         <MinusIcon />
                                     </div>
                                 </ToolbarButton>
-                                <ToolbarButton onClick={() => resetTransform()}>
-                                    <div className="bg-white/80 backdrop-blur-sm p-2 rounded-full">
+                                <ToolbarButton onClick={() => setIsPanningMode(!isPanningMode)}>
+                                    <div className={`bg-white/80 backdrop-blur-sm p-2 rounded-full transition-colors ${isPanningMode ? 'bg-blue-100' : ''}`}>
                                         <CursorGrab />
                                     </div>
                                 </ToolbarButton>
