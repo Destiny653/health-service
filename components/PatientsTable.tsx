@@ -31,14 +31,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 /* --------------------------------------------------------------- */
-/*  1. Optional meta type (only needed if you use meta later)    */
-/* --------------------------------------------------------------- */
-type ColumnMeta = {
-  defaultHidden?: boolean;
-};
-
-/* --------------------------------------------------------------- */
-/*  2. DataTable – two generics: TData + TMeta (defaults to never) */
+/*  1. DataTable – Safe localStorage Access                        */
 /* --------------------------------------------------------------- */
 export function DataTable<
   TData,
@@ -57,26 +50,42 @@ export function DataTable<
   const [pageIndex, setPageIndex] = React.useState(0);
   const [pageSize] = React.useState(8);
 
-  /* ---------- Show only first 10 columns by default ---------- */
+  /* ---------- SAFE localStorage: Only access in browser ---------- */
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(() => {
-    const saved = localStorage?.getItem("table-column-visibility");
-    if (saved) return JSON.parse(saved);
+    if (typeof window === "undefined") {
+      // SSR → return default (hide after 10th)
+      const hidden: VisibilityState = {};
+      initialColumns.forEach((col, idx) => {
+        if (col.id && idx >= 10) hidden[col.id] = false;
+      });
+      return hidden;
+    }
 
+    // Client → safe to use localStorage
+    try {
+      const saved = localStorage.getItem("table-column-visibility");
+      if (saved) return JSON.parse(saved) as VisibilityState;
+    } catch (e) {
+      console.warn("Failed to parse saved column visibility", e);
+    }
+
+    // Fallback: hide after 10th column
     const hidden: VisibilityState = {};
     initialColumns.forEach((col, idx) => {
-      if (col.id && idx >= 10) {
-        hidden[col.id] = false; // hide after 10th column
-      }
+      if (col.id && idx >= 10) hidden[col.id] = false;
     });
     return hidden;
   });
 
-  // Save to localStorage whenever visibility changes
+  // Save to localStorage (only in browser)
   React.useEffect(() => {
-    localStorage.setItem(
-      "table-column-visibility",
-      JSON.stringify(columnVisibility)
-    );
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem("table-column-visibility", JSON.stringify(columnVisibility));
+      } catch (e) {
+        console.warn("Failed to save column visibility", e);
+      }
+    }
   }, [columnVisibility]);
 
   const table = useReactTable({
@@ -167,6 +176,7 @@ export function DataTable<
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
+
             {/* Table */}
             <table className="border-none w-full border-gray-200 text-sm">
               <thead className="bg-gray-50">
@@ -180,9 +190,9 @@ export function DataTable<
                         {h.isPlaceholder
                           ? null
                           : flexRender(
-                            h.column.columnDef.header,
-                            h.getContext()
-                          )}
+                              h.column.columnDef.header,
+                              h.getContext()
+                            )}
                       </th>
                     ))}
                   </tr>
@@ -226,7 +236,7 @@ export function DataTable<
                   }}
                   className={cn(
                     !table.getCanPreviousPage() &&
-                    "opacity-50 cursor-not-allowed"
+                      "opacity-50 cursor-not-allowed"
                   )}
                 />
               </PaginationItem>
