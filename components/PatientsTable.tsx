@@ -122,60 +122,7 @@ export function DataTable<
         ) : (
           <div className="relative">
             {/* Gear Icon – Toggle Columns */}
-            <div className="flex justify-end p-2 absolute right-1 -top-[6px]">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Settings className="h-4 w-4" />
-                    <span className="sr-only">Toggle columns</span>
-                  </Button>
-                </DropdownMenuTrigger>
 
-                <DropdownMenuContent align="end" className="w-64 max-h-96 overflow-y-auto">
-                  <DropdownMenuLabel className="flex items-center justify-between">
-                    <span>Visible Columns</span>
-                    <ChevronDown className="h-4 w-4 opacity-50" />
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-
-                  <div className="py-1">
-                    {table.getAllColumns().map((column) => {
-                      if (!column.getCanHide()) return null;
-
-                      const header = String(column.columnDef.header ?? column.id);
-                      const isVisible = column.getIsVisible();
-
-                      return (
-                        <div
-                          key={column.id}
-                          className="flex items-center justify-between px-3 py-2 hover:bg-gray-50 cursor-pointer transition-colors"
-                          onClick={() => column.toggleVisibility()}
-                        >
-                          <span className="text-sm font-medium capitalize truncate max-w-[180px]">
-                            {header}
-                          </span>
-
-                          {/* Custom Toggle Switch */}
-                          <div
-                            className={cn(
-                              "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
-                              isVisible ? "bg-blue-600" : "bg-gray-300"
-                            )}
-                          >
-                            <span
-                              className={cn(
-                                "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
-                                isVisible ? "translate-x-4" : "translate-x-0.5"
-                              )}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
 
             {/* Table */}
             <table className="border-none w-full border-gray-200 text-sm">
@@ -190,11 +137,67 @@ export function DataTable<
                         {h.isPlaceholder
                           ? null
                           : flexRender(
-                              h.column.columnDef.header,
-                              h.getContext()
-                            )}
+                            h.column.columnDef.header,
+                            h.getContext()
+                          )}
                       </th>
                     ))}
+                    <th>
+                      <div className="flex justify-end p-2 absolute right-1 -top-[6px]">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <Settings className="h-4 w-4" />
+                              <span className="sr-only">Toggle columns</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+
+                          <DropdownMenuContent align="end" className="w-64 max-h-96 overflow-y-auto">
+                            <DropdownMenuLabel className="flex items-center justify-between">
+                              <span>Visible Columns</span>
+                              <ChevronDown className="h-4 w-4 opacity-50" />
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+
+                            <div className="py-1">
+                              {table.getAllColumns().map((column) => {
+                                if (!column.getCanHide()) return null;
+
+                                const header = String(column.columnDef.header ?? column.id);
+                                const isVisible = column.getIsVisible();
+
+                                return (
+                                  <div
+                                    key={column.id}
+                                    className="flex items-center justify-between px-3 py-2 hover:bg-gray-50 cursor-pointer transition-colors"
+                                    onClick={() => column.toggleVisibility()}
+                                  >
+                                    <span className="text-sm font-medium capitalize truncate max-w-[180px]">
+                                      {header}
+                                    </span>
+
+                                    {/* Custom Toggle Switch */}
+                                    <div
+                                      className={cn(
+                                        "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
+                                        isVisible ? "bg-blue-600" : "bg-gray-300"
+                                      )}
+                                    >
+                                      <span
+                                        className={cn(
+                                          "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                                          isVisible ? "translate-x-4" : "translate-x-0.5"
+                                        )}
+                                      />
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </th>
                   </tr>
                 ))}
               </thead>
@@ -236,7 +239,7 @@ export function DataTable<
                   }}
                   className={cn(
                     !table.getCanPreviousPage() &&
-                      "opacity-50 cursor-not-allowed"
+                    "opacity-50 cursor-not-allowed"
                   )}
                 />
               </PaginationItem>
