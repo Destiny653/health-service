@@ -133,7 +133,7 @@ export function DataTable<
                     {hg.headers.map((h) => (
                       <th
                         key={h.id}
-                        className="text-left px-4 py-2 border-b border-gray-50 font-[500] whitespace-nowrap"
+                        className="text-left px-4 py-2 border-b border-gray-50 general-size font-[500] whitespace-nowrap"
                       >
                         {h.isPlaceholder
                           ? null
@@ -206,7 +206,7 @@ export function DataTable<
                 {table.getRowModel().rows.map((row) => (
                   <tr
                     key={row.id}
-                    className="hover:bg-gray-50 transition-colors font-[500] text-[#424242] cursor-pointer"
+                    className="hover:bg-gray-50 transition-colors general-size font-[500] text-[#424242] cursor-pointer"
                     onClick={() => onRowClick?.(row.original)}
                   >
                     {row.getVisibleCells().map((cell) => (

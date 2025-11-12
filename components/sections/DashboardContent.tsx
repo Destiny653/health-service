@@ -26,10 +26,10 @@ const COLOR_DEATHS = '#dc2626'; // Tailwind red-600
 
 // Mock Data for KPI Cards
 const kpiData = [
-  { title: 'Patient count', value: 18, iconUp: TrendDownIcon, iconD: TrendUpIcon, color: 'text-green-600', rate: 18 },
-  { title: 'Currently Admitted', value: 10, iconUp: TrendDownIcon, iconD: TrendUpIcon, color: 'text-red-600', rate: 9 },
-  { title: 'Deaths', value: 0, iconUp: TrendDownIcon, iconD: TrendUpIcon, color: 'text-red-600', rate: 0 },
-  { title: 'Referred Cases', value: 26, iconUp: TrendDownIcon, iconD: TrendUpIcon, color: 'text-green-600', rate: 12 },
+  { title: 'Patient count', value: 18, iconUp: TrendDownIcon, iconD: TrendUpIcon, color: 'text-green-600 ', rate: 18 },
+  { title: 'Currently Admitted', value: 10, iconUp: TrendDownIcon, iconD: TrendUpIcon, color: 'text-red-600 ', rate: 9 },
+  { title: 'Deaths', value: 0, iconUp: TrendDownIcon, iconD: TrendUpIcon, color: 'text-red-600 ', rate: 0 },
+  { title: 'Referred Cases', value: 26, iconUp: TrendDownIcon, iconD: TrendUpIcon, color: 'text-green-600 ', rate: 12 },
 ];
 
 // ADJUSTED: Mock Data for Patient Admission Line Chart to match the shape in the uploaded image
@@ -69,7 +69,7 @@ const DashboardContent = () => {
           {kpiData.map((kpi: any, index: number) => (
             <Card key={index} className="text-center rounded-sm border-none shadow-sm">
               <CardContent className="p-6 pt-8 pb-6 flex flex-col items-center space-y-2">
-                <p className="text-sm text-gray-600">{kpi.title}</p>
+                <p className="text-sm text-gray-600 general-size">{kpi.title}</p>
                 <div className="text-4xl font-extrabold text-gray-900">{kpi.value}</div>
                 <div className='flex gap-1'>
                   {
@@ -87,7 +87,7 @@ const DashboardContent = () => {
 
         {/* Patient Admission Report - UPDATED TO MATCH IMAGE */}
         <Card className='rounded-sm  border-none shadow-sm'>
-          <CardHeader className="p-4 md:p-6 pb-2">
+          <CardHeader className="p-4 md:p-6 pb-2 ">
             <div className="flex flex-wrap items-center justify-between gap-3">
               {/* Title (Left) */}
               <CardTitle className="text-lg font-semibold whitespace-nowrap order-1">
@@ -95,7 +95,7 @@ const DashboardContent = () => {
               </CardTitle>
 
               {/* Legend (Center) */}
-              <div className="flex items-center space-x-4 md:space-x-8 text-sm font-medium text-gray-700 order-2 mx-auto sm:mx-0">
+              <div className="flex items-center space-x-4 md:space-x-8 text-sm general-size font-medium text-gray-700 order-2 mx-auto sm:mx-0">
                 <span className="flex items-center gap-2">
                   <div className="w-6 h-3 bg-yellow-400 shadow-sm"></div>
                   Consulted

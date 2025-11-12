@@ -4,7 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Copyright, Github, Twitter, Mail } from 'lucide-react';
 
-export default function Footer({ company = 'INSTANVI SARL', github = '#', twitter = '#', mail = 'mailto:hello@example.com' }) {
+export default function Footer({ company = 'Dappa Health', github = '#', twitter = '#', mail = 'mailto:hello@example.com' }) {
   const year = new Date().getFullYear();
 
   return (

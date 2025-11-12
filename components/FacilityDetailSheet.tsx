@@ -90,7 +90,7 @@ export function FacilityDetailSheet({
     }) => (
         <div className="flex items-start gap-3 text-sm pb-4">
             <Icon className="w-4 h-4 text-[#8D7575]" />
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 general-size">
                 <span className="font-medium text-[#8D7575]">{label}</span>
                 <span
                     className={`font-semibold ${['Tel 1', 'Tel 2', 'Phone'].includes(label)
@@ -161,7 +161,7 @@ export function FacilityDetailSheet({
                     {/* ------------------------------------------------------------------ */}
                     {/* DETAILS TAB */}
                     {/* ------------------------------------------------------------------ */}
-                    <TabsContent value="details" className="flex-1 overflow-hidden p-0">
+                    <TabsContent value="details" className="flex-1 overflow-hidden p-0 ">
                         <ScrollArea className="h-full">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 p-6">
                                 {/* LEFT – Facility Details */}
@@ -192,7 +192,7 @@ export function FacilityDetailSheet({
                                         ) : (
                                             contacts.map((c, i) => (
                                                 <div key={i} className="border-b pb-4">
-                                                    <div className="space-y-2 text-sm">
+                                                    <div className="space-y-2 general-size">
                                                         <IconText icon={User} label="First Name" value={c.firstName} />
                                                         <IconText icon={User} label="Last Name" value={c.lastName} />
                                                         <IconText icon={Briefcase} label="Role" value={c.role} />

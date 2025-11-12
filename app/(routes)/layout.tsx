@@ -19,18 +19,20 @@ const MainLayout = ({
   });
 
   const [userRole, setUserRole] = useState<"admin" | "receptionist" | null>(null);
+  const [data, setData] = useState<ContactPersonnel | null>(null);
 
   // ✅ Authentication & Role Check
   useEffect(() => {
     const userData = localStorage.getItem("userInfo");
-
+    
     if (!userData) {
       router.push("/sign-in"); // Redirect to sign-in if no user is logged in
       return;
     }
-
+    
     try {
       const user: ContactPersonnel & { role: "admin" | "receptionist" } = JSON.parse(userData);
+      setData(JSON.parse(userData))
       setUserRole(user.role);
     } catch (error) {
       console.error("Error parsing user data:", error);
@@ -72,6 +74,9 @@ const MainLayout = ({
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         navItems={filteredNavItems}
+        email={data?.email}
+        userName={`${data?.firstName} ${data?.lastName}`}
+        role={data?.role}
       />
 
       {/* Main Content */}

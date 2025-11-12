@@ -68,3 +68,8 @@
     @apply bg-background text-foreground;
   }
 }
+
+.general-size {
+  font-size: 15px;
+  font-weight: 500;
+}

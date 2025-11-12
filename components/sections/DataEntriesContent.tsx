@@ -162,7 +162,7 @@ const TimeUnitItem = ({
   <div className="flex flex-col items-center relative">
     <div className="text-xs font-semibold text-gray-500 mb-1">{label}</div>
     <div
-      className={`w-8 h-8 p-5 flex items-center justify-center text-sm font-bold text-white rounded-md ${statusColor} shadow-sm transition-all duration-300 ease-in-out ${isSelected ? "scale-110 ring-2 ring-blue-500" : "scale-100 hover:scale-105"
+      className={`w-8 h-8 p-5 px-6 flex items-center justify-center text-sm font-bold text-white rounded-md ${statusColor} shadow-sm transition-all duration-300 ease-in-out ${isSelected ? "scale-110 ring-2 ring-blue-500" : "scale-100 hover:scale-105"
         }`}
     >
       {value}
@@ -600,18 +600,18 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => setSelectedStatus(s => s === "N/A" ? null : "N/A")}
-                  className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "N/A" ? "bg-white rounded-md p-1" : ""}`}
+                  onClick={() => {
+                    setSelectedStatus(null);
+                    localStorage.removeItem('facilities:selectedStatus');
+                    toast.info('Filter cleared');
+                  }}
+                  className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 px-4 py-2 ${selectedStatus === "N/A" ? "bg-white rounded-md p-1" : ""}`}
                 >
-                  <div className="w-3 h-3 rounded-full bg-red-500 p-3 mr-2" />
-                  {selectedStatus === "N/A" && "No Submission"}
-                  <span className="ml-1 text-xs text-gray-500">
-                    ({files.filter(f => !f.submissionStatus || f.submissionStatus === "N/A").length})
-                  </span>
+                  All
                 </button>
               </TooltipTrigger>
               <TooltipContent className="shadow-lg text-xs">
-                No Submission
+                Show all data
               </TooltipContent>
             </Tooltip>
 
@@ -656,43 +656,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
                 Submissions currently being reviewed
               </TooltipContent>
             </Tooltip>
-
-            <div className="h-8 w-px bg-gray-300 mx-4" />
-
-            {/* ⏸ Pending */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={() => setSelectedStatus(s => s === "pending" ? null : "pending")}
-                  className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "pending" ? "bg-white rounded-md p-1" : ""}`}
-                >
-                  <div className="w-3 h-3 rounded-full bg-gray-300 p-3 mr-2" />
-                  {selectedStatus === "pending" && "Pending"}
-                  <span className="ml-1 text-xs text-gray-500">
-                    ({files.filter(f => f.submissionStatus === "pending").length})
-                  </span>
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="shadow-lg text-xs">
-                Awaiting review or confirmation
-              </TooltipContent>
-            </Tooltip>
           </TooltipProvider>
-
-          {selectedStatus && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setSelectedStatus(null);
-                localStorage.removeItem('facilities:selectedStatus');
-                toast.info('Filter cleared');
-              }}
-              className="ml-4 text-xs"
-            >
-              Clear filter
-            </Button>
-          )}
 
           {/* EXPORT BUTTONS */}
           <TooltipProvider>
@@ -749,7 +713,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
                   <Popover>
                     <PopoverTrigger asChild>
                       <Button variant="outline" className="w-[240px] shadow-none justify-start text-left font-normal h-10">
-                        <span className="mr-2">
+                        <span className="mr-2 general-size uppercase">
                           {activeView === "YEAR" && format(selectedDate, "yyyy")}
                           {activeView === "MONTH" && format(selectedDate, "MMMM yyyy")}
                           {activeView === "WEEK" && `Week ${format(startOfWeek(selectedDate, { weekStartsOn: 1 }), 'w, yyyy')}`}
@@ -846,18 +810,18 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
-                  <MagnifyingGlassIcon className="absolute right-2 text-gray-300"/>
+                  <MagnifyingGlassIcon className="absolute right-2 text-gray-300" />
                 </div>
 
-                <div className="flex space-x-3">
-                  <Button variant="outline" className="bg-[#021EF533] text-blue-700 hover:text-white hover:bg-[#021EF5] shadow-none" onClick={toggleBottomPanel}>
+                <div className="flex space-x-3 ">
+                  <Button variant="outline" className="bg-[#021EF533] general-size text-blue-700 hover:text-white hover:bg-[#021EF5] shadow-none" onClick={toggleBottomPanel}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                       <path d="M15.536 6.758a1 1 0 00-1.414 0L10 10.879 5.879 6.758a1 1 0 10-1.414 1.414l4.95 4.95a1 1 0 001.414 0l4.95-4.95a1 1 0 000-1.414z" />
                       <path d="M15 14h-5m-5 0h5m-5 3h10a2 2 0 002-2v-3a2 2 0 00-2-2H5a2 2 0 00-2 2v-3a2 2 0 002 2z" />
                     </svg>
                     {showBottomPanel ? "Hide Files" : "Files"}
                   </Button>
-                  <Button className="bg-[#028700] text-white hover:bg-[#028700c5] shadow-none">
+                  <Button className="bg-[#028700] text-white hover:bg-[#028700c5] general-size shadow-none">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                     </svg>

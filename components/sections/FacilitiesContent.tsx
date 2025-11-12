@@ -45,10 +45,9 @@ const View = { DAY: 'DAY', WEEK: 'WEEK', MONTH: 'MONTH', YEAR: 'YEAR' } as const
 type ViewType = keyof typeof View;
 
 const STATUS_CONFIG = {
-    "N/A": { label: "Not Available", color: "bg-red-500", icon: X, tooltip: "No submission" },
+    "N/A": { label: "All", color: "bg-red-500", icon: X, tooltip: "View all data" },
     confirmed: { label: "Confirmed", color: "bg-green-500", icon: Check, tooltip: "Files successfully confirmed" },
     progress: { label: "In Progress", color: "bg-yellow-400", icon: AlertTriangle, tooltip: "Files currently being reviewed" },
-    pending: { label: "Pending", color: "bg-gray-300", icon: Minus, tooltip: "Files without a submission status" },
 } as const
 
 type StatusKey = keyof typeof STATUS_CONFIG;
@@ -96,14 +95,9 @@ const getStatusForUnit = (unitDate: Date, files: PatientDataFile[], view: ViewTy
         return created >= start && created < end;
     });
 
-    if (filesInUnit.length === 0) {
-        return unitDate < todayStart ? 'N/A' : 'pending';
-    }
-
     // Priority: confirmed > progress > pending > N/A
     if (filesInUnit.some(f => f.submissionStatus === 'confirmed')) return 'confirmed';
     if (filesInUnit.some(f => f.submissionStatus === 'progress')) return 'progress';
-    if (filesInUnit.some(f => f.submissionStatus === 'pending')) return 'pending';
     return 'N/A';
 };
 
@@ -119,7 +113,7 @@ const TimeUnitItem = ({ label, value, status, isSelected }: {
     return (
         <div className="flex flex-col items-center relative">
             <div className="text-xs font-semibold text-gray-500 mb-1">{label}</div>
-            <div className={`w-8 h-8 flex items-center justify-center p-5 text-sm font-bold text-white rounded-md ${color} shadow-sm transition-all ${isSelected ? 'scale-110 ring-2 ring-blue-500' : 'hover:scale-105'}`}>
+            <div className={`w-8 h-8 flex items-center justify-center p-5 px-6 text-sm font-bold text-white rounded-md ${color} shadow-sm transition-all ${isSelected ? 'scale-110 ring-2 ring-blue-500' : 'hover:scale-105'}`}>
                 {value}
             </div>
             {isSelected && <div className="w-7 h-1 bg-blue-600 rounded-full mt-1 absolute -bottom-2 animate-pulse"></div>}
@@ -296,7 +290,7 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
         <div className="flex flex-col h-screen bg-white overflow-hidden">
             {/* HEADER WITH LEGEND */}
             <div className="flex items-center justify-between p-4 border-b bg-gray-50">
-                <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1 text-sm bg-purple-100 text-purple-700">
+                <Badge variant="secondary" className="flex items-center general-size gap-2 px-3 py-1 text-sm bg-purple-100 text-purple-700">
                     <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
                     </svg>
@@ -305,7 +299,7 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
 
                 <TooltipProvider>
                     <div className="flex items-center p-2 border rounded-md bg-gray-100 h-12">
-                        {(["N/A", "confirmed", "progress", "pending"] as const).map((status, index) => {
+                        {(["N/A", "confirmed", "progress"] as const).map((status, index) => {
                             const config = STATUS_CONFIG[status]
                             const count = files.filter((f: any) =>
                                 status === "N/A"
@@ -318,14 +312,26 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                                     <Tooltip>
                                         <TooltipTrigger asChild>
                                             <button
-                                                onClick={() =>
-                                                    setSelectedStatus((s: any) => (s === status ? null : status))
-                                                }
+                                                onClick={() => {
+                                                    if (config.label === 'All') {
+                                                        setSelectedStatus(null);
+                                                        localStorage.removeItem('facilities:selectedStatus');
+                                                        toast.info('Filter cleared');
+                                                    } else {
+                                                        setSelectedStatus((s: any) => (s === status ? null : status));
+                                                    }
+                                                }}
                                                 className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === status ? "bg-white rounded-md p-1" : ""}`}
                                             >
-                                                <div className={`w-3 h-3 rounded-full ${config.color} p-3 mr-2`} />
-                                                {selectedStatus === status && config.label}
-                                                <span className="ml-1 text-xs text-gray-500">({count})</span>
+                                                {
+                                                    config.label == 'All' ?
+                                                        <span className="px-4">All</span> :
+                                                        <>
+                                                            <div className={`w-3 h-3 rounded-full ${config.color} p-3 mr-2`} />
+                                                            {selectedStatus === status && config.label}
+                                                            <span className="ml-1 text-xs text-gray-500">({count})</span>
+                                                        </>
+                                                }
                                             </button>
                                         </TooltipTrigger>
                                         <TooltipContent>
@@ -333,18 +339,20 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                                         </TooltipContent>
                                     </Tooltip>
 
-                                    {status !== "pending" && (
-                                        <div className="h-8 w-px bg-gray-300 mx-4" />
-                                    )}
+                                    {
+                                        status !== "progress" && (
+                                            <div className="h-8 w-px bg-gray-300 mx-4" />
+                                        )
+                                    }
                                 </React.Fragment>
                             )
                         })}
                     </div>
                 </TooltipProvider>
-            </div>
+            </div >
 
             {/* TABLE */}
-            <div className="flex-1 overflow-auto p-4">
+            < div className="flex-1 overflow-auto p-4" >
                 <div className="bg-white overflow-hidden">
                     <table className="w-full text-sm">
                         <thead>
@@ -386,7 +394,7 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                                     </div>
                                 </th>
                                 {units.map(u => (
-                                    <th key={u.id} className="py-3 text-center border border-b-0 border-t-0">
+                                    <th key={u.id} className="py-3 text-center border  border-b-0 border-t-0">
                                         <button onClick={() => handleUnitClick(u.id)} className="p-1 rounded hover:bg-gray-50 transition">
                                             <TimeUnitItem label={u.label} value={u.value} status={u.status} isSelected={u.id === selectedUnitId} />
                                         </button>
@@ -394,7 +402,7 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                                 ))}
                             </tr>
 
-                            <tr className="bg-gray-50">
+                            <tr className="bg-gray-50 general-size">
                                 <th className="px-4 py-3 text-left font-medium text-gray-700">ID</th>
                                 <th className="px-4 py-3 text-left font-medium text-gray-700">Facility Name</th>
                                 <th className="px-4 py-3 text-left font-medium text-gray-700">Address</th>
@@ -404,7 +412,7 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
 
                         <tbody>
                             {starkRows.map(row => (
-                                <tr key={row.id} className={`border-b transition-colors hover:bg-gray-50 ${selectedFacilityId === row.id ? 'bg-blue-50' : ''}`}>
+                                <tr key={row.id} className={`border-b transition-colors hover:bg-gray-50 general-size ${selectedFacilityId === row.id ? 'bg-blue-50' : ''}`}>
                                     <td className="px-4 py-3 font-medium text-blue-600">{row.id}</td>
                                     <td className="px-4">
                                         <button onClick={(e) => { e.stopPropagation(); openSheet(row.id, 'details'); }} className="text-left py-3 px-2 rounded-md hover:bg-blue-50">
@@ -491,7 +499,7 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                         </div>
                     )}
                 </div>
-            </div>
+            </div >
 
             <FacilityDetailSheet
                 open={sheetOpen}
@@ -513,6 +521,6 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                     />
                 )}
             />
-        </div>
+        </div >
     );
 }
