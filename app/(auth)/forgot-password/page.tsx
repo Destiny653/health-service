@@ -10,7 +10,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import  apiClient  from "@/lib/axios";
+import apiClient from "@/lib/axios";
 import { Mail } from "lucide-react";
 import { toast } from "sonner";
 
@@ -58,6 +58,11 @@ export default function ForgotPasswordPage() {
     <div className="space-y-6">
       <div className="space-y-2">
         <h1 className="text-3xl font-bold">Forgot Password?</h1>
+        <p className="text-[14px] text-gray-400">
+          Enter your email below, you will receive an email with instructions
+          on how to reset your password in a few minutes.  You can also
+          set a new password if you have never set one before.
+        </p>
       </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -67,14 +72,14 @@ export default function ForgotPasswordPage() {
             render={({ field }) => (
               <FormItem className="relative">
                 <FormLabel>Email</FormLabel>
-                <FormControl><Input placeholder="name@example.com" {...field} className="rounded-none shadow-none py-6 px-5" />
+                <FormControl><Input placeholder="name@example.com" {...field} className="rounded-none shadow-none py-6 px-5 border-b-2 focus:border-b-[#04b301] border-x-0 border-t-0 bg-blue-50" />
                 </FormControl>
                 <Mail size={20} className="absolute right-3 top-12 -translate-y-1/2 text-gray-400" />
                 <FormMessage className="absolute -bottom-4" />
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full bg-auth-primary text-white hover:bg-auth-primary/90 rounded-none shadow-none py-6 px-5 bg-green-600 hover:bg-green-500" disabled={forgotPasswordMutation.isPending}>
+          <Button type="submit" className="w-full bg-auth-primary text-white hover:bg-auth-primary/90 rounded-none shadow-none py-6 px-5 bg-[#021EF5] hover:bg-[#021ef5d7]" disabled={forgotPasswordMutation.isPending}>
             {forgotPasswordMutation.isPending ? "Sending..." : "Send Reset Link"}
           </Button>
         </form>

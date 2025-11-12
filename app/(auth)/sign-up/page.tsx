@@ -65,7 +65,7 @@ export default function SignUpPage() {
               <FormItem className="relative">
                 <FormLabel>Username</FormLabel>
                 <FormControl>
-                  <Input placeholder="john_doe" {...field} className="rounded-none shadow-none py-6 px-5" />
+                  <Input placeholder="john_doe" {...field} className="rounded-none shadow-none py-6 px-5 border-b-2 focus:border-b-[#04b301] border-x-0 border-t-0 bg-blue-50" />
                 </FormControl>
                 <User size={20} className="absolute right-3 top-12 -translate-y-1/2 text-gray-400" />
                 <FormMessage className="absolute -bottom-4" />
@@ -80,7 +80,7 @@ export default function SignUpPage() {
                 <FormItem className="relative">
                   <FormLabel>First Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="John" {...field} className="rounded-none shadow-none py-6 px-5" />
+                    <Input placeholder="John" {...field} className="rounded-none shadow-none py-6 px-5 border-b-2 focus:border-b-[#04b301] border-x-0 border-t-0 bg-blue-50" />
                   </FormControl>
                   <User size={20} className="absolute right-3 top-12 -translate-y-1/2 text-gray-400" />
                   <FormMessage className="absolute -bottom-4" />
@@ -94,7 +94,7 @@ export default function SignUpPage() {
                 <FormItem className="relative">
                   <FormLabel>Last Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Doe" {...field} className="rounded-none shadow-none py-6 px-5" />
+                    <Input placeholder="Doe" {...field} className="rounded-none shadow-none py-6 px-5 border-b-2 focus:border-b-[#04b301] border-x-0 border-t-0 bg-blue-50" />
                   </FormControl>
                   <User size={20} className="absolute right-3 top-12 -translate-y-1/2 text-gray-400" />
                   <FormMessage className="absolute -bottom-4" />
@@ -109,7 +109,7 @@ export default function SignUpPage() {
               <FormItem className="relative">
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="name@example.com" {...field} className="rounded-none shadow-none py-6 px-5" />
+                  <Input placeholder="name@example.com" {...field} className="rounded-none shadow-none py-6 px-5 border-b-2 focus:border-b-[#04b301] border-x-0 border-t-0 bg-blue-50" />
                 </FormControl>
                 <Mail size={20} className="absolute right-3 top-12 -translate-y-1/2 text-gray-400" />
                 <FormMessage className="absolute -bottom-4" />
@@ -123,7 +123,7 @@ export default function SignUpPage() {
               <FormItem className="relative">
                 <FormLabel>Password</FormLabel>
                 <FormControl>
-                  <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} className="rounded-none shadow-none py-6 px-5" />
+                  <Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} className="rounded-none shadow-none py-6 px-5 border-b-2 focus:border-b-[#04b301] border-x-0 border-t-0 bg-blue-50" />
                 </FormControl>
                 <span className="absolute right-3 top-12 -translate-y-1/2 cursor-pointer text-gray-400 " onClick={() => setShowPassword(!showPassword)} >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
@@ -134,7 +134,7 @@ export default function SignUpPage() {
           />
           <Button
             type="submit"
-            className="w-full bg-auth-primary text-white hover:bg-auth-primary/90 rounded-none shadow-none py-6 px-5 bg-green-600 hover:bg-green-500"
+            className="w-full bg-auth-primary text-white hover:bg-auth-primary/90 rounded-none shadow-none py-6 px-5 border-x-0 border-t-0 bg-[#021EF5] hover:bg-[#021ef5d7]"
             disabled={signUpMutation.isPending}
           >
             {signUpMutation.isPending ? "Creating Account..." : "Create Account"}

@@ -1,37 +1,81 @@
-'use client'
+"use client";
+
 import DashboardContent from "@/components/sections/DashboardContent";
 import AppHeader from "@/components/sections/Header";
 import { NAV_ITEMS } from "@/utils/data";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ContactPersonnel } from "@/data";
 
-// --- MAIN APPLICATION COMPONENT ---
 const MainLayout = ({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) => {
-  // State to track which content view is currently active
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>(() => {
-    if (typeof window === 'undefined') return 'data_entries';
-    return localStorage.getItem('app:activeTab') || 'data_entries';
+    if (typeof window === "undefined") return "data_entries";
+    return localStorage.getItem("app:activeTab") || "data_entries";
   });
 
-  // Save tab on change
+  const [userRole, setUserRole] = useState<"admin" | "receptionist" | null>(null);
+
+  // ✅ Authentication & Role Check
   useEffect(() => {
-    localStorage.setItem('app:activeTab', activeTab);
+    const userData = localStorage.getItem("userInfo");
+
+    if (!userData) {
+      router.push("/sign-in"); // Redirect to sign-in if no user is logged in
+      return;
+    }
+
+    try {
+      const user: ContactPersonnel & { role: "admin" | "receptionist" } = JSON.parse(userData);
+      setUserRole(user.role);
+    } catch (error) {
+      console.error("Error parsing user data:", error);
+      router.push("/sign-in");
+    }
+  }, [router]);
+
+  // Save the active tab to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("app:activeTab", activeTab);
   }, [activeTab]);
-  // Find the component corresponding to the active tab ID
-  const ActiveComponent = NAV_ITEMS.find(item => item.id === activeTab)?.Component || DashboardContent;
+
+  // ✅ Filter navigation based on role
+  const filteredNavItems = useMemo(() => {
+    if (userRole === "receptionist") {
+      return NAV_ITEMS.filter((item) => item.id !== "facilities"); // Hide Facilities
+    }
+    return NAV_ITEMS;
+  }, [userRole]);
+
+  // ✅ Resolve the active component dynamically
+  const ActiveComponent =
+    filteredNavItems.find((item) => item.id === activeTab)?.Component ||
+    DashboardContent;
+
+  // ✅ Wait until userRole is known to avoid flashing content
+  if (!userRole) {
+    return (
+      <div className="flex items-center justify-center h-screen text-gray-600">
+        Checking authentication...
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-100 ">
+    <div className="min-h-screen bg-gray-100">
+      {/* Header */}
+      <AppHeader
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        navItems={filteredNavItems}
+      />
 
-      {/* 1. Header Component (Reusable) */}
-      <AppHeader activeTab={activeTab} setActiveTab={setActiveTab} />
-
-      {/* 2. Main Content Container */}
-      <main className=" mx-auto">
-        {/* 3. The Active Content Component (Conditional Rendering) */}
+      {/* Main Content */}
+      <main className="mx-auto">
         <ActiveComponent setActiveTab={setActiveTab} />
       </main>
     </div>

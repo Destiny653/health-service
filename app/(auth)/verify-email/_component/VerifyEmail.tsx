@@ -1,8 +1,7 @@
- // app/(auth)/verify-email/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -11,73 +10,97 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import apiClient from "@/lib/axios";
 import { Loader2, CheckCircle, XCircle, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import Link from "next/link";
 import { toast } from "sonner";
 
-// Schema for the resend verification form
-const resendFormSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email." }),
-}); 
+// ✅ Schema for verifying the 5-digit code
+const verifyCodeSchema = z.object({
+    code: z
+        .string()
+        .min(5, { message: "Please enter the 5-digit code." })
+        .max(5, { message: "Code must be 5 digits long." }),
+});
 
 export default function VerifyEmailForm() {
     const searchParams = useSearchParams();
-    const token = searchParams.get('token');
+    const token = searchParams.get("token");
     const [showResendForm, setShowResendForm] = useState(false);
 
-    // Mutation for the initial token verification
+    // ✅ Mutation for verifying a code
     const verificationMutation = useMutation({
-        mutationFn: (token: string) => apiClient.post('/auth/verify-email', { token }), 
+        mutationFn: (data: { code: string }) => apiClient.post("/auth/verify-code", data),
         onSuccess: () => {
-            toast.success("Email verified!");
+            toast.success("Code verified successfully!");
         },
         onError: (error: any) => {
-            toast.error(error.response?.data?.message || "An error occurred.");
-        }
-    });
-    
-    // Mutation for resending the verification link
-    const resendMutation = useMutation({
-        mutationFn: (data: { email: string }) => apiClient.post('/auth/resend-verification-email ', data),
-        onSuccess: () => {
-            toast.success("Verification link sent to your email!");
+            toast.error(error.response?.data?.message || "Invalid or expired code.");
         },
-        onError: (error: any) => {
-            toast.error(error.response?.data?.message || "An error occurred.");
-        }
     });
 
-    const form = useForm<z.infer<typeof resendFormSchema>>({
-        resolver: zodResolver(resendFormSchema),
-        defaultValues: { email: "" },
+    // ✅ Mutation for resending a code (example: via email)
+    const resendMutation = useMutation({
+        mutationFn: () => apiClient.post("/auth/resend-verification-email"),
+        onSuccess: () => {
+            toast.success("A new code has been sent to your email!");
+        },
+        onError: (error: any) => {
+            toast.error(error.response?.data?.message || "An error occurred while resending the code.");
+        },
     });
-    
-    function onResendSubmit(values: z.infer<typeof resendFormSchema>) {
-        resendMutation.mutate(values);
+
+    const form = useForm<z.infer<typeof verifyCodeSchema>>({
+        resolver: zodResolver(verifyCodeSchema),
+        defaultValues: { code: "" },
+    });
+
+    // ✅ Submit handler for verification code
+    function onSubmit(values: z.infer<typeof verifyCodeSchema>) {
+        verificationMutation.mutate(values);
     }
 
+    // ✅ Automatically verify token from URL if present
     useEffect(() => {
-        // Only attempt verification if a token exists in the URL
         if (token) {
-            verificationMutation.mutate(token);
+            verificationMutation.mutate({ code: token });
         }
     }, [token]);
 
-    // Main content renderer
+    // ✅ UI rendering based on state
     const renderContent = () => {
-        // State 1: Verification Failed or No Token Provided
+        // ✳️ Success state
+        if (verificationMutation.isSuccess) {
+            return (
+                <>
+                    <CheckCircle className="h-16 w-16 text-green-600" />
+                    <h1 className="text-3xl font-bold">Email Verified!</h1>
+                    <p className="text-muted-foreground">Your account is now active. You can sign in.</p>
+                    <Button
+                        asChild
+                        className="w-full bg-[#021EF5] text-white rounded-none shadow-none py-6 px-5 hover:bg-[#021ef5d7]"
+                    >
+                        <Link href="/sign-in">Proceed to Sign In</Link>
+                    </Button>
+                </>
+            );
+        }
+
+        // ✳️ Failed verification or no token
         if (!token || verificationMutation.isError) {
-            // Sub-state: Show the resend form
             if (showResendForm) {
-                 // Sub-state: Resend was successful
                 if (resendMutation.isSuccess) {
                     return (
                         <>
                             <MailCheck className="h-16 w-16 text-green-600" />
-                            <h1 className="text-3xl font-bold">New Link Sent!</h1>
-                            <p className="text-muted-foreground">Please check your email for a new verification link.</p>
-                            <Button asChild className="w-full bg-auth-primary text-white rounded-none shadow-none py-6 px-5 bg-green-600 hover:bg-green-500  ">
+                            <h1 className="text-3xl font-bold">New Code Sent!</h1>
+                            <p className="text-muted-foreground">
+                                Please check your email for the new verification code.
+                            </p>
+                            <Button
+                                asChild
+                                className="w-full bg-[#021EF5] text-white rounded-none shadow-none py-6 px-5 hover:bg-[#021ef5d7]"
+                            >
                                 <Link href="/sign-in">Back to Sign In</Link>
                             </Button>
                         </>
@@ -85,63 +108,109 @@ export default function VerifyEmailForm() {
                 }
 
                 return (
-                    <>
-                        <h1 className="text-3xl font-bold">Resend Verification</h1> 
-                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onResendSubmit)} className="w-full space-y-6 text-left">
+                    <div className="w-[500px] space-y-6">
+                        <h1 className="text-3xl font-bold text-center">Enter verification code</h1>
+                        <p className="text-center text-muted-foreground">
+                            We have just sent a verification code to tynisha*****@mail.com
+                        </p>
+
+                        <Form {...form}>
+                            <form
+                                onSubmit={form.handleSubmit(onSubmit)}
+                                className="flex flex-col items-center space-y-8"
+                            >
                                 <FormField
                                     control={form.control}
-                                    name="email"
+                                    name="code"
                                     render={({ field }) => (
-                                    <FormItem className="relative">
-                                        <FormLabel>Email</FormLabel>
-                                        <FormControl><Input placeholder="name@example.com" {...field} className="rounded-none shadow-none py-6 px-5" /></FormControl>
-                                        <FormMessage className="absolute -bottom-4"/>
-                                    </FormItem>
+                                        <FormItem className="flex flex-col items-center">
+                                            <FormControl>
+                                                <InputOTP maxLength={5} {...field}>
+                                                    <InputOTPGroup className="flex gap-4">
+                                                        <InputOTPSlot
+                                                            className="p-6 border rounded-none bg-gray-100 focus:bg-green-200"
+                                                            index={0}
+                                                        />
+                                                        <InputOTPSlot
+                                                            className="p-6 border rounded-none bg-gray-100 focus:bg-green-200"
+                                                            index={1}
+                                                        />
+                                                        <InputOTPSlot
+                                                            className="p-6 border rounded-none bg-gray-100 focus:bg-green-200"
+                                                            index={2}
+                                                        />
+                                                        <InputOTPSlot
+                                                            className="p-6 border rounded-none bg-gray-100 focus:bg-green-200"
+                                                            index={3}
+                                                        />
+                                                        <InputOTPSlot
+                                                            className="p-6 border rounded-none bg-gray-100 focus:bg-green-200"
+                                                            index={4}
+                                                        />
+                                                    </InputOTPGroup>
+                                                </InputOTP>
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
                                     )}
                                 />
-                                <Button type="submit" className="w-full bg-auth-primary text-white rounded-none shadow-none py-6 px-5 bg-green-600 hover:bg-green-500" disabled={resendMutation.isPending} onClick={() => setShowResendForm(true)}>
-                                    {resendMutation.isPending ? "Sending..." : "Resend Link"}
-                                </Button>
-                                {resendMutation.isError && <p className="text-sm text-center text-destructive">Failed to send link. Please try again.</p>}
+
+                                <div className="w-full space-y-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => resendMutation.mutate()}
+                                        className="w-full text-[#04b301] font-medium hover:underline text-left pb-4"
+                                        disabled={resendMutation.isPending}
+                                    >
+                                        {resendMutation.isPending ? "Resending..." : "Send code again"}
+                                    </button>
+                                    <Button
+                                        type="submit"
+                                        className="w-full bg-[#021EF5] text-white rounded-none shadow-none py-6 px-5 hover:bg-[#021ef5d7]"
+                                        disabled={verificationMutation.isPending}
+                                    >
+                                        {verificationMutation.isPending ? "Verifying..." : "Verify Code"}
+                                    </Button>
+                                    {verificationMutation.isError && (
+                                        <p className="text-sm text-center text-destructive">
+                                            Invalid or expired code. Please try again.
+                                        </p>
+                                    )}
+                                </div>
                             </form>
                         </Form>
-                    </>
+                    </div>
                 );
             }
-            // Initial failure view
+
+            // ✳️ Initial failure or expired link
             return (
                 <>
                     <XCircle className="h-16 w-16 text-destructive" />
                     <h1 className="text-3xl font-bold">Verification Failed</h1>
-                    <p className="text-muted-foreground">This verification link is invalid or has expired.</p>
+                    <p className="text-muted-foreground">
+                        This verification link is invalid or has expired.
+                    </p>
                     <div className="w-full space-y-2">
-                        <Button onClick={() => setShowResendForm(true)} className="w-full bg-auth-primary text-black rounded-none shadow-none py-6 px-5 " variant="outline">
-                            Resend Verification Link
+                        <Button
+                            onClick={() => setShowResendForm(true)}
+                            variant="outline"
+                            className="w-full text-black rounded-none shadow-none py-6 px-5 border"
+                        >
+                            Resend Verification Code
                         </Button>
-                        <Button   asChild className="w-full bg-auth-primary text-white rounded-none shadow-none py-6 px-5 bg-green-600 hover:bg-green-500">
-                           <Link href="/sign-in">Back to Sign In</Link>
+                        <Button
+                            asChild
+                            className="w-full bg-[#021EF5] text-white rounded-none shadow-none py-6 px-5 hover:bg-[#021ef5d7]"
+                        >
+                            <Link href="/sign-in">Back to Sign In</Link>
                         </Button>
                     </div>
                 </>
             );
         }
 
-        // State 2: Verification Succeeded
-        if (verificationMutation.isSuccess) {
-            return (
-                <>
-                    <CheckCircle className="h-16 w-16 text-green-600" />
-                    <h1 className="text-3xl font-bold">Email Verified!</h1>
-                    <p className="text-muted-foreground">Your account is now active. You can sign in.</p>
-                    <Button asChild className="w-full bg-auth-primary text-white rounded-none shadow-none py-6 px-5 bg-green-600 hover:bg-green-500">
-                        <Link href="/sign-in">Proceed to Sign In</Link>
-                    </Button>
-                </>
-            );
-        }
-
-        // State 3: Loading (verifying token)
+        // ✳️ Loading state
         return (
             <>
                 <Loader2 className="h-16 w-16 animate-spin" />
@@ -152,7 +221,7 @@ export default function VerifyEmailForm() {
     };
 
     return (
-        <div className="flex flex-col items-center justify-center space-y-4 text-center max-w-sm mx-auto">
+        <div className="flex flex-col items-center justify-center space-y-6 text-center max-w-sm mx-auto">
             {renderContent()}
         </div>
     );

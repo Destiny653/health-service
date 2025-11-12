@@ -63,7 +63,7 @@ export default function ResetPasswordForm() {
               render={({ field }) => (
                 <FormItem className="relative">
                   <FormLabel>New Password</FormLabel>
-                  <FormControl><Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} className="rounded-none shadow-none py-6 px-5" /></FormControl>
+                  <FormControl><Input type={showPassword ? "text" : "password"} placeholder="••••••••" {...field} className="rounded-none shadow-none py-6 px-5 border-b-2 focus:border-b-[#04b301] border-x-0 border-t-0 bg-blue-50" /></FormControl>
                   <span className="absolute right-3 top-12 -translate-y-1/2 cursor-pointer text-gray-400 " onClick={() => setShowPassword(!showPassword)} >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </span>
@@ -77,7 +77,7 @@ export default function ResetPasswordForm() {
               render={({ field }) => (
                 <FormItem className="relative">
                   <FormLabel>Confirm Password</FormLabel>
-                  <FormControl><Input type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" {...field} className="rounded-none shadow-none py-6 px-5" /></FormControl>
+                  <FormControl><Input type={showConfirmPassword ? "text" : "password"} placeholder="••••••••" {...field} className="rounded-none shadow-none py-6 px-5 border-b-2 focus:border-b-[#04b301] border-x-0 border-t-0 bg-blue-50" /></FormControl>
                   <span className="absolute right-3 top-12 -translate-y-1/2 cursor-pointer text-gray-400 " onClick={() => setShowConfirmPassword(!showConfirmPassword)} >
                     {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </span>
@@ -85,7 +85,7 @@ export default function ResetPasswordForm() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full bg-auth-primary text-white hover:bg-auth-primary/90 rounded-none shadow-none py-6 px-5 bg-green-600 hover:bg-green-500" disabled={resetPasswordMutation.isPending}>
+            <Button type="submit" className="w-full bg-auth-primary text-white hover:bg-auth-primary/90 rounded-none shadow-none py-6 px-5 bg-[#021EF5] hover:bg-[#021ef5d7]" disabled={resetPasswordMutation.isPending}>
               {resetPasswordMutation.isPending ? "Resetting..." : "Reset Password"}
             </Button>
           </form>
