@@ -13,10 +13,11 @@ import {
     User,
     Briefcase,
 } from 'lucide-react';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import GoogleMapViewer from './GoogleMapViewer'
 import {
     Card,
     CardHeader,
@@ -45,6 +46,8 @@ interface ContactPersonel {
 
 interface FacilityDetailSheetProps {
     open: boolean;
+    activeTab: 'details' | 'map';
+    onTabChange: (value: 'details' | 'map') => void;
     onOpenChange: (open: boolean) => void;
     facility?: {
         id: string;
@@ -58,8 +61,11 @@ interface FacilityDetailSheetProps {
 
 export function FacilityDetailSheet({
     open,
+    onTabChange,
     onOpenChange,
+    activeTab,
     facility,
+    mapComponent
 }: FacilityDetailSheetProps) {
     if (!facility) return null;
 
@@ -101,60 +107,56 @@ export function FacilityDetailSheet({
     /* ------------------------------------------------------------------ */
     /* MAP CARD (the exact markup you gave)                              */
     /* ------------------------------------------------------------------ */
+
     const MapCard = () => (
-            <Card className="rounded-sm border-none shadow-sm w-[50vw] mx-auto align-middle">
-                <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg font-semibold pb-5">
-                            Location: {details.address || '—'}
-                        </CardTitle>
-                        <MapPin className="h-5 w-5 text-blue-600" />
-                    </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <div className="overflow-hidden">
-                        {/* Replace the src with a real place if you have coordinates */}
-                        <iframe
-                            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3976.684057099999!2d9.740000!3d4.050000!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNMKwMDMnMDAuMCJOIDPCsEw0JzAwLjAiRQ!5e0!3m2!1sen!2sus!4v1690000000000!5m2!1sen!2sus"
-                            width="100%"
-                            height="600"
-                            style={{ border: 0 }}
-                            allowFullScreen
-                            loading="lazy"
-                            referrerPolicy="no-referrer-when-downgrade"
-                            title="Facility location"
-                        />
-                    </div>
-                </CardContent>
-            </Card>
-    );
+        <Card className="rounded-sm border-none shadow-sm w-[50vw] mx-auto align-middle">
+            <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg font-semibold pb-5">
+                        Location: {details.address || '—'}
+                    </CardTitle>
+                    <MapPin className="h-5 w-5 text-blue-600" />
+                </div>
+            </CardHeader>
+            <CardContent className="p-0 h-[600]">
+                <div className="h-full">
+                    {mapComponent}
+                </div>
+            </CardContent>
+        </Card>
+    )
+
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
+            <SheetTitle></SheetTitle>
             <SheetContent side="bottom" className="h-[85vh] p-0">
                 {/* ------------------------------------------------------------------ */}
                 {/* Tabs (no header – you removed it)                                 */}
                 {/* ------------------------------------------------------------------ */}
-                <Tabs defaultValue="details" className="flex flex-col h-full">
+                <Tabs defaultValue={activeTab} className="flex flex-col h-full">
                     {/* Tab bar – custom styling you already wrote */}
                     <div className="w-full py-[9px] rounded-none p-0 m-0 border-b bg-white">
                         <TabsList className="grid grid-cols-2 w-fit rounded-none p-0 pl-2 m-0 shadow-none bg-white">
                             <TabsTrigger
                                 value="details"
+                                onClick={() => onTabChange('details')}
                                 className="w-fit py-3 data-[state=active]:border-b-2 rounded-none shadow-none data-[state=active]:border-[#021EF5] data-[state=active]:shadow-none data-[state=active]:text-[#021EF5]"
                             >
                                 General Details
                             </TabsTrigger>
 
-                            {/* MAP TAB – ENABLED */}
                             <TabsTrigger
                                 value="map"
+                                onClick={() => onTabChange('map')}
                                 className="w-fit py-3 data-[state=active]:border-b-2 rounded-none shadow-none data-[state=active]:border-[#021EF5] data-[state=active]:shadow-none data-[state=active]:text-[#021EF5]"
                             >
                                 Map
                             </TabsTrigger>
                         </TabsList>
+
                     </div>
+
 
                     {/* ------------------------------------------------------------------ */}
                     {/* DETAILS TAB */}

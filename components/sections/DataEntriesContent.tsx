@@ -24,6 +24,14 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command"
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -31,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Popover,
   PopoverContent,
@@ -38,8 +47,10 @@ import {
 } from "@/components/ui/popover";
 import PatientDetailsModal from "@/components/PatientDetailsModal";
 import ImageViewer from "../ImageViewer";
-import * as XLSX from "xlsx";
 import { exportToCSV, exportToExcel } from "@/utils/export";
+import { CheckIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { cn } from "@/lib/utils";
+import { ChevronsUpDown } from "lucide-react";
 
 // =========================================================================
 // DATE UTILS & CONFIG
@@ -54,6 +65,14 @@ const View = {
 } as const;
 
 type ViewType = keyof typeof View;
+
+const viewOptions = [
+  { label: "YEAR", tooltip: "View data grouped by year" },
+  { label: "MONTH", tooltip: "View data grouped by month" },
+  { label: "WEEK", tooltip: "View data grouped by week" },
+  { label: "DAY", tooltip: "View data grouped by day" },
+] as const
+
 
 const STATUS_COLORS = {
   GREEN: "bg-green-500",
@@ -230,6 +249,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
   const [activeTabCon, setActiveTabCon] = useState<"details" | "history">("details");
   const [selectedHealthDistrict, setSelectedHealthDistrict] = useState<string>("Buea District");
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
+  const [open, setOpen] = React.useState(false)
 
   useEffect(() => {
     const savedStatus = localStorage.getItem('facilities:selectedStatus');
@@ -498,8 +518,6 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
     { accessorKey: "receiptNumber", header: "Receipt #" },
     { accessorKey: "referenceHospital", header: "Reference Hospital" },
     { accessorKey: "observations", header: "Observations" },
-    { accessorKey: "createdAt", header: "Created At" },
-    { accessorKey: "updatedAt", header: "Updated At" },
     { accessorKey: "isRareCase", header: "Rare Case" },
     { accessorKey: "dataIssues", header: "Data Issues" },
     { accessorKey: "role", header: "Role" },
@@ -509,6 +527,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
   const exportFilename = generateExportFilename(selectedHealthDistrict, activeView, selectedDate, selectedStatus);
 
   return (
+
     <div className="h-screen flex flex-col overflow-hidden font-[400] antialiased">
       <style>{`
         .divider { height: 8px; background: #e5e7eb; cursor: ns-resize; position: relative; z-index: 10; transition: background 0.2s; width: 100%; flex-shrink: 0; }
@@ -527,47 +546,139 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
 
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 bg-white z-20 flex-shrink-0">
-        <Select value={selectedHealthDistrict} onValueChange={setSelectedHealthDistrict}>
-          <SelectTrigger className="w-[240px] bg-[#021EF533] py-5 border border-blue-200">
-            <div className="flex items-center space-x-2">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-              </svg>
-              <SelectValue placeholder="Select Health District" />
-            </div>
-          </SelectTrigger>
-          <SelectContent className="font-[500]">
-            {healthDistricts.map((district) => (
-              <SelectItem key={district} value={district}>{district}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <button
+              role="combobox"
+              aria-expanded={open}
+              className="w-[240px] justify-between bg-[#021EF533] py-3 px-4 border border-blue-200 rounded-md flex items-center text-sm text-left"
+            >
+              <div className="flex items-center space-x-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                </svg>
+                <span className="font-[500]">{selectedHealthDistrict || "Select Health District"}</span>
+              </div>
+              <ChevronsUpDown className="h-4 w-4 opacity-50" />
+            </button>
+          </PopoverTrigger>
+
+          <PopoverContent className="w-[240px] p-0 font-[500]">
+            <Command>
+              <CommandInput placeholder="Search district..." />
+              <CommandList>
+                <CommandEmpty>No district found.</CommandEmpty>
+                <CommandGroup>
+                  {healthDistricts.map((district) => (
+                    <CommandItem
+                      key={district}
+                      onSelect={() => {
+                        setSelectedHealthDistrict(district)
+                        setOpen(false)
+                      }}
+                    >
+                      <CheckIcon
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          district === selectedHealthDistrict ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {district}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
 
         {/* LEGEND */}
+
         <div className="flex items-center mt-4 md:mt-0 p-2 border rounded-md bg-gray-100 h-12">
-          <button onClick={() => setSelectedStatus(s => s === "N/A" ? null : "N/A")} className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "N/A" ? "bg-white rounded-md p-1" : ""}`}>
-            <div className="w-3 h-3 rounded-full bg-red-500 p-3 mr-2" />
-            {selectedStatus === "N/A" && "No Submission"}
-            <span className="ml-1 text-xs text-gray-500">({files.filter(f => !f.submissionStatus || f.submissionStatus === "N/A").length})</span>
-          </button>
-          <div className="h-8 w-px bg-gray-300 mx-4" />
-          <button onClick={() => setSelectedStatus(s => s === "confirmed" ? null : "confirmed")} className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "confirmed" ? "bg-white rounded-md p-1" : ""}`}>
-            <div className="w-3 h-3 rounded-full bg-green-500 p-3 mr-2" />
-            {selectedStatus === "confirmed" && "Confirmed"}
-            <span className="ml-1 text-xs text-gray-500">({files.filter(f => f.submissionStatus === "confirmed").length})</span>
-          </button>
-          <div className="h-8 w-px bg-gray-300 mx-4" />
-          <button onClick={() => setSelectedStatus(s => s === "progress" ? null : "progress")} className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "progress" ? "bg-white rounded-md p-1" : ""}`}>
-            <div className="w-3 h-3 rounded-full bg-yellow-400 p-3 mr-2" />
-            {selectedStatus === "progress" && "In Progress"}
-            <span className="ml-1 text-xs text-gray-500">({files.filter(f => f.submissionStatus === "progress").length})</span>
-          </button>
-          <div className="h-8 w-px bg-gray-300 mx-4" />
-          <button onClick={() => setSelectedStatus(s => s === "pending" ? null : "pending")} className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "pending" ? "bg-white rounded-md p-1" : ""}`}>
-            <div className="w-3 h-3 rounded-full bg-gray-300 p-3 mr-2" />
-            {selectedStatus === "pending" && "Pending"}
-            <span className="ml-1 text-xs text-gray-500">({files.filter(f => f.submissionStatus === "pending").length})</span>
-          </button>
+          <TooltipProvider>
+            {/* ❌ No Submission */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setSelectedStatus(s => s === "N/A" ? null : "N/A")}
+                  className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "N/A" ? "bg-white rounded-md p-1" : ""}`}
+                >
+                  <div className="w-3 h-3 rounded-full bg-red-500 p-3 mr-2" />
+                  {selectedStatus === "N/A" && "No Submission"}
+                  <span className="ml-1 text-xs text-gray-500">
+                    ({files.filter(f => !f.submissionStatus || f.submissionStatus === "N/A").length})
+                  </span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="shadow-lg text-xs">
+                No Submission
+              </TooltipContent>
+            </Tooltip>
+
+            <div className="h-8 w-px bg-gray-300 mx-4" />
+
+            {/* ✅ Confirmed */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setSelectedStatus(s => s === "confirmed" ? null : "confirmed")}
+                  className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "confirmed" ? "bg-white rounded-md p-1" : ""}`}
+                >
+                  <div className="w-3 h-3 rounded-full bg-green-500 p-3 mr-2" />
+                  {selectedStatus === "confirmed" && "Confirmed"}
+                  <span className="ml-1 text-xs text-gray-500">
+                    ({files.filter(f => f.submissionStatus === "confirmed").length})
+                  </span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="shadow-lg text-xs">
+                Confirmed submissions
+              </TooltipContent>
+            </Tooltip>
+
+            <div className="h-8 w-px bg-gray-300 mx-4" />
+
+            {/* 🟡 In Progress */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setSelectedStatus(s => s === "progress" ? null : "progress")}
+                  className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "progress" ? "bg-white rounded-md p-1" : ""}`}
+                >
+                  <div className="w-3 h-3 rounded-full bg-yellow-400 p-3 mr-2" />
+                  {selectedStatus === "progress" && "In Progress"}
+                  <span className="ml-1 text-xs text-gray-500">
+                    ({files.filter(f => f.submissionStatus === "progress").length})
+                  </span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="shadow-lg text-xs">
+                Submissions currently being reviewed
+              </TooltipContent>
+            </Tooltip>
+
+            <div className="h-8 w-px bg-gray-300 mx-4" />
+
+            {/* ⏸ Pending */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setSelectedStatus(s => s === "pending" ? null : "pending")}
+                  className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "pending" ? "bg-white rounded-md p-1" : ""}`}
+                >
+                  <div className="w-3 h-3 rounded-full bg-gray-300 p-3 mr-2" />
+                  {selectedStatus === "pending" && "Pending"}
+                  <span className="ml-1 text-xs text-gray-500">
+                    ({files.filter(f => f.submissionStatus === "pending").length})
+                  </span>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="shadow-lg text-xs">
+                Awaiting review or confirmation
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
           {selectedStatus && (
             <Button
               variant="ghost"
@@ -582,35 +693,54 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
               Clear filter
             </Button>
           )}
-          {/* EXPORT BUTTONS - ADDED HERE */}
-          <div className="ml-6 flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => exportToCSV(filteredData, columns, exportFilename)}
-              className="border-green-600 text-green-600 hover:bg-green-50"
-            >
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              CSV
-            </Button>
-            <Button
-              size="sm"
-              onClick={() => exportToExcel(filteredData, columns, exportFilename)}
-              className="bg-green-600 hover:bg-green-700 text-white"
-            >
-              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-2m-3-4V7m-3 4V7m6 10H9a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V15a2 2 0 01-2 2z" />
-              </svg>
-              Excel
-            </Button>
-          </div>
+
+          {/* EXPORT BUTTONS */}
+          <TooltipProvider>
+            <div className="ml-6 flex items-center space-x-2">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => exportToCSV(filteredData, columns, exportFilename)}
+                    className="border-green-600 text-green-600 hover:bg-green-50"
+                  >
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    CSV
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="shadow-lg text-xs">
+                  Export data as CSV
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    onClick={() => exportToExcel(filteredData, columns, exportFilename)}
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-2m-3-4V7m-3 4V7m6 10H9a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V15a2 2 0 01-2 2z" />
+                    </svg>
+                    Excel
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent className="shadow-lg text-xs">
+                  Export data as Excel
+                </TooltipContent>
+              </Tooltip>
+            </div>
+          </TooltipProvider>
         </div>
-      </div>
+
+      </div >
 
       {/* Main Split Container */}
-      <div className="flex-1 flex flex-col overflow-hidden" ref={containerRef}>
+
+      <div className="flex-1 flex flex-col overflow-hidden" ref={containerRef} >
         <div className="bg-white relative flex-shrink-0" style={{ height: showBottomPanel ? `${topPanelHeight}%` : "100%" }}>
           <div className="top-panel-content">
             <div className="px-4">
@@ -646,18 +776,28 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
                   </Popover>
 
                   <div className="flex p-1 space-x-1 bg-gray-100 rounded-md px-1">
-                    {(["YEAR", "MONTH", "WEEK", "DAY"] as ViewType[]).map((view) => (
-                      <Button
-                        key={view}
-                        variant={view === activeView ? "default" : "ghost"}
-                        size="sm"
-                        onClick={() => handleViewChange(view)}
-                        className={`rounded-md px-4 transition-colors duration-200 ${view === activeView && "bg-[#028700] hover:bg-[#028700c9]"}`}
-                      >
-                        {view}
-                      </Button>
-                    ))}
+                    <TooltipProvider>
+                      {viewOptions.map((view) => (
+                        <Tooltip key={view.label}>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant={view.label === activeView ? "default" : "ghost"}
+                              size="sm"
+                              onClick={() => handleViewChange(view.label)}
+                              className={`rounded-md px-4 transition-colors duration-200 ${view.label === activeView && "bg-[#028700] hover:bg-[#028700c9]"
+                                }`}
+                            >
+                              {view.label}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{view.tooltip}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ))}
+                    </TooltipProvider>
                   </div>
+
                 </div>
 
                 <div className="flex space-x-3 pb-2">
@@ -687,8 +827,8 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
 
             <div className="p-4">
               <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 mb-4">
-                <div className="flex items-center space-x-4">
-                  <div className="font-[500] text-md rounded-md bg-gray-100 p-2">Report</div>
+                <div className="flex items-center space-x-4 relative">
+                  {/* <div className="font-[500] text-md rounded-md bg-gray-100 p-2">Report</div>
                   <Select>
                     <SelectTrigger className="w-[180px] shadow-none outline-none">
                       <SelectValue placeholder="Disease control" />
@@ -698,7 +838,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
                       <SelectItem value="outbreaks">Outbreaks</SelectItem>
                       <SelectItem value="staffing">Staffing</SelectItem>
                     </SelectContent>
-                  </Select>
+                  </Select> */}
                   <Input
                     type="search"
                     placeholder="Search..."
@@ -706,6 +846,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
+                  <MagnifyingGlassIcon className="absolute right-2 text-gray-300"/>
                 </div>
 
                 <div className="flex space-x-3">
@@ -732,23 +873,27 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
           </div>
         </div>
 
-        {showBottomPanel && (
-          <div ref={dividerRef} className={`divider ${isDragging ? "dragging" : ""}`} onMouseDown={handleMouseDown}></div>
-        )}
+        {
+          showBottomPanel && (
+            <div ref={dividerRef} className={`divider ${isDragging ? "dragging" : ""}`} onMouseDown={handleMouseDown}></div>
+          )
+        }
 
-        {showBottomPanel && (
-          <div className="bg-gray-50 p-4 overflow-auto flex-1" style={{ height: `${100 - topPanelHeight}%` }}>
-            {allImages.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
-                {allImages.map((url, index) => (
-                  <ImageViewer key={index} src={url} />
-                ))}
-              </div>
-            ) : (
-              <p className="col-span-2 text-center text-gray-500">No files to preview</p>
-            )}
-          </div>
-        )}
+        {
+          showBottomPanel && (
+            <div className="bg-gray-50 p-4 overflow-auto flex-1" style={{ height: `${100 - topPanelHeight}%` }}>
+              {allImages.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-6">
+                  {allImages.map((url, index) => (
+                    <ImageViewer key={index} src={url} />
+                  ))}
+                </div>
+              ) : (
+                <p className="col-span-2 text-center text-gray-500">No files to preview</p>
+              )}
+            </div>
+          )
+        }
       </div>
 
       <PatientDetailsModal
@@ -759,6 +904,6 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
         closeModal={closeModal}
         data={allPatients}
       />
-    </div>
+    </div >
   );
 }

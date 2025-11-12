@@ -17,6 +17,7 @@ import {
   Cell,
 } from 'recharts';
 import { ArrowSquareOutIcon, BedIcon, BoxArrowDownIcon, DatabaseIcon, HeartIcon, TrendDownIcon, TrendUpIcon, UsersIcon } from '@phosphor-icons/react';
+import GoogleMapViewer from '../GoogleMapViewer';
 
 // Colors used in the image: yellow-600, blue-600, red-600
 const COLOR_CONSULTED = '#f59e0b'; // Tailwind yellow-600
@@ -230,17 +231,12 @@ const DashboardContent = () => {
               </div>
             </CardHeader>
             <CardContent className="p-0 rounded-none">
-              <div className=" overflow-hidden">
-                <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3976.684057099999!2d9.740000!3d4.050000!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNMKwMDMnMDAuMCJOIDPCsEw0JzAwLjAiRQ!5e0!3m2!1sen!2sus!4v1690000000000!5m2!1sen!2sus"
-                  width="100%"
-                  height="400"
-                  style={{ border: 0 }}
-                  allowFullScreen={true}
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  title="Rond Point Maiture, Douala"
-                ></iframe>
+              <div className=" overflow-hidden h-[400]">
+                <GoogleMapViewer
+                  address={'Douala'}
+                  facilityName={'General'}
+                  apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}
+                />
               </div>
             </CardContent>
           </Card>

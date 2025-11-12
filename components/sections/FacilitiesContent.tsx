@@ -27,6 +27,12 @@ import { FacilityDetailSheet } from "../FacilityDetailSheet";
 import GoogleMapViewer from "@/components/GoogleMapViewer";
 import { exportToCSV, exportToExcel, generateExportFilename } from "@/utils/export";
 import { DATA_ENTRIES_TAB_ID, DataEntriesId } from "@/utils/data";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface FacilitiesContentProps {
     setActiveTab?: React.Dispatch<React.SetStateAction<string>>;
@@ -38,15 +44,21 @@ type SubmissionStatus = PatientDataFile['submissionStatus']; // Use real type!
 const View = { DAY: 'DAY', WEEK: 'WEEK', MONTH: 'MONTH', YEAR: 'YEAR' } as const;
 type ViewType = keyof typeof View;
 
-// Map submissionStatus → Tailwind classes + icons
 const STATUS_CONFIG = {
-    confirmed: { color: 'bg-[#028700]', icon: Check, label: 'Confirmed' },
-    progress: { color: 'bg-yellow-400', icon: AlertTriangle, label: 'In Progress' },
-    pending: { color: 'bg-gray-300', icon: Minus, label: 'Pending' },
-    'N/A': { color: 'bg-red-500', icon: X, label: 'No Submission' },
-} as const;
+    "N/A": { label: "Not Available", color: "bg-red-500", icon: X, tooltip: "No submission" },
+    confirmed: { label: "Confirmed", color: "bg-green-500", icon: Check, tooltip: "Files successfully confirmed" },
+    progress: { label: "In Progress", color: "bg-yellow-400", icon: AlertTriangle, tooltip: "Files currently being reviewed" },
+    pending: { label: "Pending", color: "bg-gray-300", icon: Minus, tooltip: "Files without a submission status" },
+} as const
 
 type StatusKey = keyof typeof STATUS_CONFIG;
+
+const VIEW_CONFIG = {
+    YEAR: { tooltip: "View data grouped by year" },
+    MONTH: { tooltip: "View data grouped by month" },
+    WEEK: { tooltip: "View data grouped by week" },
+    DAY: { tooltip: "View data grouped by day" },
+} as const
 
 /* ────────────────────── UTILS ────────────────────── */
 const getStartOfToday = (): Date => startOfDay(new Date());
@@ -130,7 +142,9 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
     const [selectedUnitId, setSelectedUnitId] = useState<string>(format(today, 'yyyy-MM-dd'));
     const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(null);
     const [sheetOpen, setSheetOpen] = useState(false);
+    const [_activeTab, _setActiveTab] = useState<'details' | 'map'>('details');
     const [selectedStatus, setSelectedStatus] = useState<SubmissionStatus | null>(null);
+
 
     // ALL POSSIBLE UNITS
     const allPossibleUnits = useMemo(() => {
@@ -269,10 +283,12 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
     };
 
     const selectedFacility = starkRows.find(r => r.id === selectedFacilityId);
-    const openSheet = (id: string) => {
+    const openSheet = (id: string, tab: 'details' | 'map' = 'details') => {
         setSelectedFacilityId(id);
+        _setActiveTab(tab);
         setSheetOpen(true);
     };
+
 
     const exportFilename = generateExportFilename("Rail District", activeView, selectedDate, selectedStatus);
 
@@ -287,30 +303,44 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                     Rail District Area
                 </Badge>
 
-                <div className="flex items-center p-2 border rounded-md bg-gray-100 h-12">
-                    {(['N/A', 'confirmed', 'progress', 'pending'] as const).map(status => {
-                        const config = STATUS_CONFIG[status];
-                        const count = files.filter(f =>
-                            status === 'N/A'
-                                ? !f.submissionStatus || f.submissionStatus === 'N/A'
-                                : f.submissionStatus === status
-                        ).length;
+                <TooltipProvider>
+                    <div className="flex items-center p-2 border rounded-md bg-gray-100 h-12">
+                        {(["N/A", "confirmed", "progress", "pending"] as const).map((status, index) => {
+                            const config = STATUS_CONFIG[status]
+                            const count = files.filter((f: any) =>
+                                status === "N/A"
+                                    ? !f.submissionStatus || f.submissionStatus === "N/A"
+                                    : f.submissionStatus === status
+                            ).length
 
-                        return (
-                            <React.Fragment key={status}>
-                                <button
-                                    onClick={() => setSelectedStatus(s => s === status ? null : status)}
-                                    className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === status ? "bg-white rounded-md p-1" : ""}`}
-                                >
-                                    <div className={`w-3 h-3 rounded-full ${config.color} p-3 mr-2`} />
-                                    {selectedStatus === status && config.label}
-                                    <span className="ml-1 text-xs text-gray-500">({count})</span>
-                                </button>
-                                {status !== 'pending' && <div className="h-8 w-px bg-gray-300 mx-4" />}
-                            </React.Fragment>
-                        );
-                    })}
-                </div>
+                            return (
+                                <React.Fragment key={status}>
+                                    <Tooltip>
+                                        <TooltipTrigger asChild>
+                                            <button
+                                                onClick={() =>
+                                                    setSelectedStatus((s: any) => (s === status ? null : status))
+                                                }
+                                                className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === status ? "bg-white rounded-md p-1" : ""}`}
+                                            >
+                                                <div className={`w-3 h-3 rounded-full ${config.color} p-3 mr-2`} />
+                                                {selectedStatus === status && config.label}
+                                                <span className="ml-1 text-xs text-gray-500">({count})</span>
+                                            </button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                            <p className="text-sm font-medium">{config.tooltip}</p>
+                                        </TooltipContent>
+                                    </Tooltip>
+
+                                    {status !== "pending" && (
+                                        <div className="h-8 w-px bg-gray-300 mx-4" />
+                                    )}
+                                </React.Fragment>
+                            )
+                        })}
+                    </div>
+                </TooltipProvider>
             </div>
 
             {/* TABLE */}
@@ -332,14 +362,27 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                                             </PopoverContent>
                                         </Popover>
 
-                                        <div className="flex p-1 bg-gray-100 rounded-md w-fit">
-                                            {(['YEAR', 'MONTH', 'WEEK', 'DAY'] as const).map(v => (
-                                                <Button key={v} variant={activeView === v ? "default" : "ghost"} size="sm" onClick={() => handleViewChange(v)}
-                                                    className={`rounded-md ${activeView === v ? 'bg-[#028700] hover:bg-[#028700dc]' : ''}`}>
-                                                    {v}
-                                                </Button>
-                                            ))}
-                                        </div>
+                                        <TooltipProvider>
+                                            <div className="flex p-1 bg-gray-100 rounded-md w-fit">
+                                                {(['YEAR', 'MONTH', 'WEEK', 'DAY'] as const).map((v) => (
+                                                    <Tooltip key={v}>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                variant={activeView === v ? "default" : "ghost"}
+                                                                size="sm"
+                                                                onClick={() => handleViewChange(v)}
+                                                                className={`rounded-md ${activeView === v ? 'bg-[#028700] hover:bg-[#028700dc]' : ''}`}
+                                                            >
+                                                                {v}
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent>
+                                                            <p className="text-sm">{VIEW_CONFIG[v].tooltip}</p>
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                ))}
+                                            </div>
+                                        </TooltipProvider>
                                     </div>
                                 </th>
                                 {units.map(u => (
@@ -363,15 +406,15 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                             {starkRows.map(row => (
                                 <tr key={row.id} className={`border-b transition-colors hover:bg-gray-50 ${selectedFacilityId === row.id ? 'bg-blue-50' : ''}`}>
                                     <td className="px-4 py-3 font-medium text-blue-600">{row.id}</td>
-                                    <td className="px-4 py-3">
-                                        <button onClick={(e) => { e.stopPropagation(); openSheet(row.id); }} className="text-left hover:underline">
+                                    <td className="px-4">
+                                        <button onClick={(e) => { e.stopPropagation(); openSheet(row.id, 'details'); }} className="text-left py-3 px-2 rounded-md hover:bg-blue-50">
                                             <div className="flex items-center gap-2">
                                                 <span className="font-medium">{row.facilityName}</span>
                                             </div>
                                         </button>
                                     </td>
-                                    <td className="px-4 py-3">
-                                        <button onClick={(e) => { e.stopPropagation(); openSheet(row.id); }} className="text-left hover:underline flex items-center gap-1 text-blue-600">
+                                    <td className="px-4">
+                                        <button onClick={(e) => { e.stopPropagation(); openSheet(row.id, 'map'); }} className="text-left py-3 px-2 rounded-md hover:bg-blue-50 flex items-center gap-1 text-blue-600">
                                             <MapPin className="w-4 h-4" />
                                             {row.address}
                                         </button>
@@ -453,6 +496,8 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
             <FacilityDetailSheet
                 open={sheetOpen}
                 onOpenChange={setSheetOpen}
+                activeTab={_activeTab}
+                onTabChange={_setActiveTab}
                 facility={selectedFacility ? {
                     id: selectedFacility.id,
                     facilityName: selectedFacility.facilityName,

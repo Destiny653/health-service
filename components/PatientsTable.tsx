@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 /* --------------------------------------------------------------- */
 /*  1. DataTable – Safe localStorage Access                        */
@@ -125,14 +126,14 @@ export function DataTable<
 
 
             {/* Table */}
-            <table className="border-none w-full border-gray-200 text-sm">
+            <table className="border-none w-full border-gray-200 text-sm overflow-auto">
               <thead className="bg-gray-50">
                 {table.getHeaderGroups().map((hg) => (
                   <tr key={hg.id}>
                     {hg.headers.map((h) => (
                       <th
                         key={h.id}
-                        className="text-left px-4 py-2 border-b border-gray-50 font-[500]"
+                        className="text-left px-4 py-2 border-b border-gray-50 font-[500] whitespace-nowrap"
                       >
                         {h.isPlaceholder
                           ? null
@@ -142,8 +143,8 @@ export function DataTable<
                           )}
                       </th>
                     ))}
-                    <th>
-                      <div className="flex justify-end p-2 absolute right-1 -top-[6px]">
+                    <th className="abolute">
+                      <div className="flex justify-end p-2 relative right-0 -top-[7px]">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -211,12 +212,57 @@ export function DataTable<
                     {row.getVisibleCells().map((cell) => (
                       <td
                         key={cell.id}
-                        className="px-4 py-2 border-b border-gray-50"
+                        className="px-4 py-2 border-b border-gray-50 whitespace-nowrap overflow-hidden text-ellipsis max-w-[250px]"
                       >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
+                        {(() => {
+                          const raw =
+                            typeof cell.getValue === "function" ? cell.getValue() : undefined;
+                          const rendered = flexRender(cell.column.columnDef.cell, cell.getContext());
+
+                          if (Array.isArray(raw)) {
+                            const text = raw.join(", ");
+                            const isTrimmed = text.length > 14;
+                            const displayText = isTrimmed ? `${text.slice(0, 20)}...` : text;
+
+                            return (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="cursor-pointer">{displayText}</span>
+                                  </TooltipTrigger>
+                                  {isTrimmed && (
+                                    <TooltipContent className="max-w-sm p-3 bg-white shadow-lg border rounded-md text-sm font-[500] text-gray-800">
+                                      {text}
+                                    </TooltipContent>
+                                  )}
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          }
+
+                          // Handle plain strings as before
+                          if (typeof raw === "string") {
+                            const isTrimmed = raw.length > 14;
+                            const displayText = isTrimmed ? `${raw.slice(0, 20)}...` : raw;
+
+                            return (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="cursor-pointer">{displayText}</span>
+                                  </TooltipTrigger>
+                                  {isTrimmed && (
+                                    <TooltipContent className="max-w-sm p-3 bg-white shadow-lg border rounded-md text-sm font-[500] text-gray-800">
+                                      {raw}
+                                    </TooltipContent>
+                                  )}
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          }
+
+                          return rendered;
+                        })()}
                       </td>
                     ))}
                   </tr>

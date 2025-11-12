@@ -1,8 +1,6 @@
 // src/components/GoogleMapViewer.tsx
 'use client';
 
-import React from 'react';
-
 interface GoogleMapViewerProps {
   address: string;
   facilityName: string;
