@@ -128,9 +128,6 @@ export default function PatientDetailsModal({
                   Visit History
                 </Button>
               </div>
-              <Button variant="ghost" size="sm" className="z-10 relative right-2 opacity-0" onClick={closeModal}>
-                ✕
-              </Button>
             </div>
           </CardHeader>
 
