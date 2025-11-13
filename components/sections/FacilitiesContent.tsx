@@ -321,14 +321,19 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                                                         setSelectedStatus((s: any) => (s === status ? null : status));
                                                     }
                                                 }}
-                                                className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === status ? "bg-white rounded-md p-1" : ""}`}
+                                                className={`flex items-center text-sm cursor-pointer transition-all duration-200 group relative hover:scale-105 py-2 ${selectedStatus === status ? "bg-white rounded-md p-1" : ""}`}
                                             >
                                                 {
                                                     config.label == 'All' ?
-                                                        <span className="px-4">All</span> :
+                                                        <span className={`${selectedStatus == null && 'bg-white'} px-5 py-2 rounded-md`}>All</span> :
                                                         <>
                                                             <div className={`w-3 h-3 rounded-full ${config.color} p-3 mr-2`} />
-                                                            {selectedStatus === status && config.label}
+                                                            <span
+                                                                className={`overflow-hidden transition-all whitespace-nowrap duration-300 ease-in-out ${selectedStatus === status ? "opacity-100 max-w-[100px]" : "group-hover:opacity-100 group-hover:max-w-[100px] opacity-0 max-w-0"
+                                                                    }`}
+                                                            >
+                                                            {config.label}
+                                                            </span>
                                                             <span className="ml-1 text-xs text-gray-500">({count})</span>
                                                         </>
                                                 }
@@ -403,25 +408,25 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                             </tr>
 
                             <tr className="bg-gray-50 general-size">
-                                <th className="px-4 py-3 text-left font-medium text-gray-700">ID</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-700">Facility Name</th>
-                                <th className="px-4 py-3 text-left font-medium text-gray-700">Address</th>
+                                <th className="px-4 py-4 text-left font-medium text-gray-700">ID</th>
+                                <th className="px-4 py-4 text-left font-medium text-gray-700">Facility Name</th>
+                                <th className="px-4 py-4 text-left font-medium text-gray-700">Address</th>
                                 {units.map(u => <th key={u.id} className="py-3 border border-b-0 border-t-0"></th>)}
                             </tr>
                         </thead>
 
                         <tbody>
                             {starkRows.map(row => (
-                                <tr key={row.id} className={`border-b transition-colors hover:bg-gray-50 general-size ${selectedFacilityId === row.id ? 'bg-blue-50' : ''}`}>
-                                    <td className="px-4 py-3 font-medium text-blue-600">{row.id}</td>
-                                    <td className="px-4">
+                                <tr key={row.id} className={`border-b py-4 transition-colors hover:bg-gray-50 general-size ${selectedFacilityId === row.id ? 'bg-blue-50' : ''}`}>
+                                    <td className="px-4 py-4 font-medium text-blue-600">{row.id}</td>
+                                    <td className="px-4 py-4">
                                         <button onClick={(e) => { e.stopPropagation(); openSheet(row.id, 'details'); }} className="text-left py-3 px-2 rounded-md hover:bg-blue-50">
                                             <div className="flex items-center gap-2">
                                                 <span className="font-medium">{row.facilityName}</span>
                                             </div>
                                         </button>
                                     </td>
-                                    <td className="px-4">
+                                    <td className="px-4 py-4">
                                         <button onClick={(e) => { e.stopPropagation(); openSheet(row.id, 'map'); }} className="text-left py-3 px-2 rounded-md hover:bg-blue-50 flex items-center gap-1 text-blue-600">
                                             <MapPin className="w-4 h-4" />
                                             {row.address}

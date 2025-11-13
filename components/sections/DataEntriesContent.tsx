@@ -267,6 +267,18 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
     return Array.from(districts).sort();
   }, [files]);
 
+  const districtsByStatus = useMemo(() => {
+    const result: Record<string, string[]> = {};
+    ['confirmed', 'progress'].forEach(status => {
+      const districts = new Set<string>();
+      files.filter(f => f.submissionStatus === status).forEach(f => {
+        if (f.facility?.healthDistrict) districts.add(f.facility.healthDistrict);
+      });
+      result[status] = Array.from(districts).sort();
+    });
+    return result;
+  }, [files]);
+
   // Helper: Get start of unit
   const getUnitStart = (date: Date, view: ViewType): Date => {
     switch (view) {
@@ -528,7 +540,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
 
   return (
 
-    <div className="h-screen flex flex-col overflow-hidden font-[400] antialiased">
+    <div className="min-h-screen flex flex-col overflow-hidden font-[400] antialiased ">
       <style>{`
         .divider { height: 8px; background: #e5e7eb; cursor: ns-resize; position: relative; z-index: 10; transition: background 0.2s; width: 100%; flex-shrink: 0; }
         .divider:hover { background: #d1d5db; }
@@ -594,25 +606,24 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
 
         {/* LEGEND */}
 
-        <div className="flex items-center mt-4 md:mt-0 p-2 border rounded-md bg-gray-100 h-12">
+        <div className="flex items-center mt-4 md:mt-0 p-2 border rounded-md bg-gray-100 h-12 transition-all duration-300">
           <TooltipProvider>
-            {/* ❌ No Submission */}
+            {/* 🔘 All */}
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
                   onClick={() => {
                     setSelectedStatus(null);
-                    localStorage.removeItem('facilities:selectedStatus');
-                    toast.info('Filter cleared');
+                    localStorage.removeItem("facilities:selectedStatus");
+                    toast.info("Filter cleared");
                   }}
-                  className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 px-4 py-2 ${selectedStatus === "N/A" ? "bg-white rounded-md p-1" : ""}`}
+                  className={`flex items-center text-sm cursor-pointer transition-all duration-300 hover:scale-105 px-5 py-2 relative group ${selectedStatus === null ? "bg-white rounded-md p-1 shadow-sm" : ""
+                    }`}
                 >
                   All
                 </button>
               </TooltipTrigger>
-              <TooltipContent className="shadow-lg text-xs">
-                Show all data
-              </TooltipContent>
+              <TooltipContent className="shadow-lg text-xs">Show all data</TooltipContent>
             </Tooltip>
 
             <div className="h-8 w-px bg-gray-300 mx-4" />
@@ -621,13 +632,24 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => setSelectedStatus(s => s === "confirmed" ? null : "confirmed")}
-                  className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "confirmed" ? "bg-white rounded-md p-1" : ""}`}
+                  onClick={() =>
+                    setSelectedStatus((s) => (s === "confirmed" ? null : "confirmed"))
+                  }
+                  className={`flex items-center text-sm cursor-pointer transition-all duration-300 hover:scale-105 px-4 py-2 group relative ${selectedStatus === "confirmed" ? "bg-white rounded-md p-1 shadow-sm" : ""
+                    }`}
                 >
-                  <div className="w-3 h-3 rounded-full bg-green-500 p-3 mr-2" />
-                  {selectedStatus === "confirmed" && "Confirmed"}
+                  <div className="w-3 h-3 rounded-full bg-green-500 mr-2 transition-all duration-300 group-hover:scale-110" />
+
+                  {/* Fade in label on hover or active */}
+                  <span
+                    className={`overflow-hidden transition-all duration-300 ease-in-out ${selectedStatus === "confirmed" ? "opacity-100 max-w-[100px]" : "group-hover:opacity-100 group-hover:max-w-[100px] opacity-0 max-w-0"
+                      }`}
+                  >
+                    Confirmed
+                  </span>
+
                   <span className="ml-1 text-xs text-gray-500">
-                    ({files.filter(f => f.submissionStatus === "confirmed").length})
+                    ({files.filter((f) => f.submissionStatus === "confirmed").length})
                   </span>
                 </button>
               </TooltipTrigger>
@@ -642,13 +664,24 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
             <Tooltip>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => setSelectedStatus(s => s === "progress" ? null : "progress")}
-                  className={`flex items-center text-sm cursor-pointer transition-all duration-200 hover:scale-105 py-2 ${selectedStatus === "progress" ? "bg-white rounded-md p-1" : ""}`}
+                  onClick={() =>
+                    setSelectedStatus((s) => (s === "progress" ? null : "progress"))
+                  }
+                  className={`flex items-center text-sm cursor-pointer transition-all duration-300 hover:scale-105 px-4 py-2 group relative ${selectedStatus === "progress" ? "bg-white rounded-md p-1 shadow-sm" : ""
+                    }`}
                 >
-                  <div className="w-3 h-3 rounded-full bg-yellow-400 p-3 mr-2" />
-                  {selectedStatus === "progress" && "In Progress"}
+                  <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2 transition-all duration-300 group-hover:scale-110 " />
+
+                  {/* Fade in label on hover or active */}
+                  <span
+                    className={`overflow-hidden transition-all whitespace-nowrap duration-300 ease-in-out ${selectedStatus === "progress" ? "opacity-100 max-w-[100px]" : "group-hover:opacity-100 group-hover:max-w-[100px] opacity-0 max-w-0"
+                      }`}
+                  >
+                    In Progress
+                  </span>
+
                   <span className="ml-1 text-xs text-gray-500">
-                    ({files.filter(f => f.submissionStatus === "progress").length})
+                    ({files.filter((f) => f.submissionStatus === "progress").length})
                   </span>
                 </button>
               </TooltipTrigger>
@@ -656,9 +689,27 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
                 Submissions currently being reviewed
               </TooltipContent>
             </Tooltip>
-          </TooltipProvider>
 
-          {/* EXPORT BUTTONS */}
+            {/* District Cards for Confirmed and Progress */}
+            {(selectedStatus === "confirmed" || selectedStatus === "progress") && districtsByStatus[selectedStatus]?.length > 0 && (
+              <div className="ml-4 flex flex-wrap gap-2">
+                {districtsByStatus[selectedStatus].map((district) => (
+                  <button
+                    key={district}
+                    onClick={() => setSelectedHealthDistrict(district)}
+                    className={`px-3 py-1 text-xs rounded-full border transition-all duration-200 ${
+                      selectedHealthDistrict === district
+                        ? "bg-blue-500 text-white border-blue-500"
+                        : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    {district}
+                  </button>
+                ))}
+              </div>
+            )}
+          </TooltipProvider>
+          {/* Exports */}
           <TooltipProvider>
             <div className="ml-6 flex items-center space-x-2">
               <Tooltip>
@@ -699,6 +750,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
             </div>
           </TooltipProvider>
         </div>
+
 
       </div >
 

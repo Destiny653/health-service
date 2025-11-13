@@ -2,6 +2,10 @@ import { useFetch } from "./useFetch";
 import { useMutationRequest } from "./useMutationRequest";
 
 // hooks/usePatients.ts (or types.ts)
+interface History {
+  updatedBy:string,
+  updatedAt: string
+}
 export interface Patient {
   id: string;
   case: number;

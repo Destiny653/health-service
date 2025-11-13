@@ -49,7 +49,7 @@ export function DataTable<
   onRowClick?: (row: TData) => void;
 }) {
   const [pageIndex, setPageIndex] = React.useState(0);
-  const [pageSize] = React.useState(8);
+  const [pageSize] = React.useState(10);
 
   /* ---------- SAFE localStorage: Only access in browser ---------- */
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(() => {
@@ -114,7 +114,7 @@ export function DataTable<
   const totalPages = table.getPageCount();
 
   return (
-    <Card className="w-full bg-inherit mx-auto shadow-none rounded-md border-none p-0 m-0">
+    <Card className="w-full bg-inherit mx-auto shadow-sm rounded-md border-none p-0 pb-2">
       <CardContent className="overflow-x-auto p-0">
         {isLoading ? (
           <div className="flex justify-center items-center py-10">
@@ -127,13 +127,13 @@ export function DataTable<
 
             {/* Table */}
             <table className="border-none w-full border-gray-200 text-sm overflow-auto">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-100">
                 {table.getHeaderGroups().map((hg) => (
                   <tr key={hg.id}>
                     {hg.headers.map((h) => (
                       <th
                         key={h.id}
-                        className="text-left px-4 py-2 border-b border-gray-50 general-size font-[500] whitespace-nowrap"
+                        className="text-left px-4 py-2 border-b border-gray-100 general-size font-[500] whitespace-nowrap"
                       >
                         {h.isPlaceholder
                           ? null
@@ -212,7 +212,7 @@ export function DataTable<
                     {row.getVisibleCells().map((cell) => (
                       <td
                         key={cell.id}
-                        className="px-4 py-2 border-b border-gray-50 whitespace-nowrap overflow-hidden text-ellipsis max-w-[250px]"
+                        className="px-4 py-4 border-b border-gray-200 text-[16px] whitespace-nowrap overflow-hidden text-ellipsis max-w-[250px]"
                       >
                         {(() => {
                           const raw =
