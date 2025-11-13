@@ -196,7 +196,7 @@ export default function Settings() {
                     {/* === NOTIFICATIONS === */}
                     {activeMenu === 'Notifications' && (
                         <div>
-                            <Card className="max-w-4xl mx-auto -none border-none rounded-sm p-4">
+                            <Card className="shadow-sm max-w-4xl mx-auto -none border-none rounded-sm p-4">
                                 <h1 className="text-xl font-semibold mb-6">Notifications</h1>
                                 <Separator className='bg-gray-50' />
                                 <CardContent className="p-6 space-y-5">
@@ -222,7 +222,7 @@ export default function Settings() {
                     {/* === PROFILEIcon === */}
                     {activeMenu === 'Profile' && (
                         <div className='mx-auto'>
-                            <Card className="max-w-3xl mx-auto shadow-none border-none rounded-sm p-4">
+                            <Card className="shadow-sm max-w-3xl mx-auto border-none rounded-sm p-4">
                                 <h1 className="text-xl font-bold pb-6 border-b border-gray-50">ProfileIcon Details</h1>
                                 <CardContent className="p-6 space-y-5">
                                     {[
@@ -246,7 +246,7 @@ export default function Settings() {
 
                     {/* === TEAM === */}
                     {activeMenu === 'Team' && (
-                        <div className='shadow-none border-none p-6 min-h-[60vh] bg-white rounded-sm'>
+                        <Card className='shadow-sm border-none p-6 min-h-[60vh] bg-white rounded-sm'>
                             <h1 className="text-xl font-bold pb-6">Manage Users</h1>
                             <div className="flex justify-between items-center mb-6">
                                 <div className='relative'>
@@ -271,13 +271,13 @@ export default function Settings() {
                                     onRowClick={(row: ContactPersonnel) => console.log('Clicked:', row)}
                                 />
                             </div>
-                        </div>
+                        </Card>
                     )}
 
                     {/* === SECURITY === */}
                     {activeMenu === 'Security' && (
                         <div>
-                            <Card className="max-w-3xl mx-auto -none rounded-sm  p-6 border-none">
+                            <Card className="shadow-sm max-w-3xl mx-auto rounded-sm  p-6 border-none">
                                 <h1 className="text-xl font-bold mb-6">Update Password</h1>
                                 <CardContent className="p-6 space-y-5">
                                     <div>
@@ -303,7 +303,7 @@ export default function Settings() {
                     {/* === TERMS === */}
                     {activeMenu === 'Terms' && (
                         <div>
-                            <Card className="max-w-4xl p-6 shadow-none rounded-sm  border-none mx-auto">
+                            <Card className="shadow-sm max-w-4xl p-6 rounded-sm  border-none mx-auto">
                                 <h1 className="text-2xl font-bold mb-6">Terms of Service</h1>
                                 <Separator className='bg-gray-50' />
                                 <CardContent className="p-6 text-sm text-gray-600 leading-relaxed space-y-4">

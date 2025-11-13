@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner'; // Optional: for toast notifications
+import { Sheet, SheetContent, SheetTitle } from "./ui/sheet";
 
 interface PatientDetailsModalProps {
   modalOpen: boolean;
@@ -29,19 +30,18 @@ export default function PatientDetailsModal({
   data,
   onUpdatePatient,
 }: PatientDetailsModalProps) {
-  if (!modalOpen || !selectedPatient) return null;
 
   // Form state
   const [formData, setFormData] = useState<Partial<Patient>>({
-    patientName: selectedPatient.patientName,
-    age: selectedPatient.age,
-    sex: selectedPatient.sex,
-    maritalStatus: selectedPatient.maritalStatus,
-    isPregnant: selectedPatient.isPregnant,
-    profession: selectedPatient.profession || '',
-    residence: selectedPatient.residence || '',
-    contact: selectedPatient.contact || '',
-    history: selectedPatient.history || '',
+    patientName: selectedPatient?.patientName,
+    age: selectedPatient?.age,
+    sex: selectedPatient?.sex,
+    maritalStatus: selectedPatient?.maritalStatus,
+    isPregnant: selectedPatient?.isPregnant,
+    profession: selectedPatient?.profession || '',
+    residence: selectedPatient?.residence || '',
+    contact: selectedPatient?.contact || '',
+    history: selectedPatient?.history || '',
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -79,15 +79,16 @@ export default function PatientDetailsModal({
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
+      if (selectedPatient) {
+        const updatedPatient: Patient = {
+          ...selectedPatient,
+          ...formData,
+          age: Number(formData.age),
+          isPregnant: Number(formData.isPregnant) as 0 | 1,
+        };
 
-      const updatedPatient: Patient = {
-        ...selectedPatient,
-        ...formData,
-        age: Number(formData.age),
-        isPregnant: Number(formData.isPregnant) as 0 | 1,
-      };
-
-      onUpdatePatient && onUpdatePatient(updatedPatient);
+        onUpdatePatient && onUpdatePatient(updatedPatient);
+      }
       toast.success("Patient record updated successfully!");
       closeModal();
     } catch (error) {
@@ -105,8 +106,9 @@ export default function PatientDetailsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black bg-opacity-50 -top-6">
-      <div className="w-full h-[90vh] transform transition-transform duration-300 ease-in-out translate-y-0">
+    <Sheet open={modalOpen} onOpenChange={closeModal}>
+      <SheetTitle></SheetTitle>
+      <SheetContent side='bottom' className="h-[90vh] p-0">
         <Card className="h-full p-0 m-0 bg-white rounded-none border-0 shadow-none">
           <CardHeader className="p-0 mb-4 border-b">
             <div className="flex items-center p-0">
@@ -126,7 +128,7 @@ export default function PatientDetailsModal({
                   Visit History
                 </Button>
               </div>
-              <Button variant="ghost" size="sm" onClick={closeModal}>
+              <Button variant="ghost" size="sm" className="z-10 relative right-2 opacity-0" onClick={closeModal}>
                 ✕
               </Button>
             </div>
@@ -346,7 +348,7 @@ export default function PatientDetailsModal({
 
             {activeTab === 'history' && (
               <DataTable
-                data={data.filter(p => p.patientName === selectedPatient.patientName)}
+                data={data.filter(p => p.patientName === selectedPatient?.patientName)}
                 columns={[
                   { accessorKey: "createdAt", header: "Date", cell: ({ getValue }) => format(getValue() as Date, 'yyyy-MM-dd') },
                   { accessorKey: "patientName", header: "Patient Name" },
@@ -377,7 +379,7 @@ export default function PatientDetailsModal({
             </Button>
           </div>
         </Card>
-      </div>
-    </div>
+      </SheetContent>
+    </Sheet>
   );
 }
