@@ -490,7 +490,13 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                     id: selectedFacility.id,
                     facilityName: selectedFacility.facilityName,
                     address: selectedFacility.address,
-                    details: selectedFacility.details,
+                    details: selectedFacility.details ? {
+                        facilityName: selectedFacility.details.name,
+                        address: selectedFacility.details.address,
+                        facilityType: selectedFacility.details.facility_type,
+                        phone: selectedFacility.details.phone[0] || '',
+                        email: selectedFacility.details.email[0] || '',
+                    } : undefined,
                     contacts: selectedFacility.contacts,
                 } : undefined}
                 mapComponent={selectedFacility && (
