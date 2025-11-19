@@ -28,12 +28,9 @@ import {
 interface FacilityDetails {
     facilityName: string;
     address: string;
-    division: string;
-    healthDistrict: string;
-    municipality: string;
+    facilityType: string;
     phone: string;
     email: string;
-    site: string;
 }
 interface ContactPersonel {
     firstName: string;
@@ -172,12 +169,9 @@ export function FacilityDetailSheet({
                                     <div className="space-y-4">
                                         <IconText icon={Building} label="Facility Name" value={details.facilityName} />
                                         <IconText icon={MapPin} label="Address" value={details.address} />
-                                        <IconText icon={Home} label="Health District" value={details.healthDistrict} />
-                                        <IconText icon={Users} label="Municipality" value={details.municipality} />
-                                        <IconText icon={Building} label="Division" value={details.division} />
+                                        <IconText icon={Home} label="Health District" value={details.facilityType} />
                                         <IconText icon={Phone} label="Phone" value={details.phone} />
                                         <IconText icon={Mail} label="Email" value={details.email} />
-                                        <IconText icon={Globe} label="Site" value={details.site} />
                                     </div>
                                 </div>
 

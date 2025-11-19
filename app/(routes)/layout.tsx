@@ -24,7 +24,7 @@ const MainLayout = ({
     return localStorage.getItem("app:activeTab") || "data_entries";
   });
 
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userFacility, setUserFacility] = useState<string | null>(null);
   const [data, setData] = useState<PersonalityData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -44,7 +44,7 @@ const MainLayout = ({
         const res = await getPersonality();
 
         setData(res);
-        setUserRole(res.role.name);
+        setUserFacility(res.facility_type);
         localStorage.setItem("userData", JSON.stringify(res));
       } catch (error: any) {
         toast.error("Error: ", error.message);
@@ -65,11 +65,14 @@ const MainLayout = ({
 
   // Filter nav items by role
   const filteredNavItems = useMemo(() => {
-    if (userRole === "receptionist") {
-      return NAV_ITEMS.filter((item) => item.id !== "facilities");
+    if (userFacility === "health_center") {
+      return NAV_ITEMS.filter(item =>
+        !["facilities", "settings"].includes(item.id)
+      );
+
     }
     return NAV_ITEMS;
-  }, [userRole]);
+  }, [userFacility]);
 
   const ActiveComponent =
     filteredNavItems.find((item) => item.id === activeTab)?.Component ||
@@ -84,7 +87,7 @@ const MainLayout = ({
     );
   }
 
-  if (!data || !userRole) return null;
+  if (!data || !userFacility) return null;
 
   return (
     <div className="min-h-screen bg-gray-100">

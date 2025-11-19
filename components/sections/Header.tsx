@@ -15,6 +15,7 @@ import {
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { UserData } from "@/payload";
 
 interface AppHeaderProps {
   activeTab: string;
@@ -28,6 +29,10 @@ interface AppHeaderProps {
 const AppHeader: FC<AppHeaderProps> = ({ activeTab, setActiveTab, navItems, userName, email, role }) => {
   const router = useRouter();
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
+
+  const userDataString = localStorage.getItem('userData');
+  const personel: UserData = userDataString ? JSON.parse(userDataString) : null;
+  const facilityType = personel?.facility_type;
 
   const handleSignOut = () => {
     // Clear localStorage / cookies
@@ -44,7 +49,7 @@ const AppHeader: FC<AppHeaderProps> = ({ activeTab, setActiveTab, navItems, user
     <header className="bg-[#037C01] shadow-xl">
       <div className="mx-auto flex justify-between items-stretch h-16 px-4 sm:px-6 lg:px-8">
         {/* Logo Section */}
-        <div onClick={() => setActiveTab(navItems[1].id)} className="flex items-center  space-x-4 cursor-pointer">
+        <div onClick={() => setActiveTab( facilityType == 'health_center'? navItems[0].id : navItems[1].id)} className="flex items-center  space-x-4 cursor-pointer">
           <Image src="/images/logo.png" alt="logo" width={120} height={500} />
         </div>
 
@@ -73,9 +78,10 @@ const AppHeader: FC<AppHeaderProps> = ({ activeTab, setActiveTab, navItems, user
           {/* Profile Info */}
           <button
             onClick={() => setActiveTab(navItems[0].id)}
+            disabled={ facilityType == 'health_center'}
             className={`
               h-full px-5 flex items-center text-sm font-semibold transition-all duration-200 relative
-              ${isActiveProfile ? "bg-[#FFFFFF33] text-[#55FF18]" : "text-green-100 hover:bg-[#FFFFFF33]"}
+              ${isActiveProfile && (facilityType !== 'health_center') ? "bg-[#FFFFFF33] text-[#55FF18]"  : "text-green-100 hover:bg-[#FFFFFF33]"}
             `}
           >
             <div className="flex items-center space-x-3 text-left text-white px-2">
