@@ -5,81 +5,98 @@ import AppHeader from "@/components/sections/Header";
 import { NAV_ITEMS } from "@/utils/data";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ContactPersonnel } from "@/data";
+import { PersonalityData } from "@/types";
+import apiClient from "@/lib/axios";
+import { toast } from "sonner";
+import Cookies from "js-cookie";
+import { getPersonality } from "@/lib/apis";
+import HealthFacilityLoader from "@/utils/loader";
 
 const MainLayout = ({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) => {
+}) => {
   const router = useRouter();
+
   const [activeTab, setActiveTab] = useState<string>(() => {
     if (typeof window === "undefined") return "data_entries";
     return localStorage.getItem("app:activeTab") || "data_entries";
   });
 
-  const [userRole, setUserRole] = useState<"admin" | "receptionist" | null>(null);
-  const [data, setData] = useState<ContactPersonnel | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [data, setData] = useState<PersonalityData | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  // ✅ Authentication & Role Check
+  // ---------------------------------------
+  // FETCH PERSONALITY USING COOKIE TOKEN
+  // ---------------------------------------
   useEffect(() => {
-    const userData = localStorage.getItem("userInfo");
-    
-    if (!userData) {
-      router.push("/sign-in"); // Redirect to sign-in if no user is logged in
-      return;
-    }
-    
-    try {
-      const user: ContactPersonnel & { role: "admin" | "receptionist" } = JSON.parse(userData);
-      setData(JSON.parse(userData))
-      setUserRole(user.role);
-    } catch (error) {
-      console.error("Error parsing user data:", error);
-      router.push("/sign-in");
-    }
+    const fetchPersonality = async () => {
+      const token = Cookies.get("authToken");
+      if (!token) {
+        router.push("/sign-in");
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const res = await getPersonality();
+
+        setData(res);
+        setUserRole(res.role.name);
+        localStorage.setItem("userData", JSON.stringify(res));
+      } catch (error: any) {
+        toast.error("Error: ", error.message);
+        console.log("Error: ", error.messsage)
+        router.push("/sign-in");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPersonality();
   }, [router]);
 
-  // Save the active tab to localStorage whenever it changes
+  // Save active tab to localStorage
   useEffect(() => {
     localStorage.setItem("app:activeTab", activeTab);
   }, [activeTab]);
 
-  // ✅ Filter navigation based on role
+  // Filter nav items by role
   const filteredNavItems = useMemo(() => {
     if (userRole === "receptionist") {
-      return NAV_ITEMS.filter((item) => item.id !== "facilities"); // Hide Facilities
+      return NAV_ITEMS.filter((item) => item.id !== "facilities");
     }
     return NAV_ITEMS;
   }, [userRole]);
 
-  // ✅ Resolve the active component dynamically
   const ActiveComponent =
     filteredNavItems.find((item) => item.id === activeTab)?.Component ||
     DashboardContent;
 
-  // ✅ Wait until userRole is known to avoid flashing content
-  if (!userRole) {
+  // Loading state
+  if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen text-gray-600">
-        Checking authentication...
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <HealthFacilityLoader />
       </div>
     );
   }
 
+  if (!data || !userRole) return null;
+
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Header */}
       <AppHeader
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         navItems={filteredNavItems}
-        email={data?.email}
-        userName={`${data?.firstName} ${data?.lastName}`}
-        role={data?.role}
+        email={data?.email?.[0] || "user@example.com"}
+        userName={`${data?.first_name} ${data?.last_name}`}
+        role={data?.role.name}
       />
 
-      {/* Main Content */}
       <main className="mx-auto">
         <ActiveComponent setActiveTab={setActiveTab} />
       </main>

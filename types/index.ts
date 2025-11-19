@@ -41,7 +41,7 @@ export interface CreateOrganizationDto {
 }
 
 // ... add all other DTOs and response types
- 
+
 // types/index.ts
 
 // API Response Objects
@@ -78,24 +78,45 @@ export interface Member {
 }
 
 export interface Role {
-    id: string;
-    name: string;
-    organizationId: string;
-    permissions: Record<string, string[]>;
+  id: string;
+  name: string;
+  organizationId: string;
+  permissions: Record<string, string[]>;
 }
 
 // Data Transfer Objects (DTOs)
 export interface SigninDto {
-  email: string;
+  username: string;
   password?: string;
   redirectUrl?: string;
 }
 
 export interface CreateUserDto extends SigninDto {
-    username: string;
-    firstName?: string;
-    lastName?: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  email: string;
+  gender?: string;
 }
+
+export interface Role {
+  id: string;
+  name: string;
+}
+
+export interface PersonalityData {
+  username: string;
+  password: string;
+  first_name: string;
+  last_name: string;
+  gender: "male" | "female";
+  email: string[];
+  phone: string[];
+  role: Role;
+  facility_type: "health_center";
+  facility_id: string;
+}
+
 
 export interface CreateOrganizationDto {
   name: string;
@@ -110,9 +131,9 @@ export interface InviteMemberDto {
 }
 
 export interface UpdateMemberRoleDto {
-    organizationId: string;
-    userId: string;
-    role: string;
+  organizationId: string;
+  userId: string;
+  role: string;
 }
 
 export interface UpdateOrganizationDto {
@@ -130,7 +151,7 @@ export interface Role {
   memberCount?: number;
   status?: "Active" | "Paused";
 }
- 
+
 
 
 // Define the structure of permissions:

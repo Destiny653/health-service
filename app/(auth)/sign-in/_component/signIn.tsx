@@ -20,65 +20,21 @@ import { useState, useEffect } from "react";
 import { Eye, EyeOff, Mail } from "lucide-react";
 import { toast } from "sonner";
 import Cookies from "js-cookie";
+import apiClient from "@/lib/axios";
 
-// ✅ ContactPersonnel interface + password
-export interface ContactPersonnel {
-  firstName: string;
-  lastName: string;
-  role: "admin" | "receptionist";
-  tel1: string;
-  tel2: string;
-  institution: string;
-  email: string;
-  password: string;
-  lastActivity: string;
-}
-
-// ✅ Dummy users to simulate sign-in
-const DUMMY_USERS: ContactPersonnel[] = [
-  {
-    firstName: "John",
-    lastName: "Smith",
-    role: "admin",
-    tel1: "+237600000001",
-    tel2: "+237699999999",
-    institution: "St. Francis Hospital",
-    email: "admin@example.com",
-    password: "admin123",
-    lastActivity: "2025-11-12T09:00:00Z",
-  },
-  {
-    firstName: "Maria",
-    lastName: "Ndiaye",
-    role: "receptionist",
-    tel1: "+237670000001",
-    tel2: "+237677777777",
-    institution: "St. Francis Hospital",
-    email: "reception@example.com",
-    password: "reception123",
-    lastActivity: "2025-11-12T09:10:00Z",
-  },
-];
-
-// ✅ Form validation schema
+// -------------------------
+// VALIDATION SCHEMA
+// -------------------------
 const formSchema = z.object({
-  email: z.string().email({ message: "Please enter a valid email." }),
+  username: z.string().min(4, { message: "Please enter a valid username." }),
   password: z.string().min(1, { message: "Password is required." }),
   redirectUrl: z.string().optional(),
 });
 
-const isValidUrl = (url: string) => {
-  try {
-    new URL(url);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 export default function SignIn() {
   const router = useRouter();
   const searchParams = useSearchParams();
+
   const [showPassword, setShowPassword] = useState(false);
   const [redirectUrl, setRedirectUrl] = useState<string>("");
 
@@ -87,73 +43,68 @@ export default function SignIn() {
     setRedirectUrl(url);
   }, [searchParams]);
 
-  // ✅ Mutation to simulate sign-in logic
-  const signInMutation = useMutation<
-    { success: boolean; message: string; data?: any },
-    Error,
-    z.infer<typeof formSchema>
-  >({
-    mutationFn: async (data) => {
-      // Simulate backend check delay
-      await new Promise((resolve) => setTimeout(resolve, 800));
-
-      const user = DUMMY_USERS.find(
-        (u) =>
-          u.email.toLowerCase() === data.email.toLowerCase() &&
-          u.password === data.password
-      );
-
-      if (!user) {
-        throw new Error("Invalid email or password");
-      }
-
-      // Simulated token & response
-      return {
-        success: true,
-        message: `Welcome back, ${user.firstName}!`,
-        data: {
-          accessToken: "fake-jwt-token-" + Math.random().toString(36).slice(2),
-          user,
-        },
-      };
-    },
-    onSuccess: (data) => {
-      if (data.success && data.data) {
-        // Save token and user to cookies/localStorage
-        Cookies.set("authToken", data.data.accessToken, { expires: 7 });
-        localStorage.setItem("userInfo", JSON.stringify(data.data.user));
-
-        // Redirect
-        const redirectUrl = form.getValues("redirectUrl");
-        if (redirectUrl && isValidUrl(redirectUrl)) {
-          router.push(redirectUrl);
-        } else {
-          router.push("/");
-        }
-
-        toast.success(data.message);
-      }
-    },
-    onError: (error) => {
-      toast.error(error.message || "Login failed");
-    },
-  });
-
+  // -------------------------
+  // FORM INSTANCE
+  // -------------------------
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: { email: "", password: "", redirectUrl },
+    defaultValues: { username: "", password: "", redirectUrl },
   });
 
   useEffect(() => {
     form.setValue("redirectUrl", redirectUrl);
   }, [redirectUrl, form]);
 
+  // -------------------------
+  // LOGIN MUTATION (Only Login — No Personality Fetch)
+  // -------------------------
+  const signInMutation = useMutation<
+    { status: number; access_token: string; message: string; data: { access_token: string } },
+    Error,
+    z.infer<typeof formSchema>
+  >({
+    mutationFn: async (data) => {
+      const res = await apiClient.post("/auth/login", data);
+      return res.data;
+    },
+    retry: (failureCount, error: any) => {
+      if (error.code === "ERR_NETWORK" && failureCount < 3) return true;
+      return false;
+    },
+    // retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    onSuccess: (data) => {
+
+        // Save token
+        Cookies.set("authToken", data?.access_token, { expires: 7 });
+
+        toast.success("Login successful!");
+
+        // Redirect — MainLayout will fetch /personality
+        router.push("/");
+    },
+    onError: (error: any) => {
+      if (error.code === "ERR_NETWORK") {
+        toast.error("No internet connection. Please try again.");
+      } else if (error.response?.status === 401) {
+        toast.error("Invalid username or password.");
+      } else {
+        toast.error(error.message || "Login failed.");
+      }
+    },
+  });
+
+  // -------------------------
+  // SUBMIT HANDLER
+  // -------------------------
   function onSubmit(values: z.infer<typeof formSchema>) {
     signInMutation.mutate(values);
   }
 
+  // -------------------------
+  // UI
+  // -------------------------
   return (
-    <div className="space-y-6 w-full  flex flex-col justify-center mx-auto">
+    <div className="space-y-6 w-full flex flex-col justify-center mx-auto max-w-md">
       <div className="space-y-2 text-center">
         <h1 className="text-3xl font-bold">Sign in</h1>
         <p className="text-gray-500 text-sm">Use admin or receptionist credentials</p>
@@ -161,34 +112,33 @@ export default function SignIn() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          {/* Email field */}
+          {/* Username */}
           <FormField
             control={form.control}
-            name="email"
-            render={({ field }) => (
+            name="username"
+            render={({ field, fieldState }) => (
               <FormItem className="relative">
-                <FormLabel>Email / Username</FormLabel>
+                <FormLabel>Username</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder="name@example.com"
+                    placeholder="Username"
                     {...field}
-                    className="rounded-none shadow-none py-6 px-5 border-b-2 focus:border-b-[#04b301] border-x-0 border-t-0 bg-blue-50"
+                    className={`rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50
+                      ${fieldState.error ? "border-red-500" : "focus:border-b-[#04b301]"}
+                    `}
                   />
                 </FormControl>
-                <Mail
-                  size={20}
-                  className="absolute right-3 top-12 -translate-y-1/2 text-gray-400"
-                />
-                <FormMessage className="absolute -bottom-4" />
+                <Mail size={20} className="absolute right-3 top-12 -translate-y-1/2 text-gray-400" />
+                <FormMessage className="absolute -bottom-4 text-red-500" />
               </FormItem>
             )}
           />
 
-          {/* Password field */}
+          {/* Password */}
           <FormField
             control={form.control}
             name="password"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <FormItem className="relative">
                 <FormLabel>Password</FormLabel>
                 <FormControl>
@@ -196,7 +146,9 @@ export default function SignIn() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     {...field}
-                    className="rounded-none shadow-none py-6 px-5 border-b-2 focus:border-b-[#04b301] border-x-0 border-t-0 bg-blue-50"
+                    className={`rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50
+                      ${fieldState.error ? "border-red-500" : "focus:border-b-[#04b301]"}
+                    `}
                   />
                 </FormControl>
                 <span
@@ -205,12 +157,12 @@ export default function SignIn() {
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </span>
-                <FormMessage className="absolute -bottom-4" />
+                <FormMessage className="absolute -bottom-4 text-red-500" />
               </FormItem>
             )}
           />
 
-          {/* Remember me + forgot password */}
+          {/* Remember + forgot */}
           <div className="flex justify-between items-center">
             <div className="text-gray-400 flex items-center justify-center gap-1 relative">
               <Input
@@ -219,15 +171,12 @@ export default function SignIn() {
               />
               <span className="font-[400] pl-6">Remember me</span>
             </div>
-            <Link
-              href="/forgot-password"
-              className="text-sm font-[500] text-[#021EF5] hover:underline"
-            >
+            <Link href="/forgot-password" className="text-sm font-[500] text-[#021EF5] hover:underline">
               Recover password
             </Link>
           </div>
 
-          {/* Submit button */}
+          {/* Submit Button */}
           <Button
             type="submit"
             className="w-full bg-[#021EF5] text-white hover:bg-[#021ef5d7] rounded-none shadow-none py-6 px-5"

@@ -16,16 +16,12 @@ export interface PatientDataFile {
 }
 
 
-
 export interface FacilityDetails {
-    facilityName: string;
+    name: string;
     address: string;
-    division: string;
-    healthDistrict: string;
-    municipality: string;
+    facilityType: string;
     phone: string;
     email: string;
-    site: string;
 }
 
 export interface ContactPersonnel {
@@ -92,17 +88,16 @@ export const contactPersonnels: ContactPersonnel[] = [
     }
 ];
 
-const facility: FacilityDetails =
-{
-    facilityName: "St. Mary’s Health Center",
-    address: "12 Independence Avenue, Buea",
-    division: "Fako",
-    healthDistrict: "Buea District",
-    municipality: "Buea",
-    phone: "+237 677 123 456",
-    email: "stmaryhealthcenter@gmail.com",
-    site: "www.stmaryhealth.org",
-};
+export const facilities: FacilityDetails[] =
+    [
+        {
+            name: "St. Mary’s Health Center",
+            address: "12 Independence Avenue, Buea",
+            facilityType: "Health Center",
+            phone: "+237 677 123 456",
+            email: "stmaryhealthcenter@gmail.com"
+        }
+    ]
 
 
 
@@ -120,7 +115,13 @@ export const data: PatientDataFile[] = [
         address: 'Grand hanga',
         facilityName: 'Mbingo Hospital',
         submissionStatus: 'confirmed',
-        facility,
+        facility: {
+            name: "St. Mary’s Health Center",
+            address: "12 Independence Avenue, Buea",
+            facilityType: "Health",
+            phone: "+237 677 123 456",
+            email: "stmaryhealthcenter@gmail.com",
+        },
         contactPersonnels,
         patients: [
             {
@@ -699,14 +700,11 @@ export const data: PatientDataFile[] = [
         facilityName: 'Bonassama Hospital',
         submissionStatus: 'progress',
         facility: {
-            facilityName: "The Martins",
+            name: "The Martins",
             address: "12 Independence Avenue, Buea",
-            division: "Fako",
-            healthDistrict: "Bamenda District",
-            municipality: "Bamenda",
+            facilityType: "Health Area",
             phone: "+237 677 123 456",
             email: "stmaryhealthcenter@gmail.com",
-            site: "www.stmaryhealth.org",
         },
         contactPersonnels,
         patients: [

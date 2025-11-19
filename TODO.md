@@ -1,7 +1,6 @@
-# TODO: Update data.ts with Complete Patient Records
+# TODO: Fix Axios Network Error for Sign-In
 
-## Steps to Complete
-- [x] Fill missing fields for incomplete patients in file-001 (cases 9-20)
-- [ ] Fill missing fields for incomplete patients in file-002 (cases 31-40)
-- [ ] Ensure all patients have consistent, realistic data
-- [ ] Verify TypeScript compilation and data integrity
+## Tasks
+- [x] Update request interceptor in `lib/axios.ts` to exclude `/auth/` paths from adding the `Authorization` header.
+- [x] Add retry logic to `signInMutation` in `app/(auth)/sign-in/_component/signIn.tsx` for `ERR_NETWORK` errors.
+- [x] Add retry logic to `personalityMutation` in `app/(auth)/sign-in/_component/signIn.tsx` for `ERR_NETWORK` errors.

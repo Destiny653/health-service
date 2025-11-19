@@ -176,7 +176,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
   const allImages = useMemo(() => files.flatMap(f => f.fileUrl), [files]);
   const healthDistricts = useMemo(() => {
     const set = new Set<string>();
-    files.forEach(f => f.facility?.healthDistrict && set.add(f.facility.healthDistrict));
+    files.forEach(f => f.facility?.name && set.add(f.facility.name));
     return Array.from(set).sort();
   }, [files]);
 
@@ -263,7 +263,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
     const filteredFiles = files.filter(f => {
       const created = new Date(f.createdAt);
       const inRange = created >= startRange && created < endRange;
-      const inDistrict = !selectedHealthDistrict || f.facility?.healthDistrict === selectedHealthDistrict;
+      const inDistrict = !selectedHealthDistrict || f.facility?.name === selectedHealthDistrict;
       const inStatus = selectedStatus === null || f.submissionStatus === selectedStatus;
       return inRange && inDistrict && inStatus;
     });
@@ -285,7 +285,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
     const filteredFiles = files.filter(f => {
       const created = new Date(f.createdAt);
       const inRange = created >= startRange && created < endRange;
-      const inDistrict = !selectedHealthDistrict || f.facility?.healthDistrict === selectedHealthDistrict;
+      const inDistrict = !selectedHealthDistrict || f.facility?.name === selectedHealthDistrict;
       const inStatus = selectedStatus === null || f.submissionStatus === selectedStatus;
       return inRange && inDistrict && inStatus;
     });

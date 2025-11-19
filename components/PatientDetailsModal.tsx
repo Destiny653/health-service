@@ -31,6 +31,7 @@ export default function PatientDetailsModal({
   onUpdatePatient,
 }: PatientDetailsModalProps) {
 
+
   // Form state
   const [formData, setFormData] = useState<Partial<Patient>>({
     patientName: selectedPatient?.patientName,
@@ -43,6 +44,23 @@ export default function PatientDetailsModal({
     contact: selectedPatient?.contact || '',
     history: selectedPatient?.history || '',
   });
+
+  React.useEffect(() => {
+  if (selectedPatient) {
+    setFormData({
+      patientName: selectedPatient.patientName,
+      age: selectedPatient.age,
+      sex: selectedPatient.sex,
+      maritalStatus: selectedPatient.maritalStatus,
+      isPregnant: selectedPatient.isPregnant,
+      profession: selectedPatient.profession || '',
+      residence: selectedPatient.residence || '',
+      contact: selectedPatient.contact || '',
+      history: selectedPatient.history || '',
+    });
+  }
+}, [selectedPatient]);
+
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -116,14 +134,14 @@ export default function PatientDetailsModal({
                 <Button
                   size="sm"
                   onClick={() => setActiveTab('details')}
-                  className={`${activeTab === 'details' ? 'border-[#021EF5] border-b-2 text-[#021EF5]' : 'text-black'} rounded-none shadow-none font-semibold bg-inherit hover:bg-gray-100 py-6`}
+                  className={`text-lg ${activeTab === 'details' ? 'border-[#028700] border-b-2 text-[#028700]' : 'text-black'} rounded-none shadow-none font-semibold bg-inherit hover:bg-gray-100 py-6`}
                 >
                   Patient Details
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => setActiveTab('history')}
-                  className={`${activeTab === 'history' ? 'border-[#021EF5] border-b-2 text-[#021EF5]' : 'text-black'} rounded-none shadow-none font-semibold py-6 bg-inherit hover:bg-gray-100`}
+                  className={`text-lg ${activeTab === 'history' ? 'border-[#028700]  border-b-2 text-[#028700]' : 'text-black'} rounded-none shadow-none font-semibold py-6 bg-inherit hover:bg-gray-100`}
                 >
                   Visit History
                 </Button>
@@ -133,7 +151,7 @@ export default function PatientDetailsModal({
 
           <CardContent className="flex-1 mx-auto overflow-y-auto h-full w-full py-4 pb-[180px] rounded-md">
             {activeTab === 'details' && selectedPatient && (
-              <div className="space-y-4 max-w-5xl mx-auto">
+              <div className="space-y-4 max-w-5xl mx-auto text-[16px]">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="col-span-2">
                     <Label htmlFor="fullname">Full Name</Label>
