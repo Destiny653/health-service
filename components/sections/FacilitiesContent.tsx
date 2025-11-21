@@ -258,6 +258,7 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
             
             return {
                 id: facility._id,
+                code: facility.code,
                 facilityName: facility.name,
                 address: facility.address,
                 recordCount: 0, // Not in Facility interface
@@ -330,7 +331,9 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                                                 {
                                                     config.label == 'All' ?
                                                         <span className={`${selectedStatus == null && 'bg-white'} px-5 py-2 rounded-md`}>All</span> :
-                                                        <>
+                                                        <
+                                                            
+                                                        >
                                                             <div className={`w-3 h-3 rounded-full ${config.color} p-3 mr-2`} />
                                                             <span
                                                                 className={`overflow-hidden transition-all whitespace-nowrap duration-300 ease-in-out ${selectedStatus === status ? "opacity-100 max-w-[100px]" : "group-hover:opacity-100 group-hover:max-w-[100px] opacity-0 max-w-0"
@@ -412,7 +415,7 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                             </tr>
 
                             <tr className="bg-gray-50 general-size">
-                                <th className="px-4 py-4 text-left font-medium text-gray-700">ID</th>
+                                <th className="px-4 py-4 text-left font-medium text-gray-700">Code</th>
                                 <th className="px-4 py-4 text-left font-medium text-gray-700">Facility Name</th>
                                 <th className="px-4 py-4 text-left font-medium text-gray-700">Address</th>
                                 {units.map(u => <th key={u.id} className="py-3 border border-b-0 border-t-0"></th>)}
@@ -423,7 +426,7 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                             {starkRows.map(row => (
                                 <tr key={row.id} className={`border-b py-4 transition-colors hover:bg-gray-50 general-size ${selectedFacilityId === row.id ? 'bg-blue-50' : ''}`}>
                                     {/* Using _id from Facility interface */}
-                                    <td className="px-4 py-4 font-medium text-blue-600">{row.id.substring(0, 8)}...</td>
+                                    <td className="px-4 py-4 font-medium text-blue-600">{row.code}</td>
                                     <td className="px-4 py-4">
                                         <button onClick={(e) => { e.stopPropagation(); openSheet(row.id, 'details'); }} className="text-left py-3 px-2 rounded-md hover:bg-blue-50">
                                             <div className="flex items-center gap-2">
@@ -487,7 +490,7 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                 activeTab={_activeTab}
                 onTabChange={_setActiveTab}
                 facility={selectedFacility ? {
-                    id: selectedFacility.id,
+                    code: selectedFacility.code,
                     facilityName: selectedFacility.facilityName,
                     address: selectedFacility.address,
                     details: selectedFacility.details ? {

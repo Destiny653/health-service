@@ -47,7 +47,8 @@ interface FacilityDetailSheetProps {
     onTabChange: (value: 'details' | 'map') => void;
     onOpenChange: (open: boolean) => void;
     facility?: {
-        id: string;
+        id?: string;
+        code: string;
         facilityName: string;
         address: string;
         details?: FacilityDetails;

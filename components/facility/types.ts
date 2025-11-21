@@ -17,9 +17,12 @@ export interface Facility {
   facility_type: string;
   address: string;
   code: string;
+  submission_status: any;
 }
 
 export interface FacilityResponse {
   count: number;
+  limit: number;
+  page: number;
   results: Facility[];
 }

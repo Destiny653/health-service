@@ -4,10 +4,11 @@ import { Patient } from "@/hooks/usePatients";
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { PatientDocument } from "@/components/team/hooks/docs/useGetDoc";
 
 export const exportToCSV = (
-  data: Patient[],
-  columns: ColumnDef<Patient>[],
+  data: PatientDocument[],
+  columns: ColumnDef<PatientDocument>[],
   filename: string
 ) => {
   if (data.length === 0) {
@@ -19,7 +20,7 @@ export const exportToCSV = (
   const rows = data.map(patient =>
     columns
       .map(col => {
-        const accessorKey = (col as any).accessorKey as keyof Patient;
+        const accessorKey = (col as any).accessorKey as keyof PatientDocument;
         const value = patient[accessorKey];
         const escaped = String(value ?? "").replace(/"/g, '""');
         return `"${escaped}"`;
@@ -40,8 +41,8 @@ export const exportToCSV = (
   toast.success("CSV exported!");
 };
 export const exportToExcel = (
-  data: Patient[],
-  columns: ColumnDef<Patient>[],
+  data: PatientDocument[],
+  columns: ColumnDef<PatientDocument>[],
   filename: string
 ) => {
   if (data.length === 0) {
@@ -54,7 +55,7 @@ export const exportToExcel = (
     columns.forEach(col => {
       const key = (col as any).accessorKey as string;
       const header = col.header as string;
-      row[header] = patient[key as keyof Patient] ?? "";
+      row[header] = patient[key as keyof PatientDocument] ?? "";
     });
     return row;
   });
@@ -66,7 +67,7 @@ export const exportToExcel = (
     wch: Math.max(
       (columns[i].header as string).length,
       ...data.map(row => {
-        const val = row[(columns[i] as any).accessorKey as keyof Patient];
+        const val = row[(columns[i] as any).accessorKey as keyof PatientDocument];
         return String(val ?? "").length;
       })
     ) + 4,
