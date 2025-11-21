@@ -406,7 +406,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
       });
 
   }, [allRawDocuments, startRange, endRange, searchTerm, selectedStatus]);
-  console.log(filteredPatients)
+
 
   // 8. Image Logic
   // Extract images from the *filtered* list
