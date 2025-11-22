@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { useState, useMemo, useEffect } from "react";
-// Assuming useGetFacilities is imported from your query hooks file
 import { toast } from "sonner";
 import {
     format,
@@ -16,6 +15,7 @@ import {
     getDay,
     isSameDay,
     startOfDay,
+    isAfter,
 } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +24,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FacilityDetailSheet } from "../FacilityDetailSheet";
 import GoogleMapViewer from "@/components/GoogleMapViewer";
-import { generateExportFilename } from "@/utils/export";
 import { DATA_ENTRIES_TAB_ID } from "@/utils/data";
 import {
     Tooltip,
@@ -33,8 +32,9 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { useGetFacilities } from "../facility/hooks/useFacility";
+import { cn } from "@/lib/utils";
 
-/* ────────────────────── DATA INTERFACES ────────────────────── */
+/* ────────────────────── INTERFACES ────────────────────── */
 export interface Facility {
     _id: string;
     name: string;
@@ -42,52 +42,33 @@ export interface Facility {
     phone: string[];
     parent_id?: string;
     facility_type: string;
-    address: string;
     code: string;
-}
-
-export interface FacilityResponse {
-    count: number;
-    results: Facility[];
-}
-
-export interface UserData {
-    facility: {
-        id: string;
-    }
-}
-
-interface FacilitiesContentProps {
-    setActiveTab?: React.Dispatch<React.SetStateAction<string>>;
+    location?: {
+        country: string;
+        city: string;
+        address: string;
+        longitude?: number;
+        latitude?: number;
+    };
+    submitted_status?: Record<string, "complete" | "in_progress" | "none">;
 }
 
 /* ────────────────────── TYPES ────────────────────── */
-// Keeping SubmissionStatus for the UI logic, even if API data is currently flat
-type SubmissionStatus = 'confirmed' | 'progress' | 'N/A';
-
-const View = { DAY: 'DAY', WEEK: 'WEEK', MONTH: 'MONTH', YEAR: 'YEAR' } as const;
-type ViewType = keyof typeof View;
+type ViewType = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR';
+type StatusKey = 'complete' | 'in_progress' | 'missing' | 'future';
 
 const STATUS_CONFIG = {
-    "N/A": { label: "All", color: "bg-red-500", icon: X, tooltip: "View all data" },
-    confirmed: { label: "Confirmed", color: "bg-green-500", icon: Check, tooltip: "Files successfully confirmed" },
-    progress: { label: "In Progress", color: "bg-yellow-400", icon: AlertTriangle, tooltip: "Files currently being reviewed" },
-} as const
-
-type StatusKey = keyof typeof STATUS_CONFIG;
-
-const VIEW_CONFIG = {
-    YEAR: { tooltip: "View data grouped by year" },
-    MONTH: { tooltip: "View data grouped by month" },
-    WEEK: { tooltip: "View data grouped by week" },
-    DAY: { tooltip: "View data grouped by day" },
-} as const
+    complete: { label: "Completed", color: "bg-green-500", icon: Check, tooltip: "All records verified" },
+    in_progress: { label: "In Progress", color: "bg-yellow-400", icon: AlertTriangle, tooltip: "Needs attention" },
+    missing: { label: "No Data", color: "bg-red-500", icon: X, tooltip: "No submission" },
+    future: { label: "Future", color: "bg-gray-400", icon: X, tooltip: "Not yet due" },
+} as const;
 
 /* ────────────────────── UTILS ────────────────────── */
-const getStartOfToday = (): Date => startOfDay(new Date());
-const dayAbbreviation = (date: Date): string => ['S', 'M', 'T', 'W', 'T', 'F', 'S'][getDay(date)];
+const getStartOfToday = () => startOfDay(new Date());
+const dayAbbreviation = (date: Date) => ['S', 'M', 'T', 'W', 'T', 'F', 'S'][getDay(date)];
 
-/* ────────────────────── DATE RANGE HELPERS ────────────────────── */
+/* ────────────────────── DATE HELPERS ────────────────────── */
 const getUnitStart = (date: Date, view: ViewType): Date => {
     switch (view) {
         case 'DAY': return startOfDay(date);
@@ -108,23 +89,60 @@ const getUnitEnd = (start: Date, view: ViewType): Date => {
     }
 };
 
-/* ────────────────────── STATUS LOGIC ────────────────────── */
-// Updated to accept generic any[] since Facility doesn't have submission dates yet
-const getStatusForUnit = (unitDate: Date, files: any[], view: ViewType): StatusKey => {
+/* ────────────────────── STATUS LOGIC PER FACILITY ────────────────────── */
+const getFacilityStatusForUnit = (unitDate: Date, facility: Facility, view: ViewType): StatusKey => {
     const start = getUnitStart(unitDate, view);
     const end = getUnitEnd(start, view);
+    const today = getStartOfToday();
 
-    // Since the Facility interface doesn't have createdAt/submissionStatus yet, 
-    // this logic prevents crashes but returns N/A until data is available.
-    const filesInUnit = files.filter(f => {
-        if (!f.createdAt) return false; 
-        const created = new Date(f.createdAt);
-        return created >= start && created < end;
-    });
+    if (isAfter(start, today)) return "future";
 
-    if (filesInUnit.some(f => f.submissionStatus === 'confirmed')) return 'confirmed';
-    if (filesInUnit.some(f => f.submissionStatus === 'progress')) return 'progress';
-    return 'N/A';
+    let hasComplete = false;
+    let hasInProgress = false;
+
+    let current = start;
+    while (current < end) {
+        const key = format(current, "yyyy-MM-dd 00:00:00");
+        const status = facility.submitted_status?.[key];
+
+        if (status === "complete") hasComplete = true;
+        if (status === "in_progress") hasInProgress = true;
+
+        current = addDays(current, 1);
+    }
+
+    if (hasInProgress) return "in_progress";
+    if (hasComplete) return "complete";
+    return "missing";
+};
+
+/* ────────────────────── GLOBAL STATUS FOR TIME UNIT ────────────────────── */
+const getGlobalStatusForUnit = (unitDate: Date, facilities: Facility[], view: ViewType): StatusKey => {
+    const today = getStartOfToday();
+    const unitStart = getUnitStart(unitDate, view);
+
+    if (isAfter(unitStart, today)) return "future";
+
+    let anyFacilityHasData = false;
+    let allComplete = true;
+    let anyInProgress = false;
+
+    for (const facility of facilities) {
+        const status = getFacilityStatusForUnit(unitDate, facility, view);
+
+        if (status === "complete") anyFacilityHasData = true;
+        else if (status === "in_progress") {
+            anyFacilityHasData = true;
+            anyInProgress = true;
+            allComplete = false;
+        } else if (status === "missing") {
+            allComplete = false;
+        }
+    }
+
+    if (!anyFacilityHasData) return "missing";
+    if (anyInProgress || !allComplete) return "in_progress";
+    return "complete";
 };
 
 /* ────────────────────── TIME UNIT ITEM ────────────────────── */
@@ -139,7 +157,7 @@ const TimeUnitItem = ({ label, value, status, isSelected }: {
     return (
         <div className="flex flex-col items-center relative">
             <div className="text-xs font-semibold text-gray-500 mb-1">{label}</div>
-            <div className={`w-8 h-8 flex items-center justify-center p-5 px-6 text-sm font-bold text-white rounded-md ${color} shadow-sm transition-all ${isSelected ? 'scale-110 ring-2 ring-blue-500' : 'hover:scale-105'}`}>
+            <div className={`w-8 h-8 p-6 px-7 flex items-center justify-center text-sm font-bold text-white rounded-md ${color} shadow-sm transition-all ${isSelected ? 'scale-110 ring-2 ring-blue-500' : 'hover:scale-105'}`}>
                 {value}
             </div>
             {isSelected && <div className="w-7 h-1 bg-blue-600 rounded-full mt-1 absolute -bottom-2 animate-pulse"></div>}
@@ -148,132 +166,110 @@ const TimeUnitItem = ({ label, value, status, isSelected }: {
 };
 
 /* ────────────────────── MAIN COMPONENT ────────────────────── */
-export default function FacilitiesContent({ setActiveTab }: FacilitiesContentProps) {
-    // 1. Get User Data from LocalStorage
+export default function FacilitiesContent({ setActiveTab }: { setActiveTab?: React.Dispatch<React.SetStateAction<string>> }) {
     const userDataString = typeof window !== 'undefined' ? localStorage.getItem('userData') : null;
-    const personel: UserData = userDataString ? JSON.parse(userDataString) : null;
-    const currentUserFacilityId = personel?.facility.id;
+    const personel = userDataString ? JSON.parse(userDataString) : null;
+    const currentUserFacilityId = personel?.facility?.id;
 
-    // 2. State for Parent ID
-    const [selectedParentId, setSelectedParentId] = useState<string>(currentUserFacilityId || "");
-
-    // 3. Fetch Real Data
+    const [selectedStatus, setSelectedStatus] = useState<"complete" | "in_progress" | "missing" | null>(null);
+    const [selectedParentId] = useState<string>(currentUserFacilityId || "");
     const { data, isLoading: isFetching, error } = useGetFacilities(selectedParentId);
     const facilities = data?.results || [];
 
     useEffect(() => { if (error) toast.error("Error fetching facilities"); }, [error]);
 
     const today = getStartOfToday();
-    const [activeView, setActiveView] = useState<ViewType>('YEAR');
+    const [activeView, setActiveView] = useState<ViewType>('MONTH');
     const [selectedDate, setSelectedDate] = useState<Date>(today);
-    const [selectedUnitId, setSelectedUnitId] = useState<string>(format(today, 'yyyy-MM-dd'));
+    const [selectedUnitId, setSelectedUnitId] = useState<string>("");
     const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(null);
     const [sheetOpen, setSheetOpen] = useState(false);
     const [_activeTab, _setActiveTab] = useState<'details' | 'map'>('details');
-    const [selectedStatus, setSelectedStatus] = useState<SubmissionStatus | null>(null);
 
-    // ALL POSSIBLE UNITS
-    const allPossibleUnits = useMemo(() => {
-        const center = selectedDate;
-        const units: { id: string; date: Date; label: string; value: string; isToday: boolean }[] = [];
-
-        const push = (date: Date, label: string, value: string, id: string) => {
-            units.push({
-                id,
-                date,
-                label,
-                value,
-                isToday: isSameDay(date, new Date())
-            });
-        };
-
-        if (activeView === 'DAY') {
-            const start = addDays(center, -4);
-            for (let i = 0; i < 10; i++) {
-                const d = addDays(start, i);
-                push(d, dayAbbreviation(d), format(d, 'd'), format(d, 'yyyy-MM-dd'));
-            }
-        } else if (activeView === 'WEEK') {
-            const start = addWeeks(center, -4);
-            for (let i = 0; i < 10; i++) {
-                const w = startOfWeek(addWeeks(start, i), { weekStartsOn: 1 });
-                push(w, `W${format(w, 'w')}`, format(w, 'w'), format(w, 'yyyy-ww'));
-            }
-        } else if (activeView === 'MONTH') {
-            const start = addMonths(center, -4);
-            for (let i = 0; i < 10; i++) {
-                const m = addMonths(start, i);
-                push(m, format(m, 'MMM'), format(m, 'M'), format(m, 'yyyy-MM'));
-            }
-        } else if (activeView === 'YEAR') {
-            const start = addYears(center, -2);
-            for (let i = 0; i < 5; i++) {
-                const y = addYears(start, i);
-                push(y, '', format(y, 'yyyy'), format(y, 'yyyy'));
-            }
-        }
-        return units;
-    }, [selectedDate, activeView]);
-
-    // UNITS WITH STATUS (Using empty array for files since API doesn't return history yet)
+    /* ────────────────────── FILTERED UNITS (DATES) ────────────────────── */
     const units = useMemo(() => {
-        let filtered = allPossibleUnits.map(unit => ({
-            ...unit,
-            status: getStatusForUnit(unit.date, [], activeView) // Passing empty array
-        }));
+        const center = selectedDate;
+        const result: { id: string; date: Date; label: string; value: string; status: StatusKey }[] = [];
 
-        // Apply status filter logic (Won't filter much until data has status)
-        if (selectedStatus) {
-            filtered = filtered.filter(unit => {
-                // Logic preserved but essentially no-op without file data
-                return selectedStatus === 'N/A'; 
-            });
+        const count = activeView === 'YEAR' ? 5 : 10;
+        const offset = activeView === 'YEAR' ? -2 : -4;
+
+        for (let i = offset; i < offset + count; i++) {
+            const d = activeView === 'DAY' ? addDays(center, i) :
+                      activeView === 'WEEK' ? addWeeks(center, i) :
+                      activeView === 'MONTH' ? addMonths(center, i) :
+                      addYears(center, i);
+
+            const unitDate = getUnitStart(d, activeView);
+            const id = format(unitDate, activeView === 'WEEK' ? 'yyyy-ww' : activeView === 'YEAR' ? 'yyyy' : activeView === 'MONTH' ? 'yyyy-MM' : 'yyyy-MM-dd');
+
+            const label = activeView === 'DAY' ? dayAbbreviation(unitDate) :
+                          activeView === 'WEEK' ? `W${format(unitDate, 'w')}` :
+                          activeView === 'MONTH' ? format(unitDate, 'MMM') : '';
+
+            const value = activeView === 'YEAR' ? format(unitDate, 'yyyy') :
+                          activeView === 'MONTH' ? format(unitDate, 'M') :
+                          activeView === 'WEEK' ? format(unitDate, 'w') : format(unitDate, 'd');
+
+            const globalStatus = getGlobalStatusForUnit(unitDate, facilities, activeView);
+
+            // Only show units that match the selected status
+            if (selectedStatus && globalStatus !== selectedStatus) continue;
+
+            result.push({ id, date: unitDate, label, value, status: globalStatus });
         }
 
-        if (filtered.length === 0) return allPossibleUnits.map(u => ({ ...u, status: 'N/A' as StatusKey }));
+        return result;
+    }, [selectedDate, activeView, facilities, selectedStatus]);
 
-        const selectedIndex = filtered.findIndex(u => u.id === selectedUnitId);
-        const startIdx = selectedIndex === -1 ? Math.max(0, Math.floor(filtered.length / 2) - 4) : Math.max(0, selectedIndex - 4);
-        return filtered.slice(startIdx, startIdx + 10);
-    }, [allPossibleUnits, selectedStatus, selectedUnitId, activeView]);
-
-    // AUTO-JUMP
+    // Auto-select middle unit
     useEffect(() => {
         if (units.length > 0 && !units.some(u => u.id === selectedUnitId)) {
-            const first = units[0];
-            setSelectedUnitId(first.id);
-            setSelectedDate(first.date);
+            const middle = units[Math.floor(units.length / 2)];
+            setSelectedUnitId(middle.id);
+            setSelectedDate(middle.date);
         }
     }, [units, selectedUnitId]);
 
-    // FACILITY ROWS - MAPPED FROM REAL DATA
+    /* ────────────────────── ROWS WITH STATUS PER VISIBLE UNIT ────────────────────── */
     const starkRows = useMemo(() => {
-        // Filter facilities if a status is selected (Logic kept, but requires data augmentation later)
-        const filteredFacilities = facilities; 
+        return facilities.map((facility) => {
+            const statusByUnit = units.map(unit =>
+                getFacilityStatusForUnit(unit.date, facility, activeView)
+            );
 
-        return filteredFacilities.map((facility) => {
-            // Since we don't have file history in the Facility object, 
-            // statusByUnit will default to N/A for all units.
-            const statusByUnit = units.map(() => 'N/A' as StatusKey);
-            
             return {
                 id: facility._id,
                 code: facility.code,
                 facilityName: facility.name,
-                address: facility.address,
-                recordCount: 0, // Not in Facility interface
+                address: facility.location?.address || "No address",
+                country: facility.location?.country,
+                city: facility.location?.city,
                 statusByUnit,
                 details: facility,
-                contacts: [], // Kept as requested
-                allFiles: [], // Empty until API provides files per facility
             };
         });
-    }, [facilities, units, selectedStatus, activeView]);
+    }, [facilities, units, activeView]);
+
+    /* ────────────────────── FILTERED ROWS (ONLY FACILITIES WITH SELECTED STATUS ON VISIBLE DATES) ────────────────────── */
+    const filteredRows = useMemo(() => {
+        if (!selectedStatus) return starkRows;
+
+        return starkRows.filter(row => {
+            return row.statusByUnit.some(status => status === selectedStatus);
+        });
+    }, [starkRows, selectedStatus]);
+
+    const handleStatusFilter = (status: "complete" | "in_progress" | "missing" | null) => {
+        setSelectedStatus(prev => (prev === status ? null : status));
+    };
 
     const handleUnitClick = (id: string) => {
-        setSelectedUnitId(id);
         const unit = units.find(u => u.id === id);
-        if (unit) setSelectedDate(unit.date);
+        if (unit) {
+            setSelectedUnitId(id);
+            setSelectedDate(unit.date);
+        }
     };
 
     const handleCalendarSelect = (date: Date | undefined) => {
@@ -282,139 +278,126 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
 
     const handleViewChange = (view: ViewType) => {
         setActiveView(view);
-        const aligned = getUnitStart(selectedDate, view);
-        setSelectedDate(aligned);
+        setSelectedDate(getUnitStart(selectedDate, view));
     };
 
-    const selectedFacility = starkRows.find(r => r.id === selectedFacilityId);
-    
     const openSheet = (id: string, tab: 'details' | 'map' = 'details') => {
         setSelectedFacilityId(id);
         _setActiveTab(tab);
         setSheetOpen(true);
     };
 
+    const StatusFilterButton = React.memo(({
+        status,
+        label,
+        color,
+        isActive,
+        onClick,
+        tooltip
+    }: {
+        status: string | null;
+        label: string;
+        color?: string;
+        isActive: boolean;
+        onClick: () => void;
+        tooltip: string;
+    }) => (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <button
+                    type="button"
+                    onClick={onClick}
+                    className={cn(
+                        "flex items-center text-sm cursor-pointer transition-all px-4 py-2 group hover:scale-105",
+                        isActive && "bg-white rounded-md shadow-sm"
+                    )}
+                >
+                    {color && <div className={cn("w-3 h-3 rounded-full mr-2", color)} />}
+                    <span
+                        className={cn(
+                            "overflow-hidden transition-all whitespace-nowrap duration-300 ease-in-out",
+                            isActive || !color
+                                ? "opacity-100 max-w-[100px]"
+                                : "group-hover:opacity-100 group-hover:max-w-[100px] opacity-0 max-w-0"
+                        )}
+                    >
+                        {label}
+                    </span>
+                </button>
+            </TooltipTrigger>
+            <TooltipContent>{tooltip}</TooltipContent>
+        </Tooltip>
+    ));
+
+    StatusFilterButton.displayName = "StatusFilterButton";
+
+    const selectedFacility = starkRows.find(r => r.id === selectedFacilityId);
+
     return (
         <div className="flex flex-col h-screen bg-white overflow-hidden">
-            {/* HEADER WITH LEGEND */}
+            {/* Header */}
             <div className="flex items-center justify-between p-4 border-b bg-gray-50">
-                <Badge variant="secondary" className="flex items-center general-size gap-2 px-3 py-1 text-sm bg-purple-100 text-purple-700">
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
-                    </svg>
-                    Rail District Area
+                <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1 text-sm bg-purple-100 text-purple-700">
+                    Health Facilities Overview
                 </Badge>
 
-                <TooltipProvider>
-                    <div className="flex items-center p-2 border rounded-md bg-gray-100 h-12">
-                        {(["N/A", "confirmed", "progress"] as const).map((status) => {
-                            const config = STATUS_CONFIG[status];
-                            // Count logic is placeholder until API returns status counts
-                            const count = 0; 
+                {/* Status Filter Bar */}
+                <div className="flex items-center mt-4 md:mt-0 p-2 border rounded-md bg-gray-100 h-12">
+                    <TooltipProvider>
+                        <StatusFilterButton status={null} label="All" isActive={selectedStatus === null} onClick={() => handleStatusFilter(null)} tooltip="Show all facilities" />
+                        <div className="h-8 w-px bg-gray-300 mx-4" />
+                        <StatusFilterButton status="complete" label="Completed" color="bg-green-500" isActive={selectedStatus === "complete"} onClick={() => handleStatusFilter("complete")} tooltip="All records verified" />
+                        <div className="h-8 w-px bg-gray-300 mx-4" />
+                        <StatusFilterButton status="in_progress" label="In Progress" color="bg-yellow-400" isActive={selectedStatus === "in_progress"} onClick={() => handleStatusFilter("in_progress")} tooltip="Has errors or incomplete submissions" />
+                        <div className="h-8 w-px bg-gray-300 mx-4" />
+                        <StatusFilterButton status="missing" label="No Data" color="bg-red-500" isActive={selectedStatus === "missing"} onClick={() => handleStatusFilter("missing")} tooltip="No submission for this period" />
+                    </TooltipProvider>
+                </div>
+            </div>
 
-                            return (
-                                <React.Fragment key={status}>
-                                    <Tooltip>
-                                        <TooltipTrigger asChild>
-                                            <button
-                                                onClick={() => {
-                                                    if (config.label === 'All') {
-                                                        setSelectedStatus(null);
-                                                        localStorage.removeItem('facilities:selectedStatus');
-                                                        toast.info('Filter cleared');
-                                                    } else {
-                                                        setSelectedStatus((s: any) => (s === status ? null : status));
-                                                    }
-                                                }}
-                                                className={`flex items-center text-sm cursor-pointer transition-all duration-200 group relative hover:scale-105 py-2 ${selectedStatus === status ? "bg-white rounded-md p-1" : ""}`}
-                                            >
-                                                {
-                                                    config.label == 'All' ?
-                                                        <span className={`${selectedStatus == null && 'bg-white'} px-5 py-2 rounded-md`}>All</span> :
-                                                        <
-                                                            
-                                                        >
-                                                            <div className={`w-3 h-3 rounded-full ${config.color} p-3 mr-2`} />
-                                                            <span
-                                                                className={`overflow-hidden transition-all whitespace-nowrap duration-300 ease-in-out ${selectedStatus === status ? "opacity-100 max-w-[100px]" : "group-hover:opacity-100 group-hover:max-w-[100px] opacity-0 max-w-0"
-                                                                    }`}
-                                                            >
-                                                            {config.label}
-                                                            </span>
-                                                            <span className="ml-1 text-xs text-gray-500">({count})</span>
-                                                        </>
-                                                }
-                                            </button>
-                                        </TooltipTrigger>
-                                        <TooltipContent>
-                                            <p className="text-sm font-medium">{config.tooltip}</p>
-                                        </TooltipContent>
-                                    </Tooltip>
-
-                                    {
-                                        status !== "progress" && (
-                                            <div className="h-8 w-px bg-gray-300 mx-4" />
-                                        )
-                                    }
-                                </React.Fragment>
-                            )
-                        })}
-                    </div>
-                </TooltipProvider>
-            </div >
-
-            {/* TABLE */}
-            < div className="flex-1 overflow-auto p-4" >
-                <div className="bg-white overflow-hidden">
+            {/* Table */}
+            <div className="flex-1 overflow-auto p-4">
+                <div className="bg-white shadow-sm overflow-hidden rounded-lg">
                     <table className="w-full text-sm">
                         <thead>
-                            <tr className="border-b">
+                            <tr className="border-b bg-gray-50">
                                 <th className="px-4 py-3 text-left" colSpan={3}>
                                     <div className="flex items-center space-x-4">
                                         <Popover>
                                             <PopoverTrigger asChild>
-                                                <Button variant="outline" className="w-[180px] justify-start text-left font-normal h-9 shadow-none">
+                                                <Button variant="outline" className="w-[180px] justify-start text-left font-normal h-9">
                                                     {format(selectedDate, 'PPP')}
                                                 </Button>
                                             </PopoverTrigger>
                                             <PopoverContent className="w-auto p-0" align="start">
-                                                <Calendar mode="single" selected={selectedDate} onSelect={handleCalendarSelect} captionLayout="dropdown" className="rounded-md border" />
+                                                <Calendar mode="single" selected={selectedDate} onSelect={handleCalendarSelect} />
                                             </PopoverContent>
                                         </Popover>
 
-                                        <TooltipProvider>
-                                            <div className="flex p-1 bg-gray-100 rounded-md w-fit">
-                                                {(['YEAR', 'MONTH', 'WEEK', 'DAY'] as const).map((v) => (
-                                                    <Tooltip key={v}>
-                                                        <TooltipTrigger asChild>
-                                                            <Button
-                                                                variant={activeView === v ? "default" : "ghost"}
-                                                                size="sm"
-                                                                onClick={() => handleViewChange(v)}
-                                                                className={`rounded-md ${activeView === v ? 'bg-[#028700] hover:bg-[#028700dc]' : ''}`}
-                                                            >
-                                                                {v}
-                                                            </Button>
-                                                        </TooltipTrigger>
-                                                        <TooltipContent>
-                                                            <p className="text-sm">{VIEW_CONFIG[v].tooltip}</p>
-                                                        </TooltipContent>
-                                                    </Tooltip>
-                                                ))}
-                                            </div>
-                                        </TooltipProvider>
+                                        <div className="flex p-1 bg-gray-100 rounded-md">
+                                            {(['YEAR', 'MONTH', 'WEEK', 'DAY'] as const).map((v) => (
+                                                <Button
+                                                    key={v}
+                                                    variant={activeView === v ? "default" : "ghost"}
+                                                    size="sm"
+                                                    onClick={() => handleViewChange(v)}
+                                                    className={activeView === v ? 'bg-[#028700] hover:bg-[#028700dc]' : ''}
+                                                >
+                                                    {v}
+                                                </Button>
+                                            ))}
+                                        </div>
                                     </div>
                                 </th>
                                 {units.map(u => (
-                                    <th key={u.id} className="py-3 text-center border  border-b-0 border-t-0">
+                                    <th key={u.id} className="py-3 text-center border border-b-0 border-t-0">
                                         <button onClick={() => handleUnitClick(u.id)} className="p-1 rounded hover:bg-gray-50 transition">
                                             <TimeUnitItem label={u.label} value={u.value} status={u.status} isSelected={u.id === selectedUnitId} />
                                         </button>
                                     </th>
                                 ))}
                             </tr>
-
-                            <tr className="bg-gray-50 general-size">
+                            <tr className="bg-gray-50">
                                 <th className="px-4 py-4 text-left font-medium text-gray-700">Code</th>
                                 <th className="px-4 py-4 text-left font-medium text-gray-700">Facility Name</th>
                                 <th className="px-4 py-4 text-left font-medium text-gray-700">Address</th>
@@ -423,19 +406,16 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                         </thead>
 
                         <tbody>
-                            {starkRows.map(row => (
-                                <tr key={row.id} className={`border-b py-4 transition-colors hover:bg-gray-50 general-size ${selectedFacilityId === row.id ? 'bg-blue-50' : ''}`}>
-                                    {/* Using _id from Facility interface */}
+                            {filteredRows.map(row => (
+                                <tr key={row.id} className={`border-b hover:bg-gray-50 ${selectedFacilityId === row.id ? 'bg-blue-50' : ''}`}>
                                     <td className="px-4 py-4 font-medium text-blue-600">{row.code}</td>
                                     <td className="px-4 py-4">
-                                        <button onClick={(e) => { e.stopPropagation(); openSheet(row.id, 'details'); }} className="text-left py-3 px-2 rounded-md hover:bg-blue-50">
-                                            <div className="flex items-center gap-2">
-                                                <span className="font-medium">{row.facilityName}</span>
-                                            </div>
+                                        <button onClick={(e) => { e.stopPropagation(); openSheet(row.id, 'details'); }} className="text-left hover:bg-blue-50 rounded px-2 py-1">
+                                            <span className="font-medium">{row.facilityName}</span>
                                         </button>
                                     </td>
                                     <td className="px-4 py-4">
-                                        <button onClick={(e) => { e.stopPropagation(); openSheet(row.id, 'map'); }} className="text-left py-3 px-2 rounded-md hover:bg-blue-50 flex items-center gap-1 text-blue-600">
+                                        <button onClick={(e) => { e.stopPropagation(); openSheet(row.id, 'map'); }} className="text-left hover:bg-blue-50 rounded px-2 py-1 flex items-center gap-1 text-blue-600">
                                             <MapPin className="w-4 h-4" />
                                             {row.address}
                                         </button>
@@ -443,28 +423,35 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
 
                                     {row.statusByUnit.map((status, idx) => {
                                         const { icon: Icon, color } = STATUS_CONFIG[status];
-                                        const isActive = selectedStatus === status;
+                                        const unit = units[idx];
 
                                         return (
                                             <td
                                                 key={idx}
-                                                className="py-3 text-center border border-t-0 cursor-pointer transition-all hover:bg-gray-50"
+                                                className="py-3 text-center border border-t-0 cursor-pointer transition-all hover:bg-gray-100"
                                                 onClick={() => {
-                                                     // Status logic preserved but mostly static due to lack of data
-                                                     const newStatus = status === selectedStatus ? null : status;
-                                                     setSelectedStatus(newStatus);
-                                                     if (newStatus) localStorage.setItem('facilities:selectedStatus', newStatus);
-                                                     else localStorage.removeItem('facilities:selectedStatus');
-                                                     
-                                                     if (setActiveTab) {
-                                                         setActiveTab(DATA_ENTRIES_TAB_ID);
-                                                         localStorage.setItem('app:activeTab', DATA_ENTRIES_TAB_ID);
-                                                     }
+                                                    if (status === "future") {
+                                                        toast.info("This date is in the future");
+                                                        return;
+                                                    }
+
+                                                    const targetStatus = status === "in_progress" || status === "missing" ? "pending" : "confirmed";
+
+                                                    localStorage.setItem("pendingFacilityId", row.id);
+                                                    localStorage.setItem("pendingStatusFilter", targetStatus);
+                                                    localStorage.setItem("pendingDate", unit.date.toISOString());
+
+                                                    if (setActiveTab) {
+                                                        setActiveTab(DATA_ENTRIES_TAB_ID);
+                                                        localStorage.setItem("app:activeTab", DATA_ENTRIES_TAB_ID);
+                                                    }
+
+                                                    toast.success(`${row.facilityName} → ${targetStatus === "pending" ? "Needs Review" : "Completed"}`);
                                                 }}
                                             >
                                                 <div className="flex justify-center">
-                                                    <div className={`relative transition-all duration-200 ${isActive ? 'scale-125 ring-4 ring-blue-400 ring-opacity-50' : 'scale-100'}`}>
-                                                        <Icon className={`w-6 h-6 p-1 text-white ${color} rounded-full shadow-md ${isActive ? 'animate-pulse' : ''} hover:shadow-lg transition-shadow`} />
+                                                    <div className={`relative transition-all duration-200 ${unit.id === selectedUnitId ? 'scale-125 ring-4 ring-blue-400 ring-opacity-50' : 'scale-100'}`}>
+                                                        <Icon className={`w-6 h-6 p-1 text-white ${color} rounded-full shadow-md ${unit.id === selectedUnitId ? 'animate-pulse' : ''} hover:shadow-lg transition-shadow`} />
                                                     </div>
                                                 </div>
                                             </td>
@@ -476,31 +463,36 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                     </table>
 
                     {isFetching && <div className="p-8 text-center text-gray-500">Loading facilities...</div>}
-                    {!isFetching && starkRows.length === 0 && (
+                    {!isFetching && filteredRows.length === 0 && (
                         <div className="p-8 text-center text-gray-500">
-                            No facilities found.
+                            {selectedStatus === null 
+                                ? "No facilities found." 
+                                : `No facilities with "${STATUS_CONFIG[selectedStatus].label}" status in the current view`}
                         </div>
                     )}
                 </div>
-            </div >
+            </div>
 
-            <FacilityDetailSheet
+          <FacilityDetailSheet
                 open={sheetOpen}
                 onOpenChange={setSheetOpen}
                 activeTab={_activeTab}
                 onTabChange={_setActiveTab}
                 facility={selectedFacility ? {
+                    id: selectedFacility.id,
                     code: selectedFacility.code,
                     facilityName: selectedFacility.facilityName,
                     address: selectedFacility.address,
                     details: selectedFacility.details ? {
+                        country: selectedFacility.country,
+                        city: selectedFacility.city,
                         facilityName: selectedFacility.details.name,
-                        address: selectedFacility.details.address,
+                        address: selectedFacility.details.location?.address,
                         facilityType: selectedFacility.details.facility_type,
                         phone: selectedFacility.details.phone[0] || '',
                         email: selectedFacility.details.email[0] || '',
                     } : undefined,
-                    contacts: selectedFacility.contacts,
+                    // contacts: selectedFacility.contacts,
                 } : undefined}
                 mapComponent={selectedFacility && (
                     <GoogleMapViewer
@@ -510,6 +502,6 @@ export default function FacilitiesContent({ setActiveTab }: FacilitiesContentPro
                     />
                 )}
             />
-        </div >
+        </div>
     );
 }

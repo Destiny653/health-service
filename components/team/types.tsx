@@ -26,3 +26,4 @@ export type currentUser = {
         facility_type: string;
     };
 };
+

@@ -47,7 +47,7 @@ import { cn } from "@/lib/utils";
 import { ChevronsUpDown } from "lucide-react";
 import { HorizontalSplitPane } from "../HorizontantalSplitPane";
 import { useGetFacilities } from "../facility/hooks/useFacility";
-import { PatientDocument, useGetDocumentsByFacility } from "../team/hooks/docs/useGetDoc";
+import { PatientDocument, useGetDocumentsByFacility } from "../../hooks/docs/useGetDoc";
 import { UserData } from "@/payload";
 
 // =========================================================================
@@ -218,15 +218,15 @@ const mapDocumentToPatient = (doc: PatientDocument): PatientDocument => ({
 // =========================================================================
 // MEMOIZED SUB-COMPONENTS
 // =========================================================================
-const TimeUnitItem = memo(({ 
-  label, 
-  value, 
-  statusColor, 
-  isSelected 
-}: { 
-  label: string; 
-  value: string; 
-  statusColor: string; 
+const TimeUnitItem = memo(({
+  label,
+  value,
+  statusColor,
+  isSelected
+}: {
+  label: string;
+  value: string;
+  statusColor: string;
   isSelected: boolean;
 }) => (
   <div className="flex flex-col items-center relative">
@@ -247,38 +247,38 @@ const TimeUnitItem = memo(({
 ));
 TimeUnitItem.displayName = "TimeUnitItem";
 
-const TimeUnitButton = memo(({ 
-  unit, 
-  isSelected, 
-  onClick 
-}: { 
-  unit: TimeUnit; 
-  isSelected: boolean; 
+const TimeUnitButton = memo(({
+  unit,
+  isSelected,
+  onClick
+}: {
+  unit: TimeUnit;
+  isSelected: boolean;
   onClick: () => void;
 }) => (
-  <button 
-    onClick={onClick} 
+  <button
+    onClick={onClick}
     className="p-1 rounded-md cursor-pointer transition-transform hover:-translate-y-0.5"
     type="button"
   >
-    <TimeUnitItem 
-      label={unit.label} 
-      value={unit.value} 
-      statusColor={unit.statusColor} 
-      isSelected={isSelected} 
+    <TimeUnitItem
+      label={unit.label}
+      value={unit.value}
+      statusColor={unit.statusColor}
+      isSelected={isSelected}
     />
   </button>
 ));
 TimeUnitButton.displayName = "TimeUnitButton";
 
-const StatusFilterButton = memo(({ 
-  status, 
-  label, 
-  color, 
-  isActive, 
+const StatusFilterButton = memo(({
+  status,
+  label,
+  color,
+  isActive,
   onClick,
   tooltip
-}: { 
+}: {
   status: string | null;
   label: string;
   color?: string;
@@ -314,13 +314,13 @@ const StatusFilterButton = memo(({
 ));
 StatusFilterButton.displayName = "StatusFilterButton";
 
-const ViewToggleButton = memo(({ 
-  view, 
-  isActive, 
-  onClick 
-}: { 
-  view: ViewType; 
-  isActive: boolean; 
+const ViewToggleButton = memo(({
+  view,
+  isActive,
+  onClick
+}: {
+  view: ViewType;
+  isActive: boolean;
   onClick: () => void;
 }) => (
   <Button
@@ -334,13 +334,13 @@ const ViewToggleButton = memo(({
 ));
 ViewToggleButton.displayName = "ViewToggleButton";
 
-const FacilityItem = memo(({ 
-  facility, 
-  isSelected, 
-  onSelect 
-}: { 
-  facility: { _id: string; name: string }; 
-  isSelected: boolean; 
+const FacilityItem = memo(({
+  facility,
+  isSelected,
+  onSelect
+}: {
+  facility: { _id: string; name: string };
+  isSelected: boolean;
   onSelect: () => void;
 }) => (
   <CommandItem value={facility.name} onSelect={onSelect}>
@@ -355,12 +355,12 @@ FacilityItem.displayName = "FacilityItem";
 // =========================================================================
 const useDebounce = <T,>(value: T, delay: number): T => {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
-  
+
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedValue(value), delay);
     return () => clearTimeout(timer);
   }, [value, delay]);
-  
+
   return debouncedValue;
 };
 
@@ -420,6 +420,39 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
     selectedFacilityId,
     { limit: 1000 }
   );
+
+  useEffect(() => {
+    const pendingFacilityId = localStorage.getItem("pendingFacilityId");
+    const pendingStatus = localStorage.getItem("pendingStatusFilter");
+    const pendingDateIso = localStorage.getItem("pendingDate");
+
+    if (pendingFacilityId || pendingStatus || pendingDateIso) {
+      if (pendingFacilityId && facilities.length > 0) {
+        const facilityExists = facilities.some(f => f._id === pendingFacilityId);
+        if (facilityExists) setSelectedFacilityId(pendingFacilityId);
+      }
+
+      if (pendingStatus === "confirmed" || pendingStatus === "pending") {
+        setSelectedStatus(pendingStatus);
+      } else if (pendingStatus === "") {
+        setSelectedStatus(null);
+      }
+
+      if (pendingDateIso) {
+        const date = new Date(pendingDateIso);
+        if (!isNaN(date.getTime())) {
+          setSelectedDate(date);
+          setActiveView("DAY"); // Optional: focus on day for precision
+        }
+      }
+
+      localStorage.removeItem("pendingFacilityId");
+      localStorage.removeItem("pendingStatusFilter");
+      localStorage.removeItem("pendingDate");
+
+      toast.success("Showing records for selected facility and date");
+    }
+  }, [facilities]);
 
   useEffect(() => {
     if (isError) toast.error("Error fetching documents");
@@ -487,7 +520,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
   // Check if unit has docs matching status filter
   const unitMatchesStatusFilter = useCallback((unitDate: Date, view: ViewType): boolean => {
     if (selectedStatus === null) return true;
-    
+
     const unitStart = getUnitStart(unitDate, view);
     const unitEnd = getUnitEnd(unitStart, view);
 
@@ -515,7 +548,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
     for (let i = -half; i <= half; i++) {
       const date = addByView(selectedDate, i, activeView);
       const unitDate = getUnitStart(date, activeView);
-      
+
       if (!unitMatchesStatusFilter(unitDate, activeView)) continue;
 
       result.push({
@@ -540,7 +573,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
 
     for (const doc of allRawDocuments) {
       if (!doc.metadata?.created_at) continue;
-      
+
       const created = new Date(doc.metadata.created_at);
 
       // Date range filter
@@ -682,7 +715,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
         {/* Facility Dropdown */}
         <Popover open={facilityDropdownOpen} onOpenChange={setFacilityDropdownOpen}>
           <PopoverTrigger asChild>
-            <button 
+            <button
               type="button"
               className="w-[240px] justify-between bg-[#021EF533] py-3 px-4 border border-blue-200 rounded-md flex items-center text-sm"
             >

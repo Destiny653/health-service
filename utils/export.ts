@@ -4,7 +4,7 @@ import { Patient } from "@/hooks/usePatients";
 import { ColumnDef } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { toast } from "sonner";
-import { PatientDocument } from "@/components/team/hooks/docs/useGetDoc";
+import { PatientDocument } from "@/hooks/docs/useGetDoc";
 
 export const exportToCSV = (
   data: PatientDocument[],

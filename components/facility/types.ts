@@ -15,7 +15,7 @@ export interface Facility {
   phone: string[];
   parent_id?: string;
   facility_type: string;
-  address: string;
+  location: FacilityLocation;
   code: string;
   submission_status: any;
 }

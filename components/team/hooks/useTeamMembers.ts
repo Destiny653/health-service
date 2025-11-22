@@ -5,12 +5,22 @@ import Cookies from "js-cookie";
 import { toast } from "sonner";
 
 /* ——— TYPES ——— */
+
+export interface UserMetadata {
+  created_at: string;
+  modified_at: string;
+  created_by: string;
+  modified_by: string;
+}
+
 export interface TeamMember {
   _id: string;
   username: string;
   first_name: string;
+  code: string;
   last_name: string;
   gender: string;
+  metadata: UserMetadata;
   email: string[];
   phone: string[];
   role: { id: string; name: string };
@@ -37,6 +47,30 @@ export interface CreateUserPayload {
 }
 
 /* ——— API FUNCTIONS ——— */
+
+async function fetchFacilityPersonalities(facilityId: string): Promise<TeamMembersResponse> {
+  const token = Cookies.get("authToken");
+  if (!token) throw new Error("Authentication token missing");
+
+  const res = await fetch(
+    `http://173.249.30.54/dappa/facility/${facilityId}/personalities?page=1&limit=100`,
+    {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ message: "Failed to fetch team members" }));
+    throw new Error(error.message || "Failed to load team members");
+  }
+
+  return res.json();
+}
+
 async function fetchTeamMembers(): Promise<TeamMembersResponse> {
   const token = Cookies.get("authToken");
 
@@ -68,6 +102,16 @@ async function createUser(payload: CreateUserPayload) {
 }
 
 /* ——— HOOKS ——— */
+
+export function useFacilityPersonalities(facilityId: string) {
+  return useQuery({
+    queryKey: ["facility-personalities", facilityId],
+    queryFn: () => fetchFacilityPersonalities(facilityId),
+    enabled: !!facilityId, // only run if facilityId exists
+    select: (data) => data?.results,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+}
 
 export function useTeamMembers() {
   return useQuery({

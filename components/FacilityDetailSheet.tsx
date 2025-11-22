@@ -2,28 +2,27 @@
 
 import * as React from 'react';
 import {
-    X,
     MapPin,
     Phone,
     Mail,
-    Globe,
     Building,
     Home,
-    Users,
     User,
     Briefcase,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import GoogleMapViewer from './GoogleMapViewer'
 import {
     Card,
     CardHeader,
     CardTitle,
     CardContent,
 } from '@/components/ui/card';
+import { TeamMember, useFacilityPersonalities } from './team/hooks/useTeamMembers';
+
+// Make sure to import the hook from where you defined it
+// Import the TeamMember type if it's in a separate file, otherwise it's used below
 
 interface FacilityDetails {
     facilityName: string;
@@ -31,7 +30,12 @@ interface FacilityDetails {
     facilityType: string;
     phone: string;
     email: string;
+    country: string;
+    city: string;
 }
+
+// Keeping this for the Facility prop structure, 
+// though we will use the API data for contacts now.
 interface ContactPersonel {
     firstName: string;
     lastName: string;
@@ -47,7 +51,7 @@ interface FacilityDetailSheetProps {
     onTabChange: (value: 'details' | 'map') => void;
     onOpenChange: (open: boolean) => void;
     facility?: {
-        id?: string;
+        id?: string; // Ensure ID is available to pass to the hook
         code: string;
         facilityName: string;
         address: string;
@@ -65,13 +69,19 @@ export function FacilityDetailSheet({
     facility,
     mapComponent
 }: FacilityDetailSheetProps) {
+
+    // 1. Retrieve the ID safely
+    const facilityId = facility?.id || "";
+
+    // 2. Fetch Personality Data using the hook
+    const { data: teamMembers, isLoading: isLoadingContacts } = useFacilityPersonalities(facilityId);
+
     if (!facility) return null;
 
     const {
         facilityName,
         address,
         details = {} as FacilityDetails,
-        contacts = [],
     } = facility;
 
     /* ------------------------------------------------------------------ */
@@ -124,7 +134,6 @@ export function FacilityDetailSheet({
         </Card>
     )
 
-
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetTitle></SheetTitle>
@@ -169,6 +178,8 @@ export function FacilityDetailSheet({
                                     </h3>
                                     <div className="space-y-4">
                                         <IconText icon={Building} label="Facility Name" value={details.facilityName} />
+                                        <IconText icon={MapPin} label="Country" value={details.country} />
+                                        <IconText icon={MapPin} label="City" value={details.city} />
                                         <IconText icon={MapPin} label="Address" value={details.address} />
                                         <IconText icon={Home} label="Health District" value={details.facilityType} />
                                         <IconText icon={Phone} label="Phone" value={details.phone} />
@@ -176,24 +187,32 @@ export function FacilityDetailSheet({
                                     </div>
                                 </div>
 
-                                {/* RIGHT – Contact Personnels */}
+                                {/* RIGHT – Contact Personnels (UPDATED TO USE API DATA) */}
                                 <div className="border-l px-4">
                                     <h3 className="mb-4 text-base font-semibold flex items-center">
                                         Contact Personnels
                                     </h3>
                                     <div className="space-y-6">
-                                        {contacts.length === 0 ? (
+                                        {isLoadingContacts ? (
+                                            <p className="text-sm text-gray-500">Loading contacts...</p>
+                                        ) : !teamMembers || teamMembers.length === 0 ? (
                                             <p className="text-sm text-gray-500">No contact persons recorded.</p>
                                         ) : (
-                                            contacts.map((c, i) => (
-                                                <div key={i} className="border-b pb-4">
+                                            teamMembers.map((member: TeamMember) => (
+                                                <div key={member._id} className="border-b pb-4">
                                                     <div className="space-y-2 general-size">
-                                                        <IconText icon={User} label="First Name" value={c.firstName} />
-                                                        <IconText icon={User} label="Last Name" value={c.lastName} />
-                                                        <IconText icon={Briefcase} label="Role" value={c.role} />
-                                                        <IconText icon={Phone} label="Tel 1" value={c.tel1} />
-                                                        {c.tel2 && <IconText icon={Phone} label="Tel 2" value={c.tel2} />}
-                                                        <IconText icon={Mail} label="Email" value={c.email} />
+                                                        <IconText icon={User} label="First Name" value={member.first_name} />
+                                                        <IconText icon={User} label="Last Name" value={member.last_name} />
+                                                        <IconText icon={Briefcase} label="Role" value={'admin'} />
+
+                                                        {/* Handle Phone Array */}
+                                                        <IconText icon={Phone} label="Tel 1" value={member.phone[0]} />
+                                                        {member.phone[1] && (
+                                                            <IconText icon={Phone} label="Tel 2" value={member.phone[1]} />
+                                                        )}
+
+                                                        {/* Handle Email Array */}
+                                                        <IconText icon={Mail} label="Email" value={member.email[0]} />
                                                     </div>
                                                 </div>
                                             ))
@@ -205,7 +224,7 @@ export function FacilityDetailSheet({
                     </TabsContent>
 
                     {/* ------------------------------------------------------------------ */}
-                    {/* MAP TAB – now fully functional */}
+                    {/* MAP TAB */}
                     {/* ------------------------------------------------------------------ */}
                     <TabsContent value="map" className="flex-1 overflow-hidden p-0">
                         <ScrollArea className="h-full p-4 w-full bg-gray-50 flex items-center justify-center">

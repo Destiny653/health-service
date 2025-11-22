@@ -14,7 +14,7 @@ import {
   ExtractedField,
   ResultsField,
   FieldCorrection
-} from "./team/hooks/docs/useGetDoc";
+} from "../hooks/docs/useGetDoc";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "./PatientsTable";
 import { AlertTriangle, User, Calendar, Phone, MapPin, Stethoscope, FileText, ClipboardList } from "lucide-react";
