@@ -17,8 +17,7 @@ import {
 } from "./team/hooks/docs/useGetDoc";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "./PatientsTable";
-import { Textarea } from "./ui/textarea";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, User, Calendar, Phone, MapPin, Stethoscope, FileText, ClipboardList } from "lucide-react";
 
 interface PatientEditSheetProps {
   modalOpen: boolean;
@@ -55,60 +54,17 @@ interface FormDataType {
   observations: string;
 }
 
-
-
-// Visit History table columns
 const visitHistoryColumns: ColumnDef<PatientDocument>[] = [
-  {
-    id: "date",
-    header: "Date",
-    accessorFn: (row) => row.date,
-  },
-  {
-    id: "names",
-    header: "Patient Name",
-    accessorFn: (row) => row.names,
-  },
-  {
-    id: "sex",
-    header: "Sex",
-    accessorFn: (row) => row.sex,
-  },
-  {
-    id: "age",
-    header: "Age",
-    accessorFn: (row) => row.age,
-  },
-  {
-    id: "status",
-    header: "Marital Status",
-    accessorFn: (row) => row.status,
-  },
-  {
-    id: "pregnant",
-    header: "is Pregnant",
-    accessorFn: (row) => row.pregnant,
-  },
-  {
-    id: "occupation",
-    header: "Profession",
-    accessorFn: (row) => row.occupation,
-  },
-  {
-    id: "residence",
-    header: "Residence",
-    accessorFn: (row) => row.residence,
-  },
-  {
-    id: "contact",
-    header: "Contact",
-    accessorFn: (row) => row.contact,
-  },
-  {
-    id: "past_history",
-    header: "History",
-    accessorFn: (row) => row.past_history,
-  },
+  { id: "date", header: "Date", accessorFn: (row) => row.date },
+  { id: "names", header: "Patient Name", accessorFn: (row) => row.names },
+  { id: "sex", header: "Sex", accessorFn: (row) => row.sex },
+  { id: "age", header: "Age", accessorFn: (row) => row.age },
+  { id: "status", header: "Marital Status", accessorFn: (row) => row.status },
+  { id: "pregnant", header: "is Pregnant", accessorFn: (row) => row.pregnant },
+  { id: "occupation", header: "Profession", accessorFn: (row) => row.occupation },
+  { id: "residence", header: "Residence", accessorFn: (row) => row.residence },
+  { id: "contact", header: "Contact", accessorFn: (row) => row.contact },
+  { id: "past_history", header: "History", accessorFn: (row) => row.past_history },
 ];
 
 export default function PatientEditSheet({
@@ -121,70 +77,33 @@ export default function PatientEditSheet({
 }: PatientEditSheetProps) {
   const editMutation = useEditDocumentRow();
   const [currentTab, setCurrentTab] = React.useState<"details" | "history">("details");
-  console.log(selectedPatient)
 
-  // Store original values to track changes
   const [originalData, setOriginalData] = React.useState<FormDataType | null>(null);
-
   const [formData, setFormData] = React.useState<FormDataType>({
-    date: "",
-    month_number: "",
-    case: "",
-    names: "",
-    sex: "",
-    age: "",
-    status: "",
-    pregnant: "",
-    patient_code: "",
-    occupation: "",
-    residence: "",
-    contact: "",
-    past_history: "",
-    signs_symptoms: "",
-    diagnosis: "",
-    investigations: "",
-    results: "",
-    treatment: "",
-    confirmatory_diagnosis: "",
-    hospitalisation: "",
-    receipt_no: "",
-    referral: "",
-    observations: "",
+    date: "", month_number: "", case: "", names: "", sex: "", age: "",
+    status: "", pregnant: "", patient_code: "", occupation: "", residence: "",
+    contact: "", past_history: "", signs_symptoms: "", diagnosis: "",
+    investigations: "", results: "", treatment: "", confirmatory_diagnosis: "",
+    hospitalisation: "", receipt_no: "", referral: "", observations: "",
   });
-
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
-  // Sync form when selectedPatient changes
   React.useEffect(() => {
     if (selectedPatient) {
       const initialData: any = {
-        date: selectedPatient.date,
-        month_number: selectedPatient.month_number,
-        case: selectedPatient.case,
-        names: selectedPatient.names,
-        sex: selectedPatient.sex,
-        age: selectedPatient.age,
-        status: selectedPatient.status,
-        pregnant: selectedPatient.pregnant,
-        patient_code: selectedPatient.patient_code,
-        occupation: selectedPatient.occupation,
-        residence: selectedPatient.residence,
-        contact: selectedPatient.contact,
-        past_history: selectedPatient.past_history,
-        signs_symptoms: selectedPatient.signs_symptoms,
-        diagnosis: selectedPatient.diagnosis,
-        investigations: selectedPatient.investigations,
-        results: selectedPatient.results,
-        treatment: selectedPatient.treatment,
+        date: selectedPatient.date, month_number: selectedPatient.month_number,
+        case: selectedPatient.case, names: selectedPatient.names,
+        sex: selectedPatient.sex, age: selectedPatient.age,
+        status: selectedPatient.status, pregnant: selectedPatient.pregnant,
+        patient_code: selectedPatient.patient_code, occupation: selectedPatient.occupation,
+        residence: selectedPatient.residence, contact: selectedPatient.contact,
+        past_history: selectedPatient.past_history, signs_symptoms: selectedPatient.signs_symptoms,
+        diagnosis: selectedPatient.diagnosis, investigations: selectedPatient.investigations,
+        results: selectedPatient.results, treatment: selectedPatient.treatment,
         confirmatory_diagnosis: selectedPatient.confirmatory_diagnosis,
-        hospitalisation: selectedPatient.hospitalisation,
-        receipt_no: selectedPatient.receipt_no,
-        referral: selectedPatient.referral,
-        observations: selectedPatient.observations,
+        hospitalisation: selectedPatient.hospitalisation, receipt_no: selectedPatient.receipt_no,
+        referral: selectedPatient.referral, observations: selectedPatient.observations,
       };
-
-      console.log(initialData)
-
       setFormData(initialData);
       setOriginalData(initialData);
       setErrors({});
@@ -192,33 +111,25 @@ export default function PatientEditSheet({
     }
   }, [selectedPatient]);
 
-  // Check if a field was changed
   const wasFieldChanged = (field: keyof FormDataType): boolean => {
     if (!originalData) return false;
     return formData[field] !== originalData[field];
   };
-  console.log(formData)
 
-  // Get visit history data for the selected patient
   const visitHistoryData = React.useMemo(() => {
     if (!selectedPatient || !data) return [];
-    // Filter data to show records with the same patient name or patient_code
-    const patientName = selectedPatient.names
+    const patientName = selectedPatient.names;
     const patientCode = selectedPatient.patient_code;
-
     return data.filter((record) => {
       const recordName = record.names;
       const recordCode = record.patient_code;
       return (patientName && recordName === patientName) || (patientCode && recordCode === patientCode);
     });
   }, [selectedPatient, data]);
-  console.log(visitHistoryData)
 
   const handleChange = (field: keyof FormDataType, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) {
-      setErrors((prev) => ({ ...prev, [field]: "" }));
-    }
+    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
   };
 
   const validate = (): boolean => {
@@ -233,32 +144,21 @@ export default function PatientEditSheet({
     return Object.keys(newErrors).length === 0;
   };
 
-  // Create FieldCorrection only for changed fields
   const createFieldCorrection = (value: string): FieldCorrection => ({
-    extracted_value: value,
-    was_corrected: true,
-    corrected_at: new Date().toISOString(),
+    extracted_value: value, was_corrected: true, corrected_at: new Date().toISOString(),
   });
 
-  // Create ResultsField correction
   const createResultsCorrection = (value: string, original: ResultsField | undefined): ResultsField => ({
-    value: value,
-    extracted_value: value,
-    extraction_score: original?.extraction_score ?? 0,
-    corrected_score: 1,
-    was_corrected: true,
-    verified_at: new Date().toISOString(),
-    disease_id: original?.disease_id,
-    was_processed: original?.was_processed,
+    value, extracted_value: value, extraction_score: original?.extraction_score ?? 0,
+    corrected_score: 1, was_corrected: true, verified_at: new Date().toISOString(),
+    disease_id: original?.disease_id, was_processed: original?.was_processed,
   });
 
   const handleSubmit = async () => {
     if (!selectedPatient) return;
     if (!validate()) return;
 
-    // Build payload with only changed fields
     const payload: EditRowPayload = {};
-
     if (wasFieldChanged("date")) payload.date = createFieldCorrection(formData.date);
     if (wasFieldChanged("month_number")) payload.month_number = createFieldCorrection(formData.month_number);
     if (wasFieldChanged("case")) payload.case = createFieldCorrection(formData.case);
@@ -283,369 +183,256 @@ export default function PatientEditSheet({
     if (wasFieldChanged("referral")) payload.referral = createFieldCorrection(formData.referral);
     if (wasFieldChanged("observations")) payload.observations = createFieldCorrection(formData.observations);
 
-    // Check if any fields were changed
     if (Object.keys(payload).length === 0) {
       toast.info("No changes to save");
       return;
     }
 
     editMutation.mutate(
+      { doc_code: selectedPatient.doc_code, row_id: selectedPatient._id, payload },
       {
-        doc_code: selectedPatient.doc_code,
-        row_id: selectedPatient._id,
-        payload,
-      },
-      {
-        onSuccess: () => {
-          toast.success("Patient record updated successfully!");
-          closeModal();
-        },
-        onError: (error: any) => {
-          toast.error(error.message || "Failed to update record");
-        },
+        onSuccess: () => { toast.success("Patient record updated successfully!"); closeModal(); },
+        onError: (error: any) => { toast.error(error.message || "Failed to update record"); },
       }
     );
   };
 
-  const handleOpenChange = (open: boolean) => {
-    if (!open) closeModal();
-  };
-
-  const handleMarkDeceased = () => {
-    // Handle deceased marking logic
-    toast.info("Mark as deceased functionality");
-  };
+  const handleOpenChange = (open: boolean) => { if (!open) closeModal(); };
+  const handleMarkDeceased = () => { toast.info("Mark as deceased functionality"); };
 
   if (!selectedPatient) return null;
 
-  const inputClass = "bg-[#F8FAFC] border-0 border-b border-gray-200 rounded-none px-3 py-3 focus:border-b-2 focus:border-[#028700] focus:ring-0 placeholder:text-gray-400";
-  const selectTriggerClass = "bg-[#F8FAFC] border-0 border-b border-gray-200 rounded-none px-3 py-3 h-auto focus:ring-0";
+  const inputClass = "h-11 bg-white border border-gray-200 rounded-lg px-4 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-gray-400";
+  const selectTriggerClass = "h-11 bg-white border border-gray-200 rounded-lg px-4 focus:ring-1 focus:ring-blue-500";
+  const labelClass = "text-sm font-medium text-gray-700 mb-1.5 block";
+  const sectionClass = "bg-gray-50 rounded-xl p-6 space-y-5";
+  const sectionTitleClass = "flex items-center gap-2 text-base font-semibold text-gray-800 mb-4";
 
   return (
     <Sheet open={modalOpen} onOpenChange={handleOpenChange}>
-      <SheetContent side="bottom" className="h-[90vh] p-0 overflow-hidden flex flex-col">
-        {/* Tabs Header */}
-        <div className="border-b border-gray-200 bg-white">
-          <div className="flex">
+      <SheetContent side="bottom" className="h-[90vh] p-0 overflow-hidden flex flex-col bg-gray-100">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">{formData.names || "Patient Details"}</h2>
+              <p className="text-sm text-gray-500">Patient Code: {formData.patient_code || "N/A"}</p>
+            </div>
+          </div>
+          <div className="flex gap-1">
             <button
               onClick={() => setCurrentTab("details")}
-              className={`px-6 py-4 text-sm font-medium transition-colors relative ${currentTab === "details"
-                ? "text-[#2563EB]"
-                : "text-gray-600 hover:text-gray-900"
-                }`}
+              className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                currentTab === "details"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
             >
               Patient Details
-              {currentTab === "details" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2563EB]" />
-              )}
             </button>
             <button
               onClick={() => setCurrentTab("history")}
-              className={`px-6 py-4 text-sm font-medium transition-colors relative ${currentTab === "history"
-                ? "text-[#2563EB]"
-                : "text-gray-600 hover:text-gray-900"
-                }`}
+              className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all ${
+                currentTab === "history"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
             >
-              Visit History
-              {currentTab === "history" && (
-                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#2563EB]" />
-              )}
+              Visit History ({visitHistoryData.length})
             </button>
           </div>
         </div>
 
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto pb-24">
-          {/* Patient Details Tab */}
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto pb-28">
           {currentTab === "details" && (
-            <div className="max-w-4xl mx-auto px-8 py-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-                {/* Patient Full Name */}
-                <div className="md:col-span-2">
-                  <Label className="text-sm text-gray-600 mb-2 block">Patient Full Name</Label>
-                  <Input
-                    value={formData.names}
-                    onChange={(e: any) => handleChange("names", e.target.value)}
-                    className={inputClass}
-                    placeholder="John Doe"
-                  />
-                  {errors.names && <p className="text-red-500 text-xs mt-1">{errors.names}</p>}
+            <div className="max-w-5xl mx-auto px-6 py-6 space-y-6">
+              {/* Personal Information */}
+              <div className={sectionClass}>
+                <div className={sectionTitleClass}>
+                  <User className="w-5 h-5 text-blue-600" />
+                  Personal Information
                 </div>
-
-                {/* Age */}
-                <div>
-                  <Label className="text-sm text-gray-600 mb-2 block">Age</Label>
-                  <Input
-                    type="number"
-                    value={formData.age}
-                    onChange={(e: any) => handleChange("age", e.target.value)}
-                    className={inputClass}
-                    placeholder="58"
-                  />
-                  {errors.age && <p className="text-red-500 text-xs mt-1">{errors.age}</p>}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                  <div className="lg:col-span-2">
+                    <Label className={labelClass}>Full Name *</Label>
+                    <Input value={formData.names} onChange={(e: any) => handleChange("names", e.target.value)} className={inputClass} placeholder="Enter full name" />
+                    {errors.names && <p className="text-red-500 text-xs mt-1">{errors.names}</p>}
+                  </div>
+                  <div>
+                    <Label className={labelClass}>Age *</Label>
+                    <Input type="number" value={formData.age} onChange={(e: any) => handleChange("age", e.target.value)} className={inputClass} placeholder="Age" />
+                    {errors.age && <p className="text-red-500 text-xs mt-1">{errors.age}</p>}
+                  </div>
+                  <div>
+                    <Label className={labelClass}>Sex *</Label>
+                    <Select value={formData.sex} onValueChange={(v) => handleChange("sex", v)}>
+                      <SelectTrigger className={selectTriggerClass}><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="M">Male</SelectItem>
+                        <SelectItem value="F">Female</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className={labelClass}>Marital Status</Label>
+                    <Select value={formData.status} onValueChange={(v) => handleChange("status", v)}>
+                      <SelectTrigger className={selectTriggerClass}><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="CE - single">Single</SelectItem>
+                        <SelectItem value="M">Married</SelectItem>
+                        <SelectItem value="DI">Divorced</SelectItem>
+                        <SelectItem value="W">Widowed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className={labelClass}>Is Pregnant</Label>
+                    <Select value={formData.pregnant === "1" || formData.pregnant === "yes" ? "yes" : "no"} onValueChange={(v) => handleChange("pregnant", v === "yes" ? "1" : "0")}>
+                      <SelectTrigger className={selectTriggerClass}><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="yes">Yes</SelectItem>
+                        <SelectItem value="no">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className={labelClass}>Profession</Label>
+                    <Input value={formData.occupation} onChange={(e: any) => handleChange("occupation", e.target.value)} className={inputClass} placeholder="Enter profession" />
+                  </div>
+                  <div>
+                    <Label className={labelClass}>Patient Code</Label>
+                    <Input value={formData.patient_code} onChange={(e: any) => handleChange("patient_code", e.target.value)} className={inputClass} placeholder="Patient code" />
+                  </div>
                 </div>
+              </div>
 
-                {/* Sex */}
-                <div>
-                  <Label className="text-sm text-gray-600 mb-2 block">Sex</Label>
-                  <Select value={formData.sex} onValueChange={(v) => handleChange("sex", v)}>
-                    <SelectTrigger className={selectTriggerClass}>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="M">M</SelectItem>
-                      <SelectItem value="F">F</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  {errors.sex && <p className="text-red-500 text-xs mt-1">{errors.sex}</p>}
+              {/* Contact Information */}
+              <div className={sectionClass}>
+                <div className={sectionTitleClass}>
+                  <Phone className="w-5 h-5 text-blue-600" />
+                  Contact Information
                 </div>
-
-                {/* Marital Status */}
-                <div>
-                  <Label className="text-sm text-gray-600 mb-2 block">Marital Status</Label>
-                  <Select value={formData.status} onValueChange={(v) => handleChange("status", v)}>
-                    <SelectTrigger className={selectTriggerClass}>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="CE - single">CE - single</SelectItem>
-                      <SelectItem value="M">M</SelectItem>
-                      <SelectItem value="DI">DI</SelectItem>
-                      <SelectItem value="W">W</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  <div>
+                    <Label className={labelClass}>Contact *</Label>
+                    <Input value={formData.contact} onChange={(e: any) => handleChange("contact", e.target.value)} className={inputClass} placeholder="Phone number" />
+                    {errors.contact && <p className="text-red-500 text-xs mt-1">{errors.contact}</p>}
+                  </div>
+                  <div className="lg:col-span-2">
+                    <Label className={labelClass}>Residence</Label>
+                    <Input value={formData.residence} onChange={(e: any) => handleChange("residence", e.target.value)} className={inputClass} placeholder="Address" />
+                  </div>
                 </div>
+              </div>
 
-                {/* Is Pregnant */}
-                <div>
-                  <Label className="text-sm text-gray-600 mb-2 block">Is Pregnant</Label>
-                  <Select
-                    value={formData.pregnant === "1" || formData.pregnant === "yes" ? "yes" : "no"}
-                    onValueChange={(v) => handleChange("pregnant", v === "yes" ? "1" : "0")}
-                  >
-                    <SelectTrigger className={selectTriggerClass}>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="yes">yes</SelectItem>
-                      <SelectItem value="no">no</SelectItem>
-                    </SelectContent>
-                  </Select>
+              {/* Visit Information */}
+              <div className={sectionClass}>
+                <div className={sectionTitleClass}>
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                  Visit Information
                 </div>
-
-                {/* Profession */}
-                <div>
-                  <Label className="text-sm text-gray-600 mb-2 block">Profession</Label>
-                  <Input
-                    value={formData.occupation}
-                    onChange={(e: any) => handleChange("occupation", e.target.value)}
-                    className={inputClass}
-                    placeholder="Farmer"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+                  <div>
+                    <Label className={labelClass}>Date</Label>
+                    <Input type="date" value={formData.date} onChange={(e: any) => handleChange("date", e.target.value)} className={inputClass} />
+                  </div>
+                  <div>
+                    <Label className={labelClass}>Hospitalisation</Label>
+                    <Select value={formData.hospitalisation} onValueChange={(v) => handleChange("hospitalisation", v)}>
+                      <SelectTrigger className={selectTriggerClass}><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Yes">Yes</SelectItem>
+                        <SelectItem value="No">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className={labelClass}>Receipt No</Label>
+                    <Input value={formData.receipt_no} onChange={(e: any) => handleChange("receipt_no", e.target.value)} className={inputClass} placeholder="Receipt number" />
+                  </div>
+                  <div>
+                    <Label className={labelClass}>Referral</Label>
+                    <Input value={formData.referral} onChange={(e: any) => handleChange("referral", e.target.value)} className={inputClass} placeholder="Referral info" />
+                  </div>
                 </div>
+              </div>
 
-                {/* Residence */}
-                <div>
-                  <Label className="text-sm text-gray-600 mb-2 block">Residence</Label>
-                  <Input
-                    value={formData.residence}
-                    onChange={(e: any) => handleChange("residence", e.target.value)}
-                    className={inputClass}
-                    placeholder="Rue Mermoz Douala"
-                  />
+              {/* Medical History */}
+              <div className={sectionClass}>
+                <div className={sectionTitleClass}>
+                  <ClipboardList className="w-5 h-5 text-blue-600" />
+                  Medical History
                 </div>
-
-                {/* Contact */}
-                <div>
-                  <Label className="text-sm text-gray-600 mb-2 block">Contact</Label>
-                  <Input
-                    value={formData.contact}
-                    onChange={(e: any) => handleChange("contact", e.target.value)}
-                    className={inputClass}
-                    placeholder="688 854 144"
-                  />
-                  {errors.contact && <p className="text-red-500 text-xs mt-1">{errors.contact}</p>}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <Label className={labelClass}>Past History</Label>
+                    <Input value={formData.past_history} onChange={(e: any) => handleChange("past_history", e.target.value)} className={inputClass} placeholder="Enter past medical history" />
+                  </div>
+                  <div>
+                    <Label className={labelClass}>Signs & Symptoms</Label>
+                    <Input value={formData.signs_symptoms} onChange={(e: any) => handleChange("signs_symptoms", e.target.value)} className={inputClass} placeholder="Enter signs and symptoms" />
+                  </div>
                 </div>
+              </div>
 
-                {/* Patient Code */}
-                <div>
-                  <Label className="text-sm text-gray-600 mb-2 block">Patient Code</Label>
-                  <Input
-                    value={formData.patient_code}
-                    onChange={(e: any) => handleChange("patient_code", e.target.value)}
-                    className={inputClass}
-                    placeholder="Enter patient code"
-                  />
+              {/* Diagnosis & Treatment */}
+              <div className={sectionClass}>
+                <div className={sectionTitleClass}>
+                  <Stethoscope className="w-5 h-5 text-blue-600" />
+                  Diagnosis & Treatment
                 </div>
-
-                {/* Date */}
-                <div>
-                  <Label className="text-sm text-gray-600 mb-2 block">Date</Label>
-                  <Input
-                    type="date"
-                    value={formData.date}
-                    onChange={(e: any) => handleChange("date", e.target.value)}
-                    className={inputClass}
-                  />
-                </div>
-
-                {/* Hospitalisation */}
-                <div>
-                  <Label className="text-sm text-gray-600 mb-2 block">Hospitalisation</Label>
-                  <Select value={formData.hospitalisation} onValueChange={(v) => handleChange("hospitalisation", v)}>
-                    <SelectTrigger className={selectTriggerClass}>
-                      <SelectValue placeholder="Select" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Yes">Yes</SelectItem>
-                      <SelectItem value="No">No</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Receipt No */}
-                <div>
-                  <Label className="text-sm text-gray-600 mb-2 block">Receipt No</Label>
-                  <Input
-                    value={formData.receipt_no}
-                    onChange={(e: any) => handleChange("receipt_no", e.target.value)}
-                    className={inputClass}
-                    placeholder="Enter receipt number"
-                  />
-                </div>
-
-                {/* Referral */}
-                <div>
-                  <Label className="text-sm text-gray-600 mb-2 block">Referral</Label>
-                  <Input
-                    value={formData.referral}
-                    onChange={(e: any) => handleChange("referral", e.target.value)}
-                    className={inputClass}
-                    placeholder="Enter referral"
-                  />
-                </div>
-
-                {/* Past History */}
-                <div className="md:col-span-2">
-                  <Label className="text-sm text-gray-600 mb-2 block">Past History</Label>
-                  <Textarea
-                    value={formData.past_history}
-                    onChange={(e: any) => handleChange("past_history", e.target.value)}
-                    className={`${inputClass} min-h-[80px] resize-none`}
-                    placeholder="Enter past history"
-                  />
-                </div>
-
-                {/* Signs & Symptoms */}
-                <div className="md:col-span-2">
-                  <Label className="text-sm text-gray-600 mb-2 block">Signs & Symptoms</Label>
-                  <Textarea
-                    value={formData.signs_symptoms}
-                    onChange={(e: any) => handleChange("signs_symptoms", e.target.value)}
-                    className={`${inputClass} min-h-[80px] resize-none`}
-                    placeholder="Enter signs and symptoms"
-                  />
-                </div>
-
-                {/* Diagnosis */}
-                <div className="md:col-span-2">
-                  <Label className="text-sm text-gray-600 mb-2 block">Diagnosis</Label>
-                  <Textarea
-                    value={formData.diagnosis}
-                    onChange={(e: any) => handleChange("diagnosis", e.target.value)}
-                    className={`${inputClass} min-h-[80px] resize-none`}
-                    placeholder="Enter diagnosis"
-                  />
-                </div>
-
-                {/* Investigations */}
-                <div className="md:col-span-2">
-                  <Label className="text-sm text-gray-600 mb-2 block">Investigations</Label>
-                  <Textarea
-                    value={formData.investigations}
-                    onChange={(e: any) => handleChange("investigations", e.target.value)}
-                    className={`${inputClass} min-h-[80px] resize-none`}
-                    placeholder="Enter investigations"
-                  />
-                </div>
-
-                {/* Results */}
-                <div className="md:col-span-2">
-                  <Label className="text-sm text-gray-600 mb-2 block">Results</Label>
-                  <Textarea
-                    value={formData.results}
-                    onChange={(e: any) => handleChange("results", e.target.value)}
-                    className={`${inputClass} min-h-[80px] resize-none`}
-                    placeholder="Enter results"
-                  />
-                </div>
-
-                {/* Treatment */}
-                <div className="md:col-span-2">
-                  <Label className="text-sm text-gray-600 mb-2 block">Treatment</Label>
-                  <Textarea
-                    value={formData.treatment}
-                    onChange={(e: any) => handleChange("treatment", e.target.value)}
-                    className={`${inputClass} min-h-[80px] resize-none`}
-                    placeholder="Enter treatment"
-                  />
-                </div>
-
-                {/* Confirmatory Diagnosis */}
-                <div className="md:col-span-2">
-                  <Label className="text-sm text-gray-600 mb-2 block">Confirmatory Diagnosis</Label>
-                  <Textarea
-                    value={formData.confirmatory_diagnosis}
-                    onChange={(e: any) => handleChange("confirmatory_diagnosis", e.target.value)}
-                    className={`${inputClass} min-h-[80px] resize-none`}
-                    placeholder="Enter confirmatory diagnosis"
-                  />
-                </div>
-
-                {/* Observations */}
-                <div className="md:col-span-2">
-                  <Label className="text-sm text-gray-600 mb-2 block">Observations</Label>
-                  <Textarea
-                    value={formData.observations}
-                    onChange={(e: any) => handleChange("observations", e.target.value)}
-                    className={`${inputClass} min-h-[80px] resize-none`}
-                    placeholder="Enter observations"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div>
+                    <Label className={labelClass}>Diagnosis</Label>
+                    <Input value={formData.diagnosis} onChange={(e: any) => handleChange("diagnosis", e.target.value)} className={inputClass} placeholder="Enter diagnosis" />
+                  </div>
+                  <div>
+                    <Label className={labelClass}>Confirmatory Diagnosis</Label>
+                    <Input value={formData.confirmatory_diagnosis} onChange={(e: any) => handleChange("confirmatory_diagnosis", e.target.value)} className={inputClass} placeholder="Confirmatory diagnosis" />
+                  </div>
+                  <div>
+                    <Label className={labelClass}>Investigations</Label>
+                    <Input value={formData.investigations} onChange={(e: any) => handleChange("investigations", e.target.value)} className={inputClass} placeholder="Enter investigations" />
+                  </div>
+                  <div>
+                    <Label className={labelClass}>Results</Label>
+                    <Input value={formData.results} onChange={(e: any) => handleChange("results", e.target.value)} className={inputClass} placeholder="Enter results" />
+                  </div>
+                  <div>
+                    <Label className={labelClass}>Treatment</Label>
+                    <Input value={formData.treatment} onChange={(e: any) => handleChange("treatment", e.target.value)} className={inputClass} placeholder="Enter treatment" />
+                  </div>
+                  <div>
+                    <Label className={labelClass}>Observations</Label>
+                    <Input value={formData.observations} onChange={(e: any) => handleChange("observations", e.target.value)} className={inputClass} placeholder="Enter observations" />
+                  </div>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Visit History Tab */}
           {currentTab === "history" && (
-            <div className="px-4 py-4">
-              <DataTable
-                data={visitHistoryData}
-                columns={visitHistoryColumns}
-                isLoading={false}
-              />
+            <div className="px-6 py-6">
+              <div className="bg-white rounded-xl p-4 shadow-sm">
+                <DataTable data={visitHistoryData} columns={visitHistoryColumns} isLoading={false} />
+              </div>
             </div>
           )}
         </div>
 
-        {/* Fixed Bottom Bar */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-4 flex justify-between items-center">
-          <Button
-            variant="outline"
-            onClick={handleMarkDeceased}
-            className="bg-red-500 hover:bg-red-600 text-white border-0 flex items-center gap-2"
-          >
+        {/* Footer */}
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-4 flex justify-between items-center shadow-lg">
+          <Button variant="outline" onClick={handleMarkDeceased} className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200 hover:border-red-300 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4" />
-            Deceased
+            Mark Deceased
           </Button>
-
-          <Button
-            onClick={handleSubmit}
-            disabled={editMutation.isPending}
-            className="bg-[#2563EB] hover:bg-blue-700 text-white px-8"
-          >
-            {editMutation.isPending ? "Saving..." : "Update Record"}
-          </Button>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={closeModal} className="px-6">Cancel</Button>
+            <Button onClick={handleSubmit} disabled={editMutation.isPending} className="bg-blue-600 hover:bg-blue-700 text-white px-8">
+              {editMutation.isPending ? "Saving..." : "Update Record"}
+            </Button>
+          </div>
         </div>
       </SheetContent>
     </Sheet>

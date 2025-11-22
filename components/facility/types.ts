@@ -4,7 +4,7 @@ export interface FacilityPayload {
   email: string[];
   phone: string[];
   facility_type: "health_center" | "health_area" | "district";
-  address: string;
+  address: FacilityLocation;
   parent_id: string;
 }
 
@@ -19,6 +19,23 @@ export interface Facility {
   code: string;
   submission_status: any;
 }
+
+export interface FacilityLocation {
+  country: string;
+  city: string;
+  address: string;
+  longitude: number;
+  latitude: number;
+}
+
+// export interface FacilityPayload {
+//   name: string;
+//   email: string[];
+//   phone: string[];
+//   facility_type: "health_center" | "health_area" | "district";
+//   parent_id: string;
+//   location: FacilityLocation;
+// }
 
 export interface FacilityResponse {
   count: number;
