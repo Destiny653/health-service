@@ -60,7 +60,7 @@ export interface RowMetadata {
 }
 
 export interface PatientDocument {
-  isDead?: any
+  doc_code?: string;
   _id: string;
   date: ExtractedField;
   month_number: ExtractedField;
@@ -257,7 +257,7 @@ export function useEditDocumentRow() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ doc_code, row_id, payload }: { doc_code: string; row_id: string; payload: EditRowPayload }) =>
+    mutationFn: ({ doc_code, row_id, payload }: { doc_code: any; row_id: string; payload: EditRowPayload }) =>
       editDocumentRow({ doc_code, row_id, payload }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["documents"] });

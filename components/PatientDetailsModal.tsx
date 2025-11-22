@@ -7,13 +7,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { toast } from "sonner";
-import { 
-  EditRowPayload, 
-  useEditDocumentRow, 
-  PatientDocument, 
-  ExtractedField, 
+import {
+  EditRowPayload,
+  useEditDocumentRow,
+  PatientDocument,
+  ExtractedField,
   ResultsField,
-  FieldCorrection 
+  FieldCorrection
 } from "./team/hooks/docs/useGetDoc";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "./PatientsTable";
@@ -55,70 +55,59 @@ interface FormDataType {
   observations: string;
 }
 
-// Helper to safely get extracted_value from ExtractedField
-const getExtractedValue = (field: ExtractedField | undefined | null): string => {
-  return field?.extracted_value ?? field?.value ?? "";
-};
 
-// Helper to safely get extracted_value from ResultsField
-const getResultsValue = (field: ResultsField | undefined | null): string => {
-  return field?.extracted_value ?? field?.value ?? "";
-};
 
 // Visit History table columns
 const visitHistoryColumns: ColumnDef<PatientDocument>[] = [
   {
     id: "date",
     header: "Date",
-    accessorFn: (row) => row.date?.extracted_value || row.date?.value || "—",
+    accessorFn: (row) => row.date,
   },
   {
     id: "names",
     header: "Patient Name",
-    accessorFn: (row) => row.names?.extracted_value || row.names?.value || "—",
+    accessorFn: (row) => row.names,
   },
   {
     id: "sex",
     header: "Sex",
-    accessorFn: (row) => row.sex?.extracted_value || row.sex?.value || "—",
+    accessorFn: (row) => row.sex,
   },
   {
     id: "age",
     header: "Age",
-    accessorFn: (row) => row.age?.extracted_value || row.age?.value || "—",
+    accessorFn: (row) => row.age,
   },
   {
     id: "status",
     header: "Marital Status",
-    accessorFn: (row) => row.status?.extracted_value || row.status?.value || "—",
+    accessorFn: (row) => row.status,
   },
   {
     id: "pregnant",
     header: "is Pregnant",
-    accessorFn: (row) => {
-      const val = row.pregnant?.extracted_value || row.pregnant?.value || "";
-      return val === "1" || val.toLowerCase() === "yes" ? "1" : "0";
-    },
+    accessorFn: (row) => row.pregnant,
   },
   {
     id: "occupation",
     header: "Profession",
-    accessorFn: (row) => row.occupation?.extracted_value || row.occupation?.value || "—",
+    accessorFn: (row) => row.occupation,
   },
   {
     id: "residence",
     header: "Residence",
-    accessorFn: (row) => row.residence?.extracted_value || row.residence?.value || "—",
+    accessorFn: (row) => row.residence,
   },
   {
     id: "contact",
     header: "Contact",
-    accessorFn: (row) => row.contact?.extracted_value || row.contact?.value || "—",
+    accessorFn: (row) => row.contact,
   },
   {
     id: "past_history",
     header: "History",
-    accessorFn: (row) => row.past_history?.extracted_value || row.past_history?.value || "—",
+    accessorFn: (row) => row.past_history,
   },
 ];
 
@@ -132,6 +121,7 @@ export default function PatientEditSheet({
 }: PatientEditSheetProps) {
   const editMutation = useEditDocumentRow();
   const [currentTab, setCurrentTab] = React.useState<"details" | "history">("details");
+  console.log(selectedPatient)
 
   // Store original values to track changes
   const [originalData, setOriginalData] = React.useState<FormDataType | null>(null);
@@ -167,31 +157,34 @@ export default function PatientEditSheet({
   // Sync form when selectedPatient changes
   React.useEffect(() => {
     if (selectedPatient) {
-      const initialData: FormDataType = {
-        date: getExtractedValue(selectedPatient.date),
-        month_number: getExtractedValue(selectedPatient.month_number),
-        case: getExtractedValue(selectedPatient.case),
-        names: getExtractedValue(selectedPatient.names),
-        sex: getExtractedValue(selectedPatient.sex),
-        age: getExtractedValue(selectedPatient.age),
-        status: getExtractedValue(selectedPatient.status),
-        pregnant: getExtractedValue(selectedPatient.pregnant),
-        patient_code: getExtractedValue(selectedPatient.patient_code),
-        occupation: getExtractedValue(selectedPatient.occupation),
-        residence: getExtractedValue(selectedPatient.residence),
-        contact: getExtractedValue(selectedPatient.contact),
-        past_history: getExtractedValue(selectedPatient.past_history),
-        signs_symptoms: getExtractedValue(selectedPatient.signs_symptoms),
-        diagnosis: getExtractedValue(selectedPatient.diagnosis),
-        investigations: getExtractedValue(selectedPatient.investigations),
-        results: getResultsValue(selectedPatient.results),
-        treatment: getExtractedValue(selectedPatient.treatment),
-        confirmatory_diagnosis: getExtractedValue(selectedPatient.confirmatory_diagnosis),
-        hospitalisation: getExtractedValue(selectedPatient.hospitalisation),
-        receipt_no: getExtractedValue(selectedPatient.receipt_no),
-        referral: getExtractedValue(selectedPatient.referral),
-        observations: getExtractedValue(selectedPatient.observations),
+      const initialData: any = {
+        date: selectedPatient.date,
+        month_number: selectedPatient.month_number,
+        case: selectedPatient.case,
+        names: selectedPatient.names,
+        sex: selectedPatient.sex,
+        age: selectedPatient.age,
+        status: selectedPatient.status,
+        pregnant: selectedPatient.pregnant,
+        patient_code: selectedPatient.patient_code,
+        occupation: selectedPatient.occupation,
+        residence: selectedPatient.residence,
+        contact: selectedPatient.contact,
+        past_history: selectedPatient.past_history,
+        signs_symptoms: selectedPatient.signs_symptoms,
+        diagnosis: selectedPatient.diagnosis,
+        investigations: selectedPatient.investigations,
+        results: selectedPatient.results,
+        treatment: selectedPatient.treatment,
+        confirmatory_diagnosis: selectedPatient.confirmatory_diagnosis,
+        hospitalisation: selectedPatient.hospitalisation,
+        receipt_no: selectedPatient.receipt_no,
+        referral: selectedPatient.referral,
+        observations: selectedPatient.observations,
       };
+
+      console.log(initialData)
+
       setFormData(initialData);
       setOriginalData(initialData);
       setErrors({});
@@ -204,20 +197,22 @@ export default function PatientEditSheet({
     if (!originalData) return false;
     return formData[field] !== originalData[field];
   };
+  console.log(formData)
 
   // Get visit history data for the selected patient
   const visitHistoryData = React.useMemo(() => {
     if (!selectedPatient || !data) return [];
     // Filter data to show records with the same patient name or patient_code
-    const patientName = selectedPatient.names?.extracted_value || selectedPatient.names?.value;
-    const patientCode = selectedPatient.patient_code?.extracted_value || selectedPatient.patient_code?.value;
-    
+    const patientName = selectedPatient.names
+    const patientCode = selectedPatient.patient_code;
+
     return data.filter((record) => {
-      const recordName = record.names?.extracted_value || record.names?.value;
-      const recordCode = record.patient_code?.extracted_value || record.patient_code?.value;
+      const recordName = record.names;
+      const recordCode = record.patient_code;
       return (patientName && recordName === patientName) || (patientCode && recordCode === patientCode);
     });
   }, [selectedPatient, data]);
+  console.log(visitHistoryData)
 
   const handleChange = (field: keyof FormDataType, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -268,10 +263,10 @@ export default function PatientEditSheet({
     if (wasFieldChanged("month_number")) payload.month_number = createFieldCorrection(formData.month_number);
     if (wasFieldChanged("case")) payload.case = createFieldCorrection(formData.case);
     if (wasFieldChanged("names")) payload.names = createFieldCorrection(formData.names.trim());
-    if (wasFieldChanged("sex")) payload.sex = createFieldCorrection(formData.sex.toUpperCase().startsWith("Male") ? "Male" : "Female");
+    if (wasFieldChanged("sex")) payload.sex = createFieldCorrection(formData.sex.toUpperCase().startsWith("M") ? "M" : "F");
     if (wasFieldChanged("age")) payload.age = createFieldCorrection(formData.age);
     if (wasFieldChanged("status")) payload.status = createFieldCorrection(formData.status);
-    if (wasFieldChanged("pregnant")) payload.pregnant = createFieldCorrection(formData.pregnant === "Yes" || formData.pregnant === "1" ? "1" : "0");
+    if (wasFieldChanged("pregnant")) payload.pregnant = createFieldCorrection(formData.pregnant === "Yes" || formData.pregnant === "1" ? "1" : "2");
     if (wasFieldChanged("patient_code")) payload.patient_code = createFieldCorrection(formData.patient_code);
     if (wasFieldChanged("occupation")) payload.occupation = createFieldCorrection(formData.occupation);
     if (wasFieldChanged("residence")) payload.residence = createFieldCorrection(formData.residence);
@@ -296,7 +291,7 @@ export default function PatientEditSheet({
 
     editMutation.mutate(
       {
-        doc_code: selectedPatient.metadata?.doc_code,
+        doc_code: selectedPatient.doc_code,
         row_id: selectedPatient._id,
         payload,
       },
@@ -334,11 +329,10 @@ export default function PatientEditSheet({
           <div className="flex">
             <button
               onClick={() => setCurrentTab("details")}
-              className={`px-6 py-4 text-sm font-medium transition-colors relative ${
-                currentTab === "details"
-                  ? "text-[#2563EB]"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
+              className={`px-6 py-4 text-sm font-medium transition-colors relative ${currentTab === "details"
+                ? "text-[#2563EB]"
+                : "text-gray-600 hover:text-gray-900"
+                }`}
             >
               Patient Details
               {currentTab === "details" && (
@@ -347,11 +341,10 @@ export default function PatientEditSheet({
             </button>
             <button
               onClick={() => setCurrentTab("history")}
-              className={`px-6 py-4 text-sm font-medium transition-colors relative ${
-                currentTab === "history"
-                  ? "text-[#2563EB]"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
+              className={`px-6 py-4 text-sm font-medium transition-colors relative ${currentTab === "history"
+                ? "text-[#2563EB]"
+                : "text-gray-600 hover:text-gray-900"
+                }`}
             >
               Visit History
               {currentTab === "history" && (
@@ -426,8 +419,8 @@ export default function PatientEditSheet({
                 {/* Is Pregnant */}
                 <div>
                   <Label className="text-sm text-gray-600 mb-2 block">Is Pregnant</Label>
-                  <Select 
-                    value={formData.pregnant === "1" || formData.pregnant?.toLowerCase() === "yes" ? "yes" : "no"} 
+                  <Select
+                    value={formData.pregnant === "1" || formData.pregnant === "yes" ? "yes" : "no"}
                     onValueChange={(v) => handleChange("pregnant", v === "yes" ? "1" : "0")}
                   >
                     <SelectTrigger className={selectTriggerClass}>
@@ -626,10 +619,10 @@ export default function PatientEditSheet({
           {/* Visit History Tab */}
           {currentTab === "history" && (
             <div className="px-4 py-4">
-              <DataTable 
-                data={visitHistoryData} 
-                columns={visitHistoryColumns} 
-                isLoading={false} 
+              <DataTable
+                data={visitHistoryData}
+                columns={visitHistoryColumns}
+                isLoading={false}
               />
             </div>
           )}
@@ -645,7 +638,7 @@ export default function PatientEditSheet({
             <AlertTriangle className="w-4 h-4" />
             Deceased
           </Button>
-          
+
           <Button
             onClick={handleSubmit}
             disabled={editMutation.isPending}

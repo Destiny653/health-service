@@ -1,13 +1,13 @@
 // app/(auth)/verify-email/page.tsx
 "use client";
 import { Suspense } from "react";
-import VerifyEmailForm from "./_component/VerifyEmail";
+import VerifyOtpPage from "./_component/VerifyOtp";
 
 
 export default function VerifyEmailPage() {
     return (
         <Suspense>
-            <VerifyEmailForm />
+            <VerifyOtpPage />
         </Suspense>
     );
 }

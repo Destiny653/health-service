@@ -31,6 +31,28 @@ const formSchema = z.object({
   redirectUrl: z.string().optional(),
 });
 
+// Temporary storage for credentials until OTP is verified
+const TEMP_CREDENTIALS_KEY = "temp_login_creds";
+
+function setTempCredentials(username: string, password: string) {
+  const payload = btoa(JSON.stringify({ username, password })); // light obfuscation
+  Cookies.set(TEMP_CREDENTIALS_KEY, payload, { expires: 1 / 24 }); // expires in 1 hour
+}
+
+export function getTempCredentials(): { username: string; password: string } | null {
+  const raw = Cookies.get(TEMP_CREDENTIALS_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(atob(raw));
+  } catch {
+    return null;
+  }
+}
+
+export function clearTempCredentials() {
+  Cookies.remove(TEMP_CREDENTIALS_KEY);
+}
+
 export default function SignIn() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -43,9 +65,6 @@ export default function SignIn() {
     setRedirectUrl(url);
   }, [searchParams]);
 
-  // -------------------------
-  // FORM INSTANCE
-  // -------------------------
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: { username: "", password: "", redirectUrl },
@@ -56,31 +75,32 @@ export default function SignIn() {
   }, [redirectUrl, form]);
 
   // -------------------------
-  // LOGIN MUTATION (Only Login — No Personality Fetch)
+  // STEP 1: Request OTP (new login endpoint behavior)
   // -------------------------
   const signInMutation = useMutation<
-    { status: number; access_token: string; message: string; data: { access_token: string } },
+    { message: string }, // now we only get a message, no token yet
     Error,
     z.infer<typeof formSchema>
   >({
     mutationFn: async (data) => {
-      const res = await apiClient.post("/auth/login", data);
+      const res = await apiClient.post("/auth/login", {
+        username: data.username,
+        password: data.password,
+      });
       return res.data;
     },
-    retry: (failureCount, error: any) => {
-      if (error.code === "ERR_NETWORK" && failureCount < 3) return true;
-      return false;
-    },
-    // retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     onSuccess: (data) => {
+      const message = data.message || "OTP code has been sent to your email.";
 
-        // Save token
-        Cookies.set("authToken", data?.access_token, { expires: 7 });
+      // 1. Persist credentials for OTP verification step
+      setTempCredentials(form.getValues("username"), form.getValues("password"));
 
-        toast.success("Login successful!");
+      // 2. Show the exact message from backend
+      toast.success(message);
 
-        // Redirect — MainLayout will fetch /personality
-        router.push("/");
+      // 3. Navigate to OTP verification page
+      const redirect = redirectUrl ? `?redirectUrl=${encodeURIComponent(redirectUrl)}` : "";
+      router.push(`/verify-otp${redirect}`);
     },
     onError: (error: any) => {
       if (error.code === "ERR_NETWORK") {
@@ -88,21 +108,15 @@ export default function SignIn() {
       } else if (error.response?.status === 401) {
         toast.error("Invalid username or password.");
       } else {
-        toast.error(error.message || "Login failed.");
+        toast.error(error.response?.data?.message || "Login failed. Please try again.");
       }
     },
   });
 
-  // -------------------------
-  // SUBMIT HANDLER
-  // -------------------------
   function onSubmit(values: z.infer<typeof formSchema>) {
     signInMutation.mutate(values);
   }
 
-  // -------------------------
-  // UI
-  // -------------------------
   return (
     <div className="space-y-6 w-full flex flex-col justify-center mx-auto max-w-md">
       <div className="space-y-2 text-center">
@@ -123,9 +137,9 @@ export default function SignIn() {
                   <Input
                     placeholder="Username"
                     {...field}
-                    className={`rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50
-                      ${fieldState.error ? "border-red-500" : "focus:border-b-[#04b301]"}
-                    `}
+                    className={`rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 ${
+                      fieldState.error ? "border-red-500" : "focus:border-b-[#04b301]"
+                    }`}
                   />
                 </FormControl>
                 <Mail size={20} className="absolute right-3 top-12 -translate-y-1/2 text-gray-400" />
@@ -146,9 +160,9 @@ export default function SignIn() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     {...field}
-                    className={`rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50
-                      ${fieldState.error ? "border-red-500" : "focus:border-b-[#04b301]"}
-                    `}
+                    className={`rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 ${
+                      fieldState.error ? "border-red-500" : "focus:border-b-[#04b301]"
+                    }`}
                   />
                 </FormControl>
                 <span
@@ -182,7 +196,7 @@ export default function SignIn() {
             className="w-full bg-[#021EF5] text-white hover:bg-[#021ef5d7] rounded-none shadow-none py-6 px-5"
             disabled={signInMutation.isPending}
           >
-            {signInMutation.isPending ? "Signing In..." : "Sign In"}
+            {signInMutation.isPending ? "Sending OTP..." : "Sign In"}
           </Button>
         </form>
       </Form>

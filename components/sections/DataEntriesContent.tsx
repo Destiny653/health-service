@@ -1,7 +1,5 @@
-"use client";
-
 import * as React from "react";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, memo, useRef } from "react";
 import { toast } from "sonner";
 import {
   format,
@@ -15,15 +13,7 @@ import {
   getDay,
   isSameDay,
   startOfDay,
-  parseISO,
-  isValid,
 } from "date-fns";
-
-// --- API IMPORTS ---
-// Ensure these point to where you saved the previous file analysis
-// import { useGetFacilities, useGetDocumentsByFacility } from "@/lib/api/hooks";
-// import { PatientDocument } from "@/lib/api/types"; 
-
 // --- UI & COMPONENTS ---
 import { DataTable } from "@/components/PatientsTable";
 import { ColumnDef } from "@tanstack/react-table";
@@ -49,7 +39,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import PatientDetailsModal from "@/components/PatientDetailsModal";
+import PatientEditSheet from "@/components/PatientDetailsModal";
 import ImageViewer from "../ImageViewer";
 import { exportToCSV, exportToExcel } from "@/utils/export";
 import { CheckIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
@@ -59,174 +49,339 @@ import { HorizontalSplitPane } from "../HorizontantalSplitPane";
 import { useGetFacilities } from "../facility/hooks/useFacility";
 import { PatientDocument, useGetDocumentsByFacility } from "../team/hooks/docs/useGetDoc";
 import { UserData } from "@/payload";
-import PatientEditSheet from "@/components/PatientDetailsModal";
 
 // =========================================================================
-// CONFIG & UTILS
+// TYPES
 // =========================================================================
-const getStartOfToday = () => startOfDay(new Date());
-const View = { YEAR: "Year", MONTH: "Month", WEEK: "Week", DAY: "Day" } as const;
-type ViewType = keyof typeof View;
-
-const viewOptions = [
-  { label: "YEAR", tooltip: "View data grouped by year" },
-  { label: "MONTH", tooltip: "View data grouped by month" },
-  { label: "WEEK", tooltip: "View data grouped by week" },
-  { label: "DAY", tooltip: "View data grouped by day" },
-] as const;
-
-const STATUS_COLORS = {
-  GREEN: "bg-green-500",
-  YELLOW: "bg-yellow-400",
-  RED: "bg-red-500",
-  GRAY: "bg-gray-300",
-} as const;
-type StatusColor = typeof STATUS_COLORS[keyof typeof STATUS_COLORS];
-
-const dayAbbreviation = (date: Date) => ["S", "M", "T", "W", "T", "F", "S"][getDay(date)];
+type ViewType = "YEAR" | "MONTH" | "WEEK" | "DAY";
 
 interface TimeUnit {
   id: string;
   date: Date;
   label: string;
   value: string;
-  statusColor: StatusColor;
+  statusColor: string;
   isToday: boolean;
 }
 
+interface DataEntriesContentProps {
+  setActiveTab?: React.Dispatch<React.SetStateAction<string>>;
+}
+
 // =========================================================================
-// ADAPTED STATUS LOGIC (For API Data)
+// CONSTANTS - Outside component to prevent recreation
 // =========================================================================
-/**
- * Determines the color of a time block based on the rows within it.
- */
-const generateStatus = (unitDate: Date, documents: PatientDocument[], view: ViewType): StatusColor => {
-  let unitStart: Date, unitEnd: Date;
+const STATUS_COLORS = {
+  GREEN: "bg-green-500",
+  YELLOW: "bg-yellow-400",
+  RED: "bg-red-500",
+  GRAY: "bg-gray-300",
+} as const;
+
+const VIEW_OPTIONS = [
+  { label: "YEAR" as ViewType, tooltip: "View data grouped by year" },
+  { label: "MONTH" as ViewType, tooltip: "View data grouped by month" },
+  { label: "WEEK" as ViewType, tooltip: "View data grouped by week" },
+  { label: "DAY" as ViewType, tooltip: "View data grouped by day" },
+] as const;
+
+const DAY_ABBRS = ["S", "M", "T", "W", "T", "F", "S"] as const;
+const UNIT_COUNTS = { DAY: 7, WEEK: 8, MONTH: 8, YEAR: 7 } as const;
+const DEBOUNCE_MS = 300;
+
+// =========================================================================
+// PURE UTILITY FUNCTIONS - Outside component
+// =========================================================================
+const getStartOfToday = (): Date => startOfDay(new Date());
+
+const dayAbbreviation = (date: Date): string => DAY_ABBRS[getDay(date)];
+
+const getUnitStart = (date: Date, view: ViewType): Date => {
   switch (view) {
-    case "DAY": unitStart = startOfDay(unitDate); unitEnd = addDays(unitStart, 1); break;
-    case "WEEK": unitStart = startOfWeek(unitDate, { weekStartsOn: 1 }); unitEnd = addWeeks(unitStart, 1); break;
-    case "MONTH": unitStart = startOfMonth(unitDate); unitEnd = addMonths(unitStart, 1); break;
-    case "YEAR": unitStart = startOfYear(unitDate); unitEnd = addYears(unitStart, 1); break;
+    case "DAY": return startOfDay(date);
+    case "WEEK": return startOfWeek(date, { weekStartsOn: 1 });
+    case "MONTH": return startOfMonth(date);
+    case "YEAR": return startOfYear(date);
   }
-
-  // Filter docs that fall into this time unit
-  const docsInUnit = documents.filter(d => {
-    const created = new Date(d.metadata.created_at);
-    return created >= unitStart && created < unitEnd;
-  });
-
-  if (docsInUnit.length === 0) {
-    // If past date and empty -> Red, else Gray
-    return unitDate < startOfDay(new Date()) ? STATUS_COLORS.RED : STATUS_COLORS.GRAY;
-  }
-
-  // Logic: If items are verified -> Green. If mixed/unverified -> Yellow/Gray
-  // Adjust this logic based on your specific "Facility Status" or "Row Status" needs
-  const hasVerified = docsInUnit.some(d => !!d.metadata.verified_at);
-
-  if (hasVerified) return STATUS_COLORS.GREEN;
-
-  // Fallback for unverified but existing data
-  return STATUS_COLORS.YELLOW;
 };
 
-const generateExportFilename = (districtName: string, view: ViewType, date: Date, status: string | null): string => {
+const getUnitEnd = (start: Date, view: ViewType): Date => {
+  switch (view) {
+    case "DAY": return addDays(start, 1);
+    case "WEEK": return addWeeks(start, 1);
+    case "MONTH": return addMonths(start, 1);
+    case "YEAR": return addYears(start, 1);
+  }
+};
+
+const addByView = (date: Date, amount: number, view: ViewType): Date => {
+  switch (view) {
+    case "DAY": return addDays(date, amount);
+    case "WEEK": return addWeeks(date, amount);
+    case "MONTH": return addMonths(date, amount);
+    case "YEAR": return addYears(date, amount);
+  }
+};
+
+const getUnitId = (date: Date, view: ViewType): string => {
+  switch (view) {
+    case "DAY": return format(date, "yyyy-MM-dd");
+    case "WEEK": return format(startOfWeek(date, { weekStartsOn: 1 }), "yyyy-ww");
+    case "MONTH": return format(startOfMonth(date), "yyyy-MM");
+    case "YEAR": return format(startOfYear(date), "yyyy");
+  }
+};
+
+const getUnitLabel = (date: Date, view: ViewType): string => {
+  switch (view) {
+    case "YEAR": return "";
+    case "WEEK": return `W${format(date, "w")}`;
+    case "MONTH": return format(date, "MMM");
+    case "DAY": return dayAbbreviation(date);
+  }
+};
+
+const getUnitValue = (date: Date, view: ViewType): string => {
+  switch (view) {
+    case "YEAR": return format(date, "yyyy");
+    case "WEEK": return format(date, "w");
+    case "MONTH": return format(date, "M");
+    case "DAY": return format(date, "d");
+  }
+};
+
+const generateExportFilename = (
+  districtName: string,
+  view: ViewType,
+  date: Date,
+  status: string | null
+): string => {
   const cleanDistrict = districtName.replace(/\s+/g, "_");
   const statusPart = status ? `_${status}` : "";
   let period = "";
-  if (view === "DAY") period = format(date, "yyyy-MM-dd");
-  else if (view === "WEEK") period = `Week-${format(startOfWeek(date, { weekStartsOn: 1 }), "w-yyyy")}`;
-  else if (view === "MONTH") period = format(date, "MMM-yyyy");
-  else if (view === "YEAR") period = format(date, "yyyy");
+  switch (view) {
+    case "DAY": period = format(date, "yyyy-MM-dd"); break;
+    case "WEEK": period = `Week-${format(startOfWeek(date, { weekStartsOn: 1 }), "w-yyyy")}`; break;
+    case "MONTH": period = format(date, "MMM-yyyy"); break;
+    case "YEAR": period = format(date, "yyyy"); break;
+  }
   return `Patients_${cleanDistrict}_${period}${statusPart}`;
 };
 
+// Optimized document mapper - only extract needed fields
+const mapDocumentToPatient = (doc: PatientDocument): PatientDocument => ({
+  _id: doc._id,
+  case: doc.case?.extracted_value || "",
+  names: doc.names?.extracted_value || "",
+  sex: doc.sex?.extracted_value || "",
+  age: doc.age?.extracted_value || "",
+  pregnant: doc.pregnant?.extracted_value || "",
+  profession: doc.occupation?.extracted_value || "",
+  residence: doc.residence?.extracted_value || "",
+  results: doc.results?.extracted_value || "",
+  contact: doc.contact?.extracted_value || "",
+  patient_code: doc.patient_code?.extracted_value || "",
+  past_history: doc.past_history?.extracted_value || "",
+  symptoms: doc.signs_symptoms?.extracted_value || "",
+  diagnosis: doc.diagnosis?.extracted_value || "",
+  investigation: doc.investigations?.extracted_value || "",
+  treatment: doc.treatment?.extracted_value || "",
+  marital_status: "",
+  care_level: "",
+  receipt_number: doc.receipt_no?.extracted_value || "",
+  referral: doc.referral?.extracted_value || "",
+  observations: doc.observations?.extracted_value || "",
+  is_rare_case: false,
+  dataIssues: [],
+  role: doc.metadata?.created_by || "User",
+  created_at: doc.metadata?.created_at,
+  status: doc.metadata?.verified_at ? "confirmed" : "pending",
+  imageUrl: doc.metadata?.reference || "",
+  date: doc.date?.extracted_value || "",
+  month_number: doc.month_number?.extracted_value || "",
+  status_extracted: doc.status?.extracted_value || "",
+  disease_id: doc.results?.disease_id || "",
+  was_processed: doc.results?.was_processed || false,
+  hospitalisation: doc.hospitalisation?.extracted_value || "",
+  is_dead: doc.metadata?.is_dead,
+  is_latest: doc.metadata?.is_latest,
+  version: doc.metadata?.version,
+  doc_code: doc.metadata?.doc_code,
+  row_code: doc.metadata?.row_code,
+  modified_at: doc.metadata?.modified_at,
+  verified_at: doc.metadata?.verified_at || "",
+  verified_by: doc.metadata?.verified_by || "",
+  facility_id: doc.metadata?.facility_id || "",
+  modified_by: doc.metadata?.modified_by || "",
+} as unknown as PatientDocument);
+
 // =========================================================================
-// TIME UNIT ITEM
+// MEMOIZED SUB-COMPONENTS
 // =========================================================================
-const TimeUnitItem = ({ label, value, statusColor, isSelected }: { label: string; value: string; statusColor: StatusColor; isSelected: boolean }) => (
+const TimeUnitItem = memo(({ 
+  label, 
+  value, 
+  statusColor, 
+  isSelected 
+}: { 
+  label: string; 
+  value: string; 
+  statusColor: string; 
+  isSelected: boolean;
+}) => (
   <div className="flex flex-col items-center relative">
     <div className="text-xs font-semibold text-gray-500 mb-1">{label}</div>
     <div
-      className={`w-8 h-8 flex items-center py-5 px-6 justify-center text-sm font-bold text-white rounded-md ${statusColor} shadow-sm transition-all ${isSelected ? "scale-110 ring-2 ring-blue-500" : "scale-100 hover:scale-105"
-        }`}
+      className={cn(
+        "w-8 h-8 flex items-center py-5 px-6 justify-center text-sm font-bold text-white rounded-md shadow-sm transition-transform",
+        statusColor,
+        isSelected ? "scale-110 ring-2 ring-blue-500" : "scale-100 hover:scale-105"
+      )}
     >
       {value}
     </div>
-    {isSelected && <div className="w-7 h-1 bg-blue-600 rounded-full mt-1 absolute -bottom-2 animate-pulse"></div>}
+    {isSelected && (
+      <div className="w-7 h-1 bg-blue-600 rounded-full mt-1 absolute -bottom-2 animate-pulse" />
+    )}
   </div>
-);
+));
+TimeUnitItem.displayName = "TimeUnitItem";
+
+const TimeUnitButton = memo(({ 
+  unit, 
+  isSelected, 
+  onClick 
+}: { 
+  unit: TimeUnit; 
+  isSelected: boolean; 
+  onClick: () => void;
+}) => (
+  <button 
+    onClick={onClick} 
+    className="p-1 rounded-md cursor-pointer transition-transform hover:-translate-y-0.5"
+    type="button"
+  >
+    <TimeUnitItem 
+      label={unit.label} 
+      value={unit.value} 
+      statusColor={unit.statusColor} 
+      isSelected={isSelected} 
+    />
+  </button>
+));
+TimeUnitButton.displayName = "TimeUnitButton";
+
+const StatusFilterButton = memo(({ 
+  status, 
+  label, 
+  color, 
+  isActive, 
+  onClick,
+  tooltip
+}: { 
+  status: string | null;
+  label: string;
+  color?: string;
+  isActive: boolean;
+  onClick: () => void;
+  tooltip: string;
+}) => (
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+          "flex items-center text-sm cursor-pointer transition-all px-4 py-2 group hover:scale-105",
+          isActive && "bg-white rounded-md shadow-sm"
+        )}
+      >
+        {color && <div className={cn("w-3 h-3 rounded-full mr-2", color)} />}
+        <span
+          className={cn(
+            "overflow-hidden transition-all whitespace-nowrap duration-300 ease-in-out",
+            isActive || !color
+              ? "opacity-100 max-w-[100px]"
+              : "group-hover:opacity-100 group-hover:max-w-[100px] opacity-0 max-w-0"
+          )}
+        >
+          {label}
+        </span>
+      </button>
+    </TooltipTrigger>
+    <TooltipContent>{tooltip}</TooltipContent>
+  </Tooltip>
+));
+StatusFilterButton.displayName = "StatusFilterButton";
+
+const ViewToggleButton = memo(({ 
+  view, 
+  isActive, 
+  onClick 
+}: { 
+  view: ViewType; 
+  isActive: boolean; 
+  onClick: () => void;
+}) => (
+  <Button
+    variant={isActive ? "default" : "ghost"}
+    size="sm"
+    onClick={onClick}
+    className={cn("rounded-md px-4", isActive && "bg-[#028700] hover:bg-[#028700c9]")}
+  >
+    {view}
+  </Button>
+));
+ViewToggleButton.displayName = "ViewToggleButton";
+
+const FacilityItem = memo(({ 
+  facility, 
+  isSelected, 
+  onSelect 
+}: { 
+  facility: { _id: string; name: string }; 
+  isSelected: boolean; 
+  onSelect: () => void;
+}) => (
+  <CommandItem value={facility.name} onSelect={onSelect}>
+    <CheckIcon className={cn("mr-2 h-4 w-4", isSelected ? "opacity-100" : "opacity-0")} />
+    {facility.name}
+  </CommandItem>
+));
+FacilityItem.displayName = "FacilityItem";
 
 // =========================================================================
-// HELPER: MAP API DOCUMENT TO TABLE ROW
+// CUSTOM HOOKS
 // =========================================================================
-const mapDocumentToPatient = (doc: PatientDocument): PatientDocument => {
-  return {
-    id: doc._id,
-    case: doc.case?.extracted_value || "",
-    patientName: doc.names?.extracted_value || "",
-    sex: doc.sex?.extracted_value || "",
-    age: doc.age?.extracted_value || "",
-    isPregnant: doc.pregnant?.extracted_value === "1" || doc.pregnant?.extracted_value === "Yes",
-    profession: doc.occupation?.extracted_value || "",
-    residence: doc.residence?.extracted_value || "",
-    results: doc.results?.extracted_value || "",
-    contact: doc.contact?.extracted_value || "",
-    patientCode: doc.patient_code?.extracted_value || "",
-    pastHistory: doc.past_history?.extracted_value || "",
-    symptoms: doc.signs_symptoms?.extracted_value || "",
-    diagnosis: doc.diagnosis?.extracted_value || "",
-    investigation: doc.investigations?.extracted_value || "",
-    treatment: doc.treatment?.extracted_value || "",
-    // Map other fields as needed, defaulting to empty string if undefined
-    maritalStatus: "",
-    careLevel: "",
-    receiptNumber: doc.receipt_no?.extracted_value || "",
-    referral: doc.referral?.extracted_value || "",
-    observations: doc.observations?.extracted_value || "",
-    isRareCase: false,
-    dataIssues: [],
-    role: doc.metadata.created_by || "User",
-    // Important: We add metadata for internal filtering
-    createdAt: doc.metadata.created_at,
-    status: doc.metadata.verified_at ? "confirmed" : "pending",
-    imageUrl: doc.metadata.reference || "",
-    date: doc.date?.extracted_value || "",
-    monthNumber: doc.month_number?.extracted_value || "",
-    statusExtracted: doc.status?.extracted_value || "",
+const useDebounce = <T,>(value: T, delay: number): T => {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  
+  return debouncedValue;
+};
 
-    // results extra fields
-    diseaseId: doc.results?.disease_id || "",
-    wasProcessed: doc.results?.was_processed || false,
-    resultVerifiedAt: doc.results?.verified_at || "",
-
-    // hospitalisation
-    hospitalisation: doc.hospitalisation?.extracted_value || "",
-
-    // metadata remaining fields
-    isDead: doc.metadata.is_dead,
-    isLatest: doc.metadata.is_latest,
-    version: doc.metadata.version,
-    docCode: doc.metadata.doc_code,
-    rowCode: doc.metadata.row_code,
-    modifiedAt: doc.metadata.modified_at,
-    verifiedAt: doc.metadata.verified_at || "",
-    verifiedBy: doc.metadata.verified_by || "",
-    facilityId: doc.metadata.facility_id || "",
-    modifiedBy: doc.metadata.modified_by || "",
-  } as unknown as PatientDocument; // Cast to Patient to satisfy the Table interface
+const useUserData = (): UserData => {
+  return useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const str = localStorage.getItem('userData');
+      return str ? JSON.parse(str) : null;
+    } catch {
+      return null;
+    }
+  }, []);
 };
 
 // =========================================================================
 // MAIN COMPONENT
 // =========================================================================
-interface DataEntriesContentProps {
-  setActiveTab?: React.Dispatch<React.SetStateAction<string>>;
-}
-
 export default function DataEntriesContent({ setActiveTab }: DataEntriesContentProps) {
-  // 1. State for Filtering & UI
-  const today = getStartOfToday();
+  // ---- State ----
+  const today = useRef(getStartOfToday()).current;
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [activeView, setActiveView] = useState<ViewType>("YEAR");
   const [searchTerm, setSearchTerm] = useState("");
@@ -235,256 +390,302 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
   const [modalOpen, setModalOpen] = useState(false);
   const [activeTabCon, setActiveTabCon] = useState<"details" | "history">("details");
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
-  const [open, setOpen] = useState(false); // For Dropdown
-  const userDataString = typeof window !== 'undefined' ? localStorage.getItem('userData') : null;
-  const personel: UserData = userDataString ? JSON.parse(userDataString) : null;
-  const currentUserFacilityId = personel?.facility.id;
-
-  // 2. API: Fetch Facilities
-  const { data: facilitiesData } = useGetFacilities(currentUserFacilityId);
-
-  const facilities = useMemo(() => facilitiesData?.results || [], [facilitiesData]);
-
-  // State for Selected Facility (ID and Name)
+  const [facilityDropdownOpen, setFacilityDropdownOpen] = useState(false);
   const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(null);
 
-  // Set default facility on load
+  // Debounced search for performance
+  const debouncedSearch = useDebounce(searchTerm, DEBOUNCE_MS);
+
+  // ---- User & Facility Data ----
+  const personel = useUserData();
+  const currentUserFacilityId = personel?.facility?.id;
+
+  const { data: facilitiesData } = useGetFacilities(currentUserFacilityId);
+  const facilities = useMemo(() => facilitiesData?.results || [], [facilitiesData]);
+
+  // Set default facility
   useEffect(() => {
     if (facilities.length > 0 && !selectedFacilityId) {
       setSelectedFacilityId(facilities[0]._id);
     }
   }, [facilities, selectedFacilityId]);
 
-  // Helper to get current facility name for UI
-  const selectedFacilityName = useMemo(() => {
-    return facilities.find(f => f._id === selectedFacilityId)?.name || "Select District";
-  }, [facilities, selectedFacilityId]);
-
-  // 3. API: Fetch Documents for Selected Facility
-  const { data: documentsData, isLoading, isError } = useGetDocumentsByFacility(
-    selectedFacilityId,
-    { limit: 1000 } // Fetching large batch for timeline view. Pagination usually needed for prod.
+  const selectedFacilityName = useMemo(
+    () => facilities.find(f => f._id === selectedFacilityId)?.name || "Select District",
+    [facilities, selectedFacilityId]
   );
 
-  // Handle API Errors
-  useEffect(() => { if (isError) toast.error("Error fetching documents"); }, [isError]);
+  // ---- Document Data ----
+  const { data: documentsData, isLoading, isError } = useGetDocumentsByFacility(
+    selectedFacilityId,
+    { limit: 1000 }
+  );
 
-  // 4. Flatten Documents Logic
-  // The API returns { documents: { "CodeA": [rows], "CodeB": [rows] } }
-  // We need a flat array of ALL rows to populate the timeline and table.
+  useEffect(() => {
+    if (isError) toast.error("Error fetching documents");
+  }, [isError]);
+
+  // Flatten all documents
   const allRawDocuments = useMemo(() => {
     if (!documentsData?.documents) return [];
     return Object.values(documentsData.documents).flat();
   }, [documentsData]);
 
-  // 5. Status Recovery from LocalStorage
-  useEffect(() => {
-    const saved = localStorage.getItem("facilities:selectedStatus");
-    if (saved && ["confirmed", "progress", "pending", "N/A"].includes(saved)) {
-      setSelectedStatus(saved);
+  // Build index for O(1) date lookups
+  const docsByDateKey = useMemo(() => {
+    const map = new Map<string, PatientDocument[]>();
+    for (const doc of allRawDocuments) {
+      if (!doc.metadata?.created_at) continue;
+      const key = format(new Date(doc.metadata.created_at), "yyyy-MM-dd");
+      const arr = map.get(key);
+      if (arr) arr.push(doc);
+      else map.set(key, [doc]);
     }
-  }, []);
+    return map;
+  }, [allRawDocuments]);
 
-  // 6. Timeline & Date Logic
-  const getUnitStart = (date: Date, view: ViewType): Date => {
-    switch (view) {
-      case "DAY": return startOfDay(date);
-      case "WEEK": return startOfWeek(date, { weekStartsOn: 1 });
-      case "MONTH": return startOfMonth(date);
-      case "YEAR": return startOfYear(date);
-      default: return date;
-    }
-  };
+  // ---- Computed Values ----
+  const selectedUnitId = useMemo(
+    () => getUnitId(selectedDate, activeView),
+    [selectedDate, activeView]
+  );
 
-  const getUnitEnd = (start: Date, view: ViewType): Date => {
-    switch (view) {
-      case "DAY": return addDays(start, 1);
-      case "WEEK": return addWeeks(start, 1);
-      case "MONTH": return addMonths(start, 1);
-      case "YEAR": return addYears(start, 1);
-      default: return addDays(start, 1);
-    }
-  };
-
-  const selectedUnitId = useMemo(() => {
-    switch (activeView) {
-      case "DAY": return format(selectedDate, "yyyy-MM-dd");
-      case "WEEK": return format(startOfWeek(selectedDate, { weekStartsOn: 1 }), "yyyy-ww");
-      case "MONTH": return format(startOfMonth(selectedDate), "yyyy-MM");
-      case "YEAR": return format(startOfYear(selectedDate), "yyyy");
-    }
-  }, [selectedDate, activeView]);
-
-  // Calculate Timeline Units
-  const allPossibleUnits = useMemo(() => {
-    const units: TimeUnit[] = [];
-    const center = selectedDate;
-    const push = (date: Date, label: string, value: string) => {
-      const id = activeView === "DAY" ? format(date, "yyyy-MM-dd")
-        : activeView === "WEEK" ? format(startOfWeek(date, { weekStartsOn: 1 }), "yyyy-ww")
-          : activeView === "MONTH" ? format(startOfMonth(date), "yyyy-MM")
-            : format(startOfYear(date), "yyyy");
-
-      // Use the allRawDocuments for status generation
-      units.push({
-        id,
-        date,
-        label,
-        value,
-        statusColor: generateStatus(date, allRawDocuments, activeView),
-        isToday: isSameDay(date, new Date())
-      });
-    };
-
-    switch (activeView) {
-      case "DAY": { const s = addDays(center, -180); for (let i = 0; i < 360; i++) push(addDays(s, i), dayAbbreviation(addDays(s, i)), format(addDays(s, i), "d")); break; }
-      case "WEEK": { const s = addWeeks(center, -52); for (let i = 0; i < 104; i++) { const ws = startOfWeek(addWeeks(s, i), { weekStartsOn: 1 }); push(ws, `W${format(ws, "w")}`, format(ws, "w")); } break; }
-      case "MONTH": { const s = addMonths(center, -36); for (let i = 0; i < 72; i++) push(addMonths(s, i), format(addMonths(s, i), "MMM"), format(addMonths(s, i), "M")); break; }
-      case "YEAR": { const s = addYears(center, -10); for (let i = 0; i < 21; i++) push(addYears(s, i), "", format(addYears(s, i), "yyyy")); break; }
-    }
-    return units;
-  }, [selectedDate, activeView, allRawDocuments]);
-
-  // Filter Units based on Selected Status
-  const units = useMemo(() => {
-    let filtered = allPossibleUnits;
-
-    if (selectedStatus !== null) {
-      filtered = filtered.filter(unit => {
-        const start = getUnitStart(unit.date, activeView);
-        const end = getUnitEnd(start, activeView);
-
-        // Check if any doc in this period matches the status
-        return allRawDocuments.some(doc => {
-          const created = new Date(doc.metadata.created_at);
-          const docStatus = doc.metadata.verified_at ? "confirmed" : "pending"; // Derived status
-          return docStatus === selectedStatus && created >= start && created < end;
-        });
-      });
-    }
-
-    if (filtered.length === 0) return [];
-    const idx = filtered.findIndex(u => u.id === selectedUnitId);
-    const start = idx === -1 ? 0 : Math.max(0, idx - 2);
-    return filtered.slice(start, start + 6);
-  }, [allPossibleUnits, selectedStatus, selectedUnitId, activeView, allRawDocuments]);
-
-  // Sync selection if current unit disappears
-  useEffect(() => {
-    if (units.length > 0 && !units.some(u => u.id === selectedUnitId)) {
-      setSelectedDate(getUnitStart(units[0].date, activeView));
-    }
-  }, [units, selectedUnitId, activeView]);
-
-  // 7. Data Filtering Logic (The Table Data)
   const [startRange, endRange] = useMemo(() => {
     const start = getUnitStart(selectedDate, activeView);
-    return [start, getUnitEnd(start, activeView)];
+    return [start, getUnitEnd(start, activeView)] as const;
   }, [selectedDate, activeView]);
 
-  const filteredPatients = useMemo(() => {
-    if (!allRawDocuments.length || !startRange || !endRange) return [];
+  // Generate status color for a time unit
+  const getStatusColor = useCallback((unitDate: Date, view: ViewType): string => {
+    const unitStart = getUnitStart(unitDate, view);
+    const unitEnd = getUnitEnd(unitStart, view);
+    const todayStart = startOfDay(new Date());
 
-    return allRawDocuments.filter(doc => {
-      const created = new Date(doc.metadata.created_at);
-      const inRange = created >= startRange && created < endRange;
-      // Note: Facility check is implicit because we fetched by ID
+    let hasAny = false;
+    let hasVerified = false;
 
-      const docStatus = doc.metadata.verified_at ? "confirmed" : "pending";
-      const inStatus = selectedStatus === null || docStatus === selectedStatus;
+    let current = unitStart;
+    while (current < unitEnd) {
+      const key = format(current, "yyyy-MM-dd");
+      const docs = docsByDateKey.get(key);
+      if (docs?.length) {
+        hasAny = true;
+        if (docs.some(d => !!d.metadata?.verified_at)) {
+          hasVerified = true;
+          break;
+        }
+      }
+      current = addDays(current, 1);
+    }
 
-      return inRange && inStatus;
-    })
-      // Transform API Doc -> Table Patient
-      .map(mapDocumentToPatient)
-      // Search Filter
-      .filter(p => {
-        if (!searchTerm) return true;
-        const term = searchTerm.toLowerCase();
-        return [p.names, p.case, p.sex, p.age, p.contact, p.past_history]
-          .some(f => String(f || "").toLowerCase().includes(term));
+    if (!hasAny) {
+      return unitDate < todayStart ? STATUS_COLORS.RED : STATUS_COLORS.GRAY;
+    }
+    return hasVerified ? STATUS_COLORS.GREEN : STATUS_COLORS.YELLOW;
+  }, [docsByDateKey]);
+
+  // Check if unit has docs matching status filter
+  const unitMatchesStatusFilter = useCallback((unitDate: Date, view: ViewType): boolean => {
+    if (selectedStatus === null) return true;
+    
+    const unitStart = getUnitStart(unitDate, view);
+    const unitEnd = getUnitEnd(unitStart, view);
+
+    let current = unitStart;
+    while (current < unitEnd) {
+      const key = format(current, "yyyy-MM-dd");
+      const docs = docsByDateKey.get(key);
+      if (docs?.length) {
+        for (const doc of docs) {
+          const docStatus = doc.metadata?.verified_at ? "confirmed" : "pending";
+          if (docStatus === selectedStatus) return true;
+        }
+      }
+      current = addDays(current, 1);
+    }
+    return false;
+  }, [docsByDateKey, selectedStatus]);
+
+  // Generate visible time units (only what's displayed)
+  const units = useMemo(() => {
+    const result: TimeUnit[] = [];
+    const count = UNIT_COUNTS[activeView];
+    const half = Math.floor(count / 2);
+
+    for (let i = -half; i <= half; i++) {
+      const date = addByView(selectedDate, i, activeView);
+      const unitDate = getUnitStart(date, activeView);
+      
+      if (!unitMatchesStatusFilter(unitDate, activeView)) continue;
+
+      result.push({
+        id: getUnitId(unitDate, activeView),
+        date: unitDate,
+        label: getUnitLabel(unitDate, activeView),
+        value: getUnitValue(unitDate, activeView),
+        statusColor: getStatusColor(unitDate, activeView),
+        isToday: isSameDay(unitDate, new Date()),
       });
+    }
 
-  }, [allRawDocuments, startRange, endRange, searchTerm, selectedStatus]);
+    return result;
+  }, [selectedDate, activeView, getStatusColor, unitMatchesStatusFilter]);
 
+  // Filter patients for table
+  const filteredPatients = useMemo(() => {
+    if (!allRawDocuments.length) return [];
 
-  // 8. Image Logic
-  // Extract images from the *filtered* list
+    const searchLower = debouncedSearch.toLowerCase();
+    const results: PatientDocument[] = [];
+
+    for (const doc of allRawDocuments) {
+      if (!doc.metadata?.created_at) continue;
+      
+      const created = new Date(doc.metadata.created_at);
+
+      // Date range filter
+      if (created < startRange || created >= endRange) continue;
+
+      // Status filter
+      if (selectedStatus !== null) {
+        const docStatus = doc.metadata.verified_at ? "confirmed" : "pending";
+        if (docStatus !== selectedStatus) continue;
+      }
+
+      // Search filter (most expensive - check last)
+      if (searchLower) {
+        const fields = [
+          doc.names?.extracted_value,
+          doc.case?.extracted_value,
+          doc.sex?.extracted_value,
+          doc.age?.extracted_value,
+          doc.contact?.extracted_value,
+          doc.past_history?.extracted_value,
+        ];
+        const matches = fields.some(f => f && String(f).toLowerCase().includes(searchLower));
+        if (!matches) continue;
+      }
+
+      results.push(mapDocumentToPatient(doc));
+    }
+
+    return results;
+  }, [allRawDocuments, startRange, endRange, debouncedSearch, selectedStatus]);
+
+  // Image URLs (only compute when panel is visible)
   const filteredImageUrls = useMemo(() => {
+    if (!showBottomPanel) return [];
     return filteredPatients
-      .map(p => (p as any).imageUrl) // Accessed from the mapped object
-      .filter(url => url && url.length > 0);
-  }, [filteredPatients]);
+      .map(p => (p as any).imageUrl)
+      .filter((url): url is string => !!url);
+  }, [filteredPatients, showBottomPanel]);
 
-  // 9. Handlers
+  // ---- Stable Callbacks ----
   const handleUnitClick = useCallback((id: string) => {
     const unit = units.find(u => u.id === id);
     if (unit) setSelectedDate(getUnitStart(unit.date, activeView));
   }, [units, activeView]);
 
-  const handleCalendarSelect = (date: Date | undefined) => date && setSelectedDate(startOfDay(date));
-  const handleViewChange = (view: ViewType) => { setActiveView(view); setSelectedDate(getUnitStart(selectedDate, view)); };
-  const handleRowClick = (p: PatientDocument) => { setSelectedPatient(p); setModalOpen(true); setActiveTabCon("details"); };
-  const closeModal = () => { setModalOpen(false); setSelectedPatient(null); };
-  const toggleBottomPanel = () => setShowBottomPanel(p => !p);
+  const handleCalendarSelect = useCallback((date: Date | undefined) => {
+    if (date) setSelectedDate(startOfDay(date));
+  }, []);
 
+  const handleViewChange = useCallback((view: ViewType) => {
+    setActiveView(view);
+    setSelectedDate(prev => getUnitStart(prev, view));
+  }, []);
 
-  const columns = React.useMemo<ColumnDef<PatientDocument>[]>(() => [
+  const handleRowClick = useCallback((p: PatientDocument) => {
+    setSelectedPatient(p);
+    setModalOpen(true);
+    setActiveTabCon("details");
+  }, []);
 
+  const closeModal = useCallback(() => {
+    setModalOpen(false);
+    setSelectedPatient(null);
+  }, []);
+
+  const toggleBottomPanel = useCallback(() => {
+    setShowBottomPanel(prev => !prev);
+  }, []);
+
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  }, []);
+
+  const handleStatusFilter = useCallback((status: string | null) => {
+    setSelectedStatus(prev => {
+      if (status === null) {
+        toast.info("Filter cleared");
+        return null;
+      }
+      return prev === status ? null : status;
+    });
+  }, []);
+
+  const handleFacilitySelect = useCallback((id: string) => {
+    setSelectedFacilityId(id);
+    setFacilityDropdownOpen(false);
+  }, []);
+
+  const handleExportCSV = useCallback(() => {
+    const filename = generateExportFilename(selectedFacilityName, activeView, selectedDate, selectedStatus);
+    exportToCSV(filteredPatients, columns, filename);
+  }, [selectedFacilityName, activeView, selectedDate, selectedStatus, filteredPatients]);
+
+  const handleExportExcel = useCallback(() => {
+    const filename = generateExportFilename(selectedFacilityName, activeView, selectedDate, selectedStatus);
+    exportToExcel(filteredPatients, columns, filename);
+  }, [selectedFacilityName, activeView, selectedDate, selectedStatus, filteredPatients]);
+
+  // ---- Table Columns (stable reference) ----
+  const columns = useMemo<ColumnDef<PatientDocument>[]>(() => [
     { accessorKey: "date", header: "Date" },
-    { accessorKey: "monthNumber", header: "Month Number" },
+    { accessorKey: "month_number", header: "Month Number" },
     { accessorKey: "case", header: "Case #" },
-    { accessorKey: "patientName", header: "Patient Name" },
+    { accessorKey: "names", header: "Patient Name" },
     { accessorKey: "sex", header: "Sex" },
     { accessorKey: "age", header: "Age" },
-
-    { accessorKey: "pregnant", header: "Is Pregnant", },
+    {
+      accessorKey: "pregnant",
+      header: "Is Pregnant",
+      cell: ({ row }) => ((row.original as any).pregnant === '2' ? 'Yes' : 'No'),
+    },
     { accessorKey: "status", header: "Status" },
-    { accessorKey: "patientCode", header: "Patient Code" },
+    { accessorKey: "patient_code", header: "Patient Code" },
     { accessorKey: "profession", header: "Occupation" },
     { accessorKey: "residence", header: "Residence" },
     { accessorKey: "contact", header: "Contact" },
-    { accessorKey: "pastHistory", header: "Past History" },
+    { accessorKey: "past_history", header: "Past History" },
     { accessorKey: "symptoms", header: "Signs & Symptoms" },
     { accessorKey: "diagnosis", header: "Diagnosis" },
     { accessorKey: "results", header: "Results" },
-
     { accessorKey: "treatment", header: "Treatment" },
     { accessorKey: "investigation", header: "Investigation" },
     { accessorKey: "hospitalisation", header: "Hospitalisation" },
-    { accessorKey: "receiptNumber", header: "Receipt No." },
+    { accessorKey: "receipt_number", header: "Receipt No." },
     { accessorKey: "referral", header: "Referral" },
     { accessorKey: "observations", header: "Observations" },
-
-    // Metadata fields
     {
-      accessorKey: "isDead",
+      accessorKey: "is_dead",
       header: "Is Dead",
-      cell: ({ row }) => (row.original.isDead == true ? 'Yes' : 'No'),
+      cell: ({ row }) => ((row.original as any).isDead ? 'Yes' : 'No'),
     },
   ], []);
 
-  const exportFilename = generateExportFilename(selectedFacilityName, activeView, selectedDate, selectedStatus);
-
-  // 10. UI Rendering
+  // ---- Render ----
   const topContent = (
     <div className="flex flex-col h-full bg-white">
-      <style jsx>{`
-        .time-unit-button { cursor: pointer; transition: all 0.3s; }
-        .time-unit-button:hover { transform: translateY(-2px); }
-        .date-scroll { scrollbar-width: thin; }
-        .date-scroll::-webkit-scrollbar { height: 6px; }
-        .date-scroll::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 3px; }
-        .date-scroll::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 3px; }
-      `}</style>
-
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center p-4 border-b bg-white">
-
-        {/* FACILITY DROPDOWN (REAL DATA) */}
-        <Popover open={open} onOpenChange={setOpen}>
+        {/* Facility Dropdown */}
+        <Popover open={facilityDropdownOpen} onOpenChange={setFacilityDropdownOpen}>
           <PopoverTrigger asChild>
-            <button className="w-[240px] justify-between bg-[#021EF533] py-3 px-4 border border-blue-200 rounded-md flex items-center text-sm">
+            <button 
+              type="button"
+              className="w-[240px] justify-between bg-[#021EF533] py-3 px-4 border border-blue-200 rounded-md flex items-center text-sm"
+            >
               <div className="flex items-center space-x-2">
                 <svg className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
@@ -501,17 +702,12 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
                 <CommandEmpty>No facility found.</CommandEmpty>
                 <CommandGroup>
                   {facilities.map(f => (
-                    <CommandItem
+                    <FacilityItem
                       key={f._id}
-                      value={f.name}
-                      onSelect={() => {
-                        setSelectedFacilityId(f._id);
-                        setOpen(false);
-                      }}
-                    >
-                      <CheckIcon className={cn("mr-2 h-4 w-4", f._id === selectedFacilityId ? "opacity-100" : "opacity-0")} />
-                      {f.name}
-                    </CommandItem>
+                      facility={f}
+                      isSelected={f._id === selectedFacilityId}
+                      onSelect={() => handleFacilitySelect(f._id)}
+                    />
                   ))}
                 </CommandGroup>
               </CommandList>
@@ -519,102 +715,58 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
           </PopoverContent>
         </Popover>
 
-        {/* LEGEND / STATUS FILTER */}
-      <div className="flex items-center mt-4 md:mt-0 p-2 border rounded-md bg-gray-100 h-12 transition-all duration-300">
-  <TooltipProvider>
+        {/* Status Filter & Export */}
+        <div className="flex items-center mt-4 md:mt-0 p-2 border rounded-md bg-gray-100 h-12">
+          <TooltipProvider>
+            <StatusFilterButton
+              status={null}
+              label="All"
+              isActive={selectedStatus === null}
+              onClick={() => handleStatusFilter(null)}
+              tooltip="Show all data"
+            />
 
-    {/* All */}
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          onClick={() => { setSelectedStatus(null); toast.info("Filter cleared"); }}
-          className={`flex items-center text-sm cursor-pointer transition-all px-5 py-2 group hover:scale-105 ${
-            selectedStatus === null ? "bg-white rounded-md shadow-sm" : ""
-          }`}
-        >
-          <span>All</span>
-        </button>
-      </TooltipTrigger>
-      <TooltipContent>Show all data</TooltipContent>
-    </Tooltip>
+            <div className="h-8 w-px bg-gray-300 mx-4" />
 
-    <div className="h-8 w-px bg-gray-300 mx-4" />
+            <StatusFilterButton
+              status="confirmed"
+              label="Confirmed"
+              color="bg-green-500"
+              isActive={selectedStatus === "confirmed"}
+              onClick={() => handleStatusFilter("confirmed")}
+              tooltip="Verified records"
+            />
 
-    {/* Confirmed */}
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          onClick={() => setSelectedStatus((s) => (s === "confirmed" ? null : "confirmed"))}
-          className={`flex items-center text-sm cursor-pointer px-4 py-2 group hover:scale-105 ${
-            selectedStatus === "confirmed" ? "bg-white rounded-md shadow-sm" : ""
-          }`}
-        >
-          <div className="w-3 h-3 rounded-full bg-green-500 mr-2" />
+            <div className="h-8 w-px bg-gray-300 mx-4" />
 
-          <span
-            className={`overflow-hidden transition-all whitespace-nowrap duration-300 ease-in-out 
-              ${selectedStatus === "confirmed"
-                ? "opacity-100 max-w-[100px]"
-                : "group-hover:opacity-100 group-hover:max-w-[100px] opacity-0 max-w-0"
-              }`}
-          >
-            Confirmed
-          </span>
-        </button>
-      </TooltipTrigger>
-      <TooltipContent>Verified records</TooltipContent>
-    </Tooltip>
+            <StatusFilterButton
+              status="pending"
+              label="Pending"
+              color="bg-yellow-400"
+              isActive={selectedStatus === "pending"}
+              onClick={() => handleStatusFilter("pending")}
+              tooltip="Records awaiting verification"
+            />
+          </TooltipProvider>
 
-    <div className="h-8 w-px bg-gray-300 mx-4" />
-
-    {/* Pending */}
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <button
-          onClick={() => setSelectedStatus((s) => (s === "pending" ? null : "pending"))}
-          className={`flex items-center text-sm cursor-pointer px-4 py-2 group hover:scale-105 ${
-            selectedStatus === "pending" ? "bg-white rounded-md shadow-sm" : ""
-          }`}
-        >
-          <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2" />
-
-          <span
-            className={`overflow-hidden transition-all whitespace-nowrap duration-300 ease-in-out 
-              ${selectedStatus === "pending"
-                ? "opacity-100 max-w-[100px]"
-                : "group-hover:opacity-100 group-hover:max-w-[100px] opacity-0 max-w-0"
-              }`}
-          >
-            Pending
-          </span>
-        </button>
-      </TooltipTrigger>
-      <TooltipContent>Records awaiting verification</TooltipContent>
-    </Tooltip>
-
-  </TooltipProvider>
-
-  {/* Export Buttons */}
-  <div className="ml-6 flex items-center space-x-2">
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={() => exportToCSV(filteredPatients, columns, exportFilename)}
-      className="border-green-600 text-green-600"
-    >
-      CSV
-    </Button>
-
-    <Button
-      size="sm"
-      onClick={() => exportToExcel(filteredPatients, columns, exportFilename)}
-      className="bg-green-600 hover:bg-green-700 text-white"
-    >
-      Excel
-    </Button>
-  </div>
-</div>
-
+          <div className="ml-6 flex items-center space-x-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportCSV}
+              className="border-green-600 text-green-600"
+            >
+              CSV
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleExportExcel}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              Excel
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Time Navigation */}
@@ -637,7 +789,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
               </PopoverContent>
             </Popover>
             <div className="flex p-1 space-x-1 bg-gray-100 rounded-md">
-              {viewOptions.map(v => (
+              {VIEW_OPTIONS.map(v => (
                 <Button key={v.label} variant={v.label === activeView ? "default" : "ghost"} size="sm" onClick={() => handleViewChange(v.label)}
                   className={cn("rounded-md px-4", v.label === activeView && "bg-[#028700] hover:bg-[#028700c9]")}>
                   {v.label}
