@@ -1,3 +1,5 @@
+'use client';
+
 import * as React from "react";
 import { useState, useMemo, useEffect, useCallback, memo, useRef } from "react";
 import { toast } from "sonner";
@@ -13,6 +15,7 @@ import {
   getDay,
   isSameDay,
   startOfDay,
+  isAfter,
 } from "date-fns";
 // --- UI & COMPONENTS ---
 import { DataTable } from "@/components/PatientsTable";
@@ -50,9 +53,25 @@ import { useGetFacilities } from "../facility/hooks/useFacility";
 import { PatientDocument, useGetDocumentsByFacility } from "../../hooks/docs/useGetDoc";
 import { UserData } from "@/payload";
 
-// =========================================================================
-// TYPES
-// =========================================================================
+// --- INTERFACES ---
+export interface Facility {
+  _id: string;
+  name: string;
+  email: string[];
+  phone: string[];
+  parent_id?: string;
+  facility_type: string;
+  code: string;
+  location?: {
+    country: string;
+    city: string;
+    address: string;
+    longitude?: number;
+    latitude?: number;
+  };
+  submitted_status?: Record<string, "complete" | "in_progress" | "none">;
+}
+
 type ViewType = "YEAR" | "MONTH" | "WEEK" | "DAY";
 
 interface TimeUnit {
@@ -68,14 +87,11 @@ interface DataEntriesContentProps {
   setActiveTab?: React.Dispatch<React.SetStateAction<string>>;
 }
 
-// =========================================================================
-// CONSTANTS - Outside component to prevent recreation
-// =========================================================================
 const STATUS_COLORS = {
-  GREEN: "bg-green-500",
-  YELLOW: "bg-yellow-400",
-  RED: "bg-red-500",
-  GRAY: "bg-gray-300",
+  GREEN: "bg-green-500",   // complete
+  YELLOW: "bg-yellow-400", // in_progress
+  RED: "bg-red-500",       // missing / none
+  GRAY: "bg-gray-300",     // future
 } as const;
 
 const VIEW_OPTIONS = [
@@ -88,10 +104,6 @@ const VIEW_OPTIONS = [
 const DAY_ABBRS = ["S", "M", "T", "W", "T", "F", "S"] as const;
 const UNIT_COUNTS = { DAY: 7, WEEK: 8, MONTH: 8, YEAR: 7 } as const;
 const DEBOUNCE_MS = 300;
-
-// =========================================================================
-// PURE UTILITY FUNCTIONS - Outside component
-// =========================================================================
 const getStartOfToday = (): Date => startOfDay(new Date());
 
 const dayAbbreviation = (date: Date): string => DAY_ABBRS[getDay(date)];
@@ -247,30 +259,6 @@ const TimeUnitItem = memo(({
 ));
 TimeUnitItem.displayName = "TimeUnitItem";
 
-const TimeUnitButton = memo(({
-  unit,
-  isSelected,
-  onClick
-}: {
-  unit: TimeUnit;
-  isSelected: boolean;
-  onClick: () => void;
-}) => (
-  <button
-    onClick={onClick}
-    className="p-1 rounded-md cursor-pointer transition-transform hover:-translate-y-0.5"
-    type="button"
-  >
-    <TimeUnitItem
-      label={unit.label}
-      value={unit.value}
-      statusColor={unit.statusColor}
-      isSelected={isSelected}
-    />
-  </button>
-));
-TimeUnitButton.displayName = "TimeUnitButton";
-
 const StatusFilterButton = memo(({
   status,
   label,
@@ -314,32 +302,12 @@ const StatusFilterButton = memo(({
 ));
 StatusFilterButton.displayName = "StatusFilterButton";
 
-const ViewToggleButton = memo(({
-  view,
-  isActive,
-  onClick
-}: {
-  view: ViewType;
-  isActive: boolean;
-  onClick: () => void;
-}) => (
-  <Button
-    variant={isActive ? "default" : "ghost"}
-    size="sm"
-    onClick={onClick}
-    className={cn("rounded-md px-4", isActive && "bg-[#028700] hover:bg-[#028700c9]")}
-  >
-    {view}
-  </Button>
-));
-ViewToggleButton.displayName = "ViewToggleButton";
-
 const FacilityItem = memo(({
   facility,
   isSelected,
   onSelect
 }: {
-  facility: { _id: string; name: string };
+  facility: Facility;
   isSelected: boolean;
   onSelect: () => void;
 }) => (
@@ -389,6 +357,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
   const [selectedPatient, setSelectedPatient] = useState<PatientDocument | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [activeTabCon, setActiveTabCon] = useState<"details" | "history">("details");
+  // Filters: "confirmed" | "pending" | null
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [facilityDropdownOpen, setFacilityDropdownOpen] = useState(false);
   const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(null);
@@ -401,58 +370,61 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
   const currentUserFacilityId = personel?.facility?.id;
 
   const { data: facilitiesData } = useGetFacilities(currentUserFacilityId);
-  const facilities = useMemo(() => facilitiesData?.results || [], [facilitiesData]);
+  const facilities = useMemo(() => (facilitiesData?.results || []) as Facility[], [facilitiesData]);
 
-  // Set default facility
-  useEffect(() => {
-    if (facilities.length > 0 && !selectedFacilityId) {
-      setSelectedFacilityId(facilities[0]._id);
-    }
-  }, [facilities, selectedFacilityId]);
-
-  const selectedFacilityName = useMemo(
-    () => facilities.find(f => f._id === selectedFacilityId)?.name || "Select District",
+  // ---- Get Selected Facility Object (Crucial for Status Logic) ----
+  const selectedFacility = useMemo(() => 
+    facilities.find(f => f._id === selectedFacilityId),
     [facilities, selectedFacilityId]
   );
+
+  const selectedFacilityName = selectedFacility?.name || "Select District";
+
+  // ---- Handle Initialization from Previous Page (LocalStorage) ----
+  useEffect(() => {
+    if (facilities.length > 0) {
+        const pendingFacilityId = localStorage.getItem("pendingFacilityId");
+        const pendingStatus = localStorage.getItem("pendingStatusFilter");
+        const pendingDateIso = localStorage.getItem("pendingDate");
+
+        if (pendingFacilityId) {
+            const facilityExists = facilities.some(f => f._id === pendingFacilityId);
+            if (facilityExists) {
+                setSelectedFacilityId(pendingFacilityId);
+            } else if (!selectedFacilityId) {
+                setSelectedFacilityId(facilities[0]._id);
+            }
+        } else if (!selectedFacilityId) {
+             setSelectedFacilityId(facilities[0]._id);
+        }
+
+        // pendingStatus comes from facilities content as "confirmed" or "pending"
+        if (pendingStatus) {
+            if (pendingStatus === "confirmed" || pendingStatus === "pending") {
+                setSelectedStatus(pendingStatus);
+            } else {
+                setSelectedStatus(null);
+            }
+        }
+
+        if (pendingDateIso) {
+            const date = new Date(pendingDateIso);
+            if (!isNaN(date.getTime())) {
+                setSelectedDate(date);
+            }
+        }
+
+        localStorage.removeItem("pendingFacilityId");
+        localStorage.removeItem("pendingStatusFilter");
+        localStorage.removeItem("pendingDate");
+    }
+  }, [facilities]);
 
   // ---- Document Data ----
   const { data: documentsData, isLoading, isError } = useGetDocumentsByFacility(
     selectedFacilityId,
     { limit: 1000 }
   );
-
-  useEffect(() => {
-    const pendingFacilityId = localStorage.getItem("pendingFacilityId");
-    const pendingStatus = localStorage.getItem("pendingStatusFilter");
-    const pendingDateIso = localStorage.getItem("pendingDate");
-
-    if (pendingFacilityId || pendingStatus || pendingDateIso) {
-      if (pendingFacilityId && facilities.length > 0) {
-        const facilityExists = facilities.some(f => f._id === pendingFacilityId);
-        if (facilityExists) setSelectedFacilityId(pendingFacilityId);
-      }
-
-      if (pendingStatus === "confirmed" || pendingStatus === "pending") {
-        setSelectedStatus(pendingStatus);
-      } else if (pendingStatus === "") {
-        setSelectedStatus(null);
-      }
-
-      if (pendingDateIso) {
-        const date = new Date(pendingDateIso);
-        if (!isNaN(date.getTime())) {
-          setSelectedDate(date);
-          setActiveView("DAY"); // Optional: focus on day for precision
-        }
-      }
-
-      localStorage.removeItem("pendingFacilityId");
-      localStorage.removeItem("pendingStatusFilter");
-      localStorage.removeItem("pendingDate");
-
-      toast.success("Showing records for selected facility and date");
-    }
-  }, [facilities]);
 
   useEffect(() => {
     if (isError) toast.error("Error fetching documents");
@@ -463,19 +435,6 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
     if (!documentsData?.documents) return [];
     return Object.values(documentsData.documents).flat();
   }, [documentsData]);
-
-  // Build index for O(1) date lookups
-  const docsByDateKey = useMemo(() => {
-    const map = new Map<string, PatientDocument[]>();
-    for (const doc of allRawDocuments) {
-      if (!doc.metadata?.created_at) continue;
-      const key = format(new Date(doc.metadata.created_at), "yyyy-MM-dd");
-      const arr = map.get(key);
-      if (arr) arr.push(doc);
-      else map.set(key, [doc]);
-    }
-    return map;
-  }, [allRawDocuments]);
 
   // ---- Computed Values ----
   const selectedUnitId = useMemo(
@@ -488,56 +447,74 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
     return [start, getUnitEnd(start, activeView)] as const;
   }, [selectedDate, activeView]);
 
-  // Generate status color for a time unit
-  const getStatusColor = useCallback((unitDate: Date, view: ViewType): string => {
-    const unitStart = getUnitStart(unitDate, view);
-    const unitEnd = getUnitEnd(unitStart, view);
+
+  /**
+   * ─────────────────────────────────────────────────────────────────────
+   * FACILITY STATUS LOGIC
+   * Strictly based on the facility's submitted_status map.
+   * ─────────────────────────────────────────────────────────────────────
+   */
+  const getFacilityStatusForDateRange = useCallback((
+    start: Date,
+    end: Date,
+    facility: Facility | undefined
+  ): "complete" | "in_progress" | "missing" | "future" => {
     const todayStart = startOfDay(new Date());
+    if (isAfter(start, todayStart)) return "future";
+    if (!facility) return "missing";
 
-    let hasAny = false;
-    let hasVerified = false;
+    let hasComplete = false;
+    let hasInProgress = false;
 
-    let current = unitStart;
-    while (current < unitEnd) {
-      const key = format(current, "yyyy-MM-dd");
-      const docs = docsByDateKey.get(key);
-      if (docs?.length) {
-        hasAny = true;
-        if (docs.some(d => !!d.metadata?.verified_at)) {
-          hasVerified = true;
-          break;
-        }
-      }
+    let current = start;
+    while (current < end) {
+      // IMPORTANT: Match the key format used in FacilitiesContent
+      // usually "yyyy-MM-dd 00:00:00"
+      const key = format(current, "yyyy-MM-dd 00:00:00");
+      const status = facility.submitted_status?.[key];
+
+      if (status === "complete") hasComplete = true;
+      if (status === "in_progress") hasInProgress = true;
+
       current = addDays(current, 1);
     }
 
-    if (!hasAny) {
-      return unitDate < todayStart ? STATUS_COLORS.RED : STATUS_COLORS.GRAY;
-    }
-    return hasVerified ? STATUS_COLORS.GREEN : STATUS_COLORS.YELLOW;
-  }, [docsByDateKey]);
+    if (hasInProgress) return "in_progress";
+    if (hasComplete) return "complete";
+    return "missing";
+  }, []);
 
-  // Check if unit has docs matching status filter
+
+  const getStatusColor = useCallback((unitDate: Date, view: ViewType): string => {
+    const unitStart = getUnitStart(unitDate, view);
+    const unitEnd = getUnitEnd(unitStart, view);
+    
+    const status = getFacilityStatusForDateRange(unitStart, unitEnd, selectedFacility);
+
+    switch (status) {
+        case "complete": return STATUS_COLORS.GREEN;
+        case "in_progress": return STATUS_COLORS.YELLOW;
+        case "future": return STATUS_COLORS.GRAY;
+        case "missing": 
+        default: return STATUS_COLORS.RED;
+    }
+  }, [selectedFacility, getFacilityStatusForDateRange]);
+
+
   const unitMatchesStatusFilter = useCallback((unitDate: Date, view: ViewType): boolean => {
     if (selectedStatus === null) return true;
 
     const unitStart = getUnitStart(unitDate, view);
     const unitEnd = getUnitEnd(unitStart, view);
+    const status = getFacilityStatusForDateRange(unitStart, unitEnd, selectedFacility);
 
-    let current = unitStart;
-    while (current < unitEnd) {
-      const key = format(current, "yyyy-MM-dd");
-      const docs = docsByDateKey.get(key);
-      if (docs?.length) {
-        for (const doc of docs) {
-          const docStatus = doc.metadata?.verified_at ? "confirmed" : "pending";
-          if (docStatus === selectedStatus) return true;
-        }
-      }
-      current = addDays(current, 1);
-    }
+    // Map UI filter ("confirmed"/"pending") to Facility Status ("complete"/"in_progress")
+    if (selectedStatus === "confirmed" && status === "complete") return true;
+    if (selectedStatus === "pending" && status === "in_progress") return true;
+
     return false;
-  }, [docsByDateKey, selectedStatus]);
+  }, [selectedFacility, selectedStatus, getFacilityStatusForDateRange]);
+
 
   // Generate visible time units (only what's displayed)
   const units = useMemo(() => {
@@ -564,7 +541,8 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
     return result;
   }, [selectedDate, activeView, getStatusColor, unitMatchesStatusFilter]);
 
-  // Filter patients for table
+
+  // Filter patients for table (Rows based on their own verified_at status)
   const filteredPatients = useMemo(() => {
     if (!allRawDocuments.length) return [];
 
@@ -579,13 +557,13 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
       // Date range filter
       if (created < startRange || created >= endRange) continue;
 
-      // Status filter
-      if (selectedStatus !== null) {
-        const docStatus = doc.metadata.verified_at ? "confirmed" : "pending";
-        if (docStatus !== selectedStatus) continue;
-      }
+      // Status filter (Row level check)
+      // if (selectedStatus !== null) {
+      //   const docStatus = doc.metadata.verified_at ? "confirmed" : "confirmed";
+      //   if (docStatus !== selectedStatus) continue;
+      // }
 
-      // Search filter (most expensive - check last)
+      // Search filter
       if (searchLower) {
         const fields = [
           doc.names?.extracted_value,
@@ -604,6 +582,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
 
     return results;
   }, [allRawDocuments, startRange, endRange, debouncedSearch, selectedStatus]);
+
 
   // Image URLs (only compute when panel is visible)
   const filteredImageUrls = useMemo(() => {
@@ -672,7 +651,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
     exportToExcel(filteredPatients, columns, filename);
   }, [selectedFacilityName, activeView, selectedDate, selectedStatus, filteredPatients]);
 
-  // ---- Table Columns (stable reference) ----
+  // ---- Table Columns ----
   const columns = useMemo<ColumnDef<PatientDocument>[]>(() => [
     { accessorKey: "date", header: "Date" },
     { accessorKey: "month_number", header: "Month Number" },

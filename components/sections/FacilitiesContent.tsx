@@ -19,7 +19,7 @@ import {
 } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Badge } from "@/components/ui/badge";
-import { Check, X, AlertTriangle, MapPin } from "lucide-react";
+import { Check, X, AlertTriangle, MapPin, Loader2, UserCheck } from "lucide-react";
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FacilityDetailSheet } from "../FacilityDetailSheet";
@@ -170,11 +170,16 @@ export default function FacilitiesContent({ setActiveTab }: { setActiveTab?: Rea
     const userDataString = typeof window !== 'undefined' ? localStorage.getItem('userData') : null;
     const personel = userDataString ? JSON.parse(userDataString) : null;
     const currentUserFacilityId = personel?.facility?.id;
+    const currentUserName = personel?.name || "Dr. Admin User"; // Fallback name
 
     const [selectedStatus, setSelectedStatus] = useState<"complete" | "in_progress" | "missing" | null>(null);
     const [selectedParentId] = useState<string>(currentUserFacilityId || "");
     const { data, isLoading: isFetching, error } = useGetFacilities(selectedParentId);
     const facilities = data?.results || [];
+
+    // Supervision State
+    const [supervisionState, setSupervisionState] = useState<Record<string, string>>({});
+    const [submittingSupervisionId, setSubmittingSupervisionId] = useState<string | null>(null);
 
     useEffect(() => { if (error) toast.error("Error fetching facilities"); }, [error]);
 
@@ -185,6 +190,22 @@ export default function FacilitiesContent({ setActiveTab }: { setActiveTab?: Rea
     const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(null);
     const [sheetOpen, setSheetOpen] = useState(false);
     const [_activeTab, _setActiveTab] = useState<'details' | 'map'>('details');
+
+    /* ────────────────────── DUMMY API SIMULATION ────────────────────── */
+    const handleSupervisionConfirm = async (unitId: string) => {
+        setSubmittingSupervisionId(unitId);
+        
+        // Simulate API latency
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+
+        setSupervisionState(prev => ({
+            ...prev,
+            [unitId]: currentUserName
+        }));
+
+        setSubmittingSupervisionId(null);
+        toast.success("Supervision confirmed successfully");
+    };
 
     /* ────────────────────── FILTERED UNITS (DATES) ────────────────────── */
     const units = useMemo(() => {
@@ -460,6 +481,61 @@ export default function FacilitiesContent({ setActiveTab }: { setActiveTab?: Rea
                                 </tr>
                             ))}
                         </tbody>
+
+                        {/* Footer with Supervision Logic */}
+                        <tfoot>
+                            <tr className="border-t-2 border-gray-200">
+                                <td colSpan={3} className="px-4 py-6 font-bold text-gray-600 uppercase text-center text-xs tracking-wider align-middle">
+                                    Supervised By
+                                </td>
+                                {units.map(u => {
+                                    const isEligible = u.status === 'complete' || u.status === 'in_progress';
+                                    const confirmedBy = supervisionState[u.id];
+                                    const isSubmitting = submittingSupervisionId === u.id;
+                                    
+                                    return (
+                                        <td key={u.id} className="py-4 border-l border-gray-200 align-bottom pb-2">
+                                            <div className="flex flex-col items-center justify-end h-32 w-full">
+                                                {isEligible ? (
+                                                    confirmedBy ? (
+                                                         /* Vertical Confirmed User Name */
+                                                        <div className="flex items-center justify-center gap-2 h-full opacity-80 hover:opacity-100 transition-opacity">
+                                                            <UserCheck className="w-4 h-4 text-green-600 mb-2" />
+                                                            <span className="text-[10px] font-semibold text-gray-700 uppercase tracking-widest [writing-mode:vertical-lr] rotate-180 whitespace-nowrap">
+                                                                {confirmedBy}
+                                                            </span>
+                                                        </div>
+                                                    ) : (
+                                                        /* Vertical Confirm Button */
+                                                        <Button
+                                                            variant="outline"
+                                                            size="sm"
+                                                            onClick={() => handleSupervisionConfirm(u.id)}
+                                                            disabled={isSubmitting}
+                                                            className={cn(
+                                                                "h-full min-h-[100px] w-8 p-0 hover:bg-blue-50 transition-all duration-300 border-dashed border-gray-300 hover:border-blue-300",
+                                                                isSubmitting && "opacity-50 cursor-not-allowed"
+                                                            )}
+                                                        >
+                                                            {isSubmitting ? (
+                                                                <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                                                            ) : (
+                                                                <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest [writing-mode:vertical-lr] rotate-180 whitespace-nowrap">
+                                                                    Confirm
+                                                                </span>
+                                                            )}
+                                                        </Button>
+                                                    )
+                                                ) : (
+                                                    /* Placeholder for non-eligible columns */
+                                                    <div className="h-full w-full "></div>
+                                                )}
+                                            </div>
+                                        </td>
+                                    );
+                                })}
+                            </tr>
+                        </tfoot>
                     </table>
 
                     {isFetching && <div className="p-8 text-center text-gray-500">Loading facilities...</div>}
