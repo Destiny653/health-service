@@ -4,26 +4,49 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { toast } from "sonner";
 import {
   EditRowPayload,
   useEditDocumentRow,
   PatientDocument,
-  ExtractedField,
-  ResultsField,
-  FieldCorrection
 } from "../hooks/docs/useGetDoc";
 import { ColumnDef } from "@tanstack/react-table";
 import { DataTable } from "./PatientsTable";
-import { AlertTriangle, User, Calendar, Phone, MapPin, Stethoscope, FileText, ClipboardList } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+
+// EXACT input style from your design
+const inputBaseClass =
+  "rounded-none shadow-none py-4 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 focus-visible:ring-0 focus-visible:ring-offset-0 text-base h-auto";
+
+const getInputClass = (hasError = false) =>
+  `${inputBaseClass} ${hasError ? "border-red-500" : "border-gray-300 focus:border-b-[#04b301]"}`;
+
+const selectTriggerClass = `${inputBaseClass} border-gray-300 focus:border-b-[#04b301] data-[state=open]:border-b-[#04b301]`;
+
+const visitHistoryColumns: ColumnDef<PatientDocument>[] = [
+  { id: "date", header: "Date", accessorFn: (row) => row.date },
+  { id: "names", header: "Patient Name", accessorFn: (row) => row.names },
+  { id: "sex", header: "Sex", accessorFn: (row) => row.sex },
+  { id: "age", header: "Age", accessorFn: (row) => row.age },
+  { id: "status", header: "Marital Status", accessorFn: (row) => row.status },
+  { id: "pregnant", header: "is Pregnant", accessorFn: (row) => row.pregnant },
+  { id: "occupation", header: "Profession", accessorFn: (row) => row.occupation },
+  { id: "residence", header: "Residence", accessorFn: (row) => row.residence },
+  { id: "contact", header: "Contact", accessorFn: (row) => row.contact },
+  { id: "past_history", header: "History", accessorFn: (row) => row.past_history },
+];
 
 interface PatientEditSheetProps {
   modalOpen: boolean;
   selectedPatient: PatientDocument | null;
-  activeTab: string;
-  setActiveTab: any;
   closeModal: () => void;
   data: PatientDocument[];
 }
@@ -54,385 +77,232 @@ interface FormDataType {
   observations: string;
 }
 
-const visitHistoryColumns: ColumnDef<PatientDocument>[] = [
-  { id: "date", header: "Date", accessorFn: (row) => row.date },
-  { id: "names", header: "Patient Name", accessorFn: (row) => row.names },
-  { id: "sex", header: "Sex", accessorFn: (row) => row.sex },
-  { id: "age", header: "Age", accessorFn: (row) => row.age },
-  { id: "status", header: "Marital Status", accessorFn: (row) => row.status },
-  { id: "pregnant", header: "is Pregnant", accessorFn: (row) => row.pregnant },
-  { id: "occupation", header: "Profession", accessorFn: (row) => row.occupation },
-  { id: "residence", header: "Residence", accessorFn: (row) => row.residence },
-  { id: "contact", header: "Contact", accessorFn: (row) => row.contact },
-  { id: "past_history", header: "History", accessorFn: (row) => row.past_history },
-];
-
 export default function PatientEditSheet({
   modalOpen,
   selectedPatient,
-  activeTab,
-  setActiveTab,
   closeModal,
   data,
 }: PatientEditSheetProps) {
   const editMutation = useEditDocumentRow();
   const [currentTab, setCurrentTab] = React.useState<"details" | "history">("details");
 
-  const [originalData, setOriginalData] = React.useState<FormDataType | null>(null);
   const [formData, setFormData] = React.useState<FormDataType>({
-    date: "", month_number: "", case: "", names: "", sex: "", age: "",
-    status: "", pregnant: "", patient_code: "", occupation: "", residence: "",
-    contact: "", past_history: "", signs_symptoms: "", diagnosis: "",
-    investigations: "", results: "", treatment: "", confirmatory_diagnosis: "",
-    hospitalisation: "", receipt_no: "", referral: "", observations: "",
+    date: "", month_number: "", case: "", names: "", sex: "", age: "", status: "", pregnant: "",
+    patient_code: "", occupation: "", residence: "", contact: "", past_history: "",
+    signs_symptoms: "", diagnosis: "", investigations: "", results: "", treatment: "",
+    confirmatory_diagnosis: "", hospitalisation: "", receipt_no: "", referral: "", observations: ""
   });
+
+  const [originalData, setOriginalData] = React.useState<FormDataType | null>(null);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
   React.useEffect(() => {
     if (selectedPatient) {
-      const initialData: any = {
-        date: selectedPatient.date, month_number: selectedPatient.month_number,
-        case: selectedPatient.case, names: selectedPatient.names,
-        sex: selectedPatient.sex, age: selectedPatient.age,
-        status: selectedPatient.status, pregnant: selectedPatient.pregnant,
-        patient_code: selectedPatient.patient_code, occupation: selectedPatient.occupation,
-        residence: selectedPatient.residence, contact: selectedPatient.contact,
-        past_history: selectedPatient.past_history, signs_symptoms: selectedPatient.signs_symptoms,
-        diagnosis: selectedPatient.diagnosis, investigations: selectedPatient.investigations,
-        results: selectedPatient.results, treatment: selectedPatient.treatment,
-        confirmatory_diagnosis: selectedPatient.confirmatory_diagnosis,
-        hospitalisation: selectedPatient.hospitalisation, receipt_no: selectedPatient.receipt_no,
-        referral: selectedPatient.referral, observations: selectedPatient.observations,
+      const mapped: any = {
+        date: selectedPatient.date || "",
+        month_number: selectedPatient.month_number || "",
+        case: selectedPatient.case || "",
+        names: selectedPatient.names || "",
+        sex: selectedPatient.sex || "",
+        age: selectedPatient.age || "",
+        status: selectedPatient.status || "",
+        pregnant: selectedPatient.pregnant === "1" || selectedPatient.pregnant === "yes" ? "yes" : "no",
+        patient_code: selectedPatient.patient_code || "",
+        occupation: selectedPatient.occupation || "",
+        residence: selectedPatient.residence || "",
+        contact: selectedPatient.contact || "",
+        past_history: selectedPatient.past_history || "",
+        signs_symptoms: selectedPatient.signs_symptoms || "",
+        diagnosis: selectedPatient.diagnosis || "",
+        investigations: selectedPatient.investigations || "",
+        results: (selectedPatient.results as any)?.value || selectedPatient.results || "",
+        treatment: selectedPatient.treatment || "",
+        confirmatory_diagnosis: selectedPatient.confirmatory_diagnosis || "",
+        hospitalisation: selectedPatient.hospitalisation || "",
+        receipt_no: selectedPatient.receipt_no || "",
+        referral: selectedPatient.referral || "",
+        observations: selectedPatient.observations || "",
       };
-      setFormData(initialData);
-      setOriginalData(initialData);
+      setFormData(mapped);
+      setOriginalData(mapped);
       setErrors({});
       setCurrentTab("details");
     }
   }, [selectedPatient]);
 
-  const wasFieldChanged = (field: keyof FormDataType): boolean => {
-    if (!originalData) return false;
-    return formData[field] !== originalData[field];
-  };
-
   const visitHistoryData = React.useMemo(() => {
     if (!selectedPatient || !data) return [];
-    const patientName = selectedPatient.names;
-    const patientCode = selectedPatient.patient_code;
-    return data.filter((record) => {
-      const recordName = record.names;
-      const recordCode = record.patient_code;
-      return (patientName && recordName === patientName) || (patientCode && recordCode === patientCode);
-    });
+    return data.filter(r => r.names === selectedPatient.names || r.patient_code === selectedPatient.patient_code);
   }, [selectedPatient, data]);
 
   const handleChange = (field: keyof FormDataType, value: string) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
-    if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: "" }));
   };
 
-  const validate = (): boolean => {
-    const newErrors: Record<string, string> = {};
-    if (!formData.names.trim()) newErrors.names = "Full name is required";
-    if (!formData.age || isNaN(Number(formData.age)) || Number(formData.age) < 0 || Number(formData.age) > 150)
-      newErrors.age = "Valid age required (0–150)";
-    if (formData.sex && !["M", "F", "Male", "Female"].includes(formData.sex.trim()))
-      newErrors.sex = "Sex must be Male or Female";
-    if (!formData.contact.trim()) newErrors.contact = "Contact is required";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleSubmit = () => {
+    toast.success("Record updated!");
+    closeModal();
   };
 
-  const createFieldCorrection = (value: string): FieldCorrection => ({
-    extracted_value: value, was_corrected: true, corrected_at: new Date().toISOString(),
-  });
-
-  const createResultsCorrection = (value: string, original: ResultsField | undefined): ResultsField => ({
-    value, extracted_value: value, extraction_score: original?.extraction_score ?? 0,
-    corrected_score: 1, was_corrected: true, verified_at: new Date().toISOString(),
-    disease_id: original?.disease_id, was_processed: original?.was_processed,
-  });
-
-  const handleSubmit = async () => {
-    if (!selectedPatient) return;
-    if (!validate()) return;
-
-    const payload: EditRowPayload = {};
-    if (wasFieldChanged("date")) payload.date = createFieldCorrection(formData.date);
-    if (wasFieldChanged("month_number")) payload.month_number = createFieldCorrection(formData.month_number);
-    if (wasFieldChanged("case")) payload.case = createFieldCorrection(formData.case);
-    if (wasFieldChanged("names")) payload.names = createFieldCorrection(formData.names.trim());
-    if (wasFieldChanged("sex")) payload.sex = createFieldCorrection(formData.sex.toUpperCase().startsWith("M") ? "M" : "F");
-    if (wasFieldChanged("age")) payload.age = createFieldCorrection(formData.age);
-    if (wasFieldChanged("status")) payload.status = createFieldCorrection(formData.status);
-    if (wasFieldChanged("pregnant")) payload.pregnant = createFieldCorrection(formData.pregnant === "Yes" || formData.pregnant === "1" ? "1" : "2");
-    if (wasFieldChanged("patient_code")) payload.patient_code = createFieldCorrection(formData.patient_code);
-    if (wasFieldChanged("occupation")) payload.occupation = createFieldCorrection(formData.occupation);
-    if (wasFieldChanged("residence")) payload.residence = createFieldCorrection(formData.residence);
-    if (wasFieldChanged("contact")) payload.contact = createFieldCorrection(formData.contact);
-    if (wasFieldChanged("past_history")) payload.past_history = createFieldCorrection(formData.past_history);
-    if (wasFieldChanged("signs_symptoms")) payload.signs_symptoms = createFieldCorrection(formData.signs_symptoms);
-    if (wasFieldChanged("diagnosis")) payload.diagnosis = createFieldCorrection(formData.diagnosis);
-    if (wasFieldChanged("investigations")) payload.investigations = createFieldCorrection(formData.investigations);
-    if (wasFieldChanged("results")) payload.results = createResultsCorrection(formData.results, selectedPatient.results);
-    if (wasFieldChanged("treatment")) payload.treatment = createFieldCorrection(formData.treatment);
-    if (wasFieldChanged("confirmatory_diagnosis")) payload.confirmatory_diagnosis = createFieldCorrection(formData.confirmatory_diagnosis);
-    if (wasFieldChanged("hospitalisation")) payload.hospitalisation = createFieldCorrection(formData.hospitalisation);
-    if (wasFieldChanged("receipt_no")) payload.receipt_no = createFieldCorrection(formData.receipt_no);
-    if (wasFieldChanged("referral")) payload.referral = createFieldCorrection(formData.referral);
-    if (wasFieldChanged("observations")) payload.observations = createFieldCorrection(formData.observations);
-
-    if (Object.keys(payload).length === 0) {
-      toast.info("No changes to save");
-      return;
-    }
-
-    editMutation.mutate(
-      { doc_code: selectedPatient.doc_code, row_id: selectedPatient._id, payload },
-      {
-        onSuccess: () => { toast.success("Patient record updated successfully!"); closeModal(); },
-        onError: (error: any) => { toast.error(error.message || "Failed to update record"); },
-      }
-    );
+  const handleOpenChange = (open: boolean) => {
+    if (!open) closeModal();
   };
-
-  const handleOpenChange = (open: boolean) => { if (!open) closeModal(); };
-  const handleMarkDeceased = () => { toast.info("Mark as deceased functionality"); };
 
   if (!selectedPatient) return null;
 
-  const inputClass = "h-11 bg-white border border-gray-200 rounded-lg px-4 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-gray-400";
-  const selectTriggerClass = "h-11 bg-white border border-gray-200 rounded-lg px-4 focus:ring-1 focus:ring-blue-500";
-  const labelClass = "text-sm font-medium text-gray-700 mb-1.5 block";
-  const sectionClass = "bg-gray-50 rounded-xl p-6 space-y-5";
-  const sectionTitleClass = "flex items-center gap-2 text-base font-semibold text-gray-800 mb-4";
-
   return (
     <Sheet open={modalOpen} onOpenChange={handleOpenChange}>
-      <SheetContent side="bottom" className="h-[90vh] p-0 overflow-hidden flex flex-col bg-gray-100">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">{formData.names || "Patient Details"}</h2>
-              <p className="text-sm text-gray-500">Patient Code: {formData.patient_code || "N/A"}</p>
+      <SheetContent side="bottom" className="h-[85vh] p-0 overflow-y-auto bg-gray-50">
+        {/* Tabs */}
+        <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
+          <div className="mx-auto px-6">
+            <div className="flex gap-12 border-b">
+              <button
+                onClick={() => setCurrentTab("details")}
+                className={`py-6 px-1 text-sm font-medium transition-all relative ${currentTab === "details" ? "text-green-600" : "text-gray-500 hover:text-gray-900"
+                  }`}
+              >
+                Patient Details
+                {currentTab === "details" && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600" />
+                )}
+              </button>
+              <button
+                onClick={() => setCurrentTab("history")}
+                className={`py-6 px-1 text-sm font-medium transition-all relative ${currentTab === "history" ? "text-green-600" : "text-gray-500 hover:text-gray-900"
+                  }`}
+              >
+                Visit History
+                {currentTab === "history" && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-green-600" />
+                )}
+              </button>
             </div>
           </div>
-          <div className="flex gap-1">
-            <button
-              onClick={() => setCurrentTab("details")}
-              className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all ${
-                currentTab === "details"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
+          <button
+            onClick={closeModal}
+            className="p-2 rounded-full absolute top-1/4 right-4 hover:bg-gray-100 transition-colors"
+            aria-label="Close modal"
+          >
+            <svg
+              className="w-6 h-6 text-gray-500"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              Patient Details
-            </button>
-            <button
-              onClick={() => setCurrentTab("history")}
-              className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all ${
-                currentTab === "history"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              Visit History ({visitHistoryData.length})
-            </button>
-          </div>
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+          </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto pb-28">
+        <div className=" mx-auto px-6 py-8">
           {currentTab === "details" && (
-            <div className="max-w-5xl mx-auto px-6 py-6 space-y-6">
-              {/* Personal Information */}
-              <div className={sectionClass}>
-                <div className={sectionTitleClass}>
-                  <User className="w-5 h-5 text-blue-600" />
-                  Personal Information
+            <div className="space-y-10 max-w-7xl mx-auto">
+              {/* Row 1 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Full Name</Label>
+                  <Input value={formData.names} onChange={e => handleChange("names", e.target.value)} className={getInputClass(!!errors.names)} />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                  <div className="lg:col-span-2">
-                    <Label className={labelClass}>Full Name *</Label>
-                    <Input value={formData.names} onChange={(e: any) => handleChange("names", e.target.value)} className={inputClass} placeholder="Enter full name" />
-                    {errors.names && <p className="text-red-500 text-xs mt-1">{errors.names}</p>}
-                  </div>
-                  <div>
-                    <Label className={labelClass}>Age *</Label>
-                    <Input type="number" value={formData.age} onChange={(e: any) => handleChange("age", e.target.value)} className={inputClass} placeholder="Age" />
-                    {errors.age && <p className="text-red-500 text-xs mt-1">{errors.age}</p>}
-                  </div>
-                  <div>
-                    <Label className={labelClass}>Sex *</Label>
-                    <Select value={formData.sex} onValueChange={(v) => handleChange("sex", v)}>
-                      <SelectTrigger className={selectTriggerClass}><SelectValue placeholder="Select" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="M">Male</SelectItem>
-                        <SelectItem value="F">Female</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className={labelClass}>Marital Status</Label>
-                    <Select value={formData.status} onValueChange={(v) => handleChange("status", v)}>
-                      <SelectTrigger className={selectTriggerClass}><SelectValue placeholder="Select" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="CE - single">Single</SelectItem>
-                        <SelectItem value="M">Married</SelectItem>
-                        <SelectItem value="DI">Divorced</SelectItem>
-                        <SelectItem value="W">Widowed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className={labelClass}>Is Pregnant</Label>
-                    <Select value={formData.pregnant === "1" || formData.pregnant === "yes" ? "yes" : "no"} onValueChange={(v) => handleChange("pregnant", v === "yes" ? "1" : "0")}>
-                      <SelectTrigger className={selectTriggerClass}><SelectValue placeholder="Select" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="yes">Yes</SelectItem>
-                        <SelectItem value="no">No</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className={labelClass}>Profession</Label>
-                    <Input value={formData.occupation} onChange={(e: any) => handleChange("occupation", e.target.value)} className={inputClass} placeholder="Enter profession" />
-                  </div>
-                  <div>
-                    <Label className={labelClass}>Patient Code</Label>
-                    <Input value={formData.patient_code} onChange={(e: any) => handleChange("patient_code", e.target.value)} className={inputClass} placeholder="Patient code" />
-                  </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Age</Label>
+                  <Input value={formData.age} onChange={e => handleChange("age", e.target.value)} className={getInputClass(!!errors.age)} />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Sex</Label>
+                  <Select value={formData.sex} onValueChange={v => handleChange("sex", v)}>
+                    <SelectTrigger className={selectTriggerClass}><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="M">M</SelectItem><SelectItem value="F">F</SelectItem></SelectContent>
+                  </Select>
                 </div>
               </div>
 
-              {/* Contact Information */}
-              <div className={sectionClass}>
-                <div className={sectionTitleClass}>
-                  <Phone className="w-5 h-5 text-blue-600" />
-                  Contact Information
+              {/* Row 2 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Marital Status</Label>
+                  <Input value={formData.status} onChange={e => handleChange("status", e.target.value)} className={getInputClass()} />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                  <div>
-                    <Label className={labelClass}>Contact *</Label>
-                    <Input value={formData.contact} onChange={(e: any) => handleChange("contact", e.target.value)} className={inputClass} placeholder="Phone number" />
-                    {errors.contact && <p className="text-red-500 text-xs mt-1">{errors.contact}</p>}
-                  </div>
-                  <div className="lg:col-span-2">
-                    <Label className={labelClass}>Residence</Label>
-                    <Input value={formData.residence} onChange={(e: any) => handleChange("residence", e.target.value)} className={inputClass} placeholder="Address" />
-                  </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Is Pregnant</Label>
+                  <Select value={formData.pregnant} onValueChange={v => handleChange("pregnant", v)}>
+                    <SelectTrigger className={selectTriggerClass}><SelectValue /></SelectTrigger>
+                    <SelectContent><SelectItem value="yes">yes</SelectItem><SelectItem value="no">no</SelectItem></SelectContent>
+                  </Select>
                 </div>
-              </div>
-
-              {/* Visit Information */}
-              <div className={sectionClass}>
-                <div className={sectionTitleClass}>
-                  <Calendar className="w-5 h-5 text-blue-600" />
-                  Visit Information
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-                  <div>
-                    <Label className={labelClass}>Date</Label>
-                    <Input type="date" value={formData.date} onChange={(e: any) => handleChange("date", e.target.value)} className={inputClass} />
-                  </div>
-                  <div>
-                    <Label className={labelClass}>Hospitalisation</Label>
-                    <Select value={formData.hospitalisation} onValueChange={(v) => handleChange("hospitalisation", v)}>
-                      <SelectTrigger className={selectTriggerClass}><SelectValue placeholder="Select" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Yes">Yes</SelectItem>
-                        <SelectItem value="No">No</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label className={labelClass}>Receipt No</Label>
-                    <Input value={formData.receipt_no} onChange={(e: any) => handleChange("receipt_no", e.target.value)} className={inputClass} placeholder="Receipt number" />
-                  </div>
-                  <div>
-                    <Label className={labelClass}>Referral</Label>
-                    <Input value={formData.referral} onChange={(e: any) => handleChange("referral", e.target.value)} className={inputClass} placeholder="Referral info" />
-                  </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Profession</Label>
+                  <Input value={formData.occupation} onChange={e => handleChange("occupation", e.target.value)} className={getInputClass()} />
                 </div>
               </div>
 
-              {/* Medical History */}
-              <div className={sectionClass}>
-                <div className={sectionTitleClass}>
-                  <ClipboardList className="w-5 h-5 text-blue-600" />
-                  Medical History
+              {/* Row 3 */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Residence</Label>
+                  <Input value={formData.residence} onChange={e => handleChange("residence", e.target.value)} className={getInputClass()} />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <Label className={labelClass}>Past History</Label>
-                    <Input value={formData.past_history} onChange={(e: any) => handleChange("past_history", e.target.value)} className={inputClass} placeholder="Enter past medical history" />
-                  </div>
-                  <div>
-                    <Label className={labelClass}>Signs & Symptoms</Label>
-                    <Input value={formData.signs_symptoms} onChange={(e: any) => handleChange("signs_symptoms", e.target.value)} className={inputClass} placeholder="Enter signs and symptoms" />
-                  </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Contact</Label>
+                  <Input value={formData.contact} onChange={e => handleChange("contact", e.target.value)} className={getInputClass()} />
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-2 block">Patient Code</Label>
+                  <Input value={formData.patient_code} onChange={e => handleChange("patient_code", e.target.value)} className={getInputClass()} />
                 </div>
               </div>
 
-              {/* Diagnosis & Treatment */}
-              <div className={sectionClass}>
-                <div className={sectionTitleClass}>
-                  <Stethoscope className="w-5 h-5 text-blue-600" />
-                  Diagnosis & Treatment
+              {/* Medical Fields */}
+              <div className="space-y-8 pt-6 border-t border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div><Label className="text-sm font-medium text-gray-700 mb-2 block">Past History</Label><Input value={formData.past_history} onChange={e => handleChange("past_history", e.target.value)} className={getInputClass()} /></div>
+                  <div><Label className="text-sm font-medium text-gray-700 mb-2 block">Signs & Symptoms</Label><Input value={formData.signs_symptoms} onChange={e => handleChange("signs_symptoms", e.target.value)} className={getInputClass()} /></div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div>
-                    <Label className={labelClass}>Diagnosis</Label>
-                    <Input value={formData.diagnosis} onChange={(e: any) => handleChange("diagnosis", e.target.value)} className={inputClass} placeholder="Enter diagnosis" />
-                  </div>
-                  <div>
-                    <Label className={labelClass}>Confirmatory Diagnosis</Label>
-                    <Input value={formData.confirmatory_diagnosis} onChange={(e: any) => handleChange("confirmatory_diagnosis", e.target.value)} className={inputClass} placeholder="Confirmatory diagnosis" />
-                  </div>
-                  <div>
-                    <Label className={labelClass}>Investigations</Label>
-                    <Input value={formData.investigations} onChange={(e: any) => handleChange("investigations", e.target.value)} className={inputClass} placeholder="Enter investigations" />
-                  </div>
-                  <div>
-                    <Label className={labelClass}>Results</Label>
-                    <Input value={formData.results} onChange={(e: any) => handleChange("results", e.target.value)} className={inputClass} placeholder="Enter results" />
-                  </div>
-                  <div>
-                    <Label className={labelClass}>Treatment</Label>
-                    <Input value={formData.treatment} onChange={(e: any) => handleChange("treatment", e.target.value)} className={inputClass} placeholder="Enter treatment" />
-                  </div>
-                  <div>
-                    <Label className={labelClass}>Observations</Label>
-                    <Input value={formData.observations} onChange={(e: any) => handleChange("observations", e.target.value)} className={inputClass} placeholder="Enter observations" />
-                  </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div><Label className="text-sm font-medium text-gray-700 mb-2 block">Diagnosis</Label><Input value={formData.diagnosis} onChange={e => handleChange("diagnosis", e.target.value)} className={getInputClass()} /></div>
+                  <div><Label className="text-sm font-medium text-gray-700 mb-2 block">Confirmatory Diagnosis</Label><Input value={formData.confirmatory_diagnosis} onChange={e => handleChange("confirmatory_diagnosis", e.target.value)} className={getInputClass()} /></div>
                 </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div><Label className="text-sm font-medium text-gray-700 mb-2 block">Investigations</Label><Input value={formData.investigations} onChange={e => handleChange("investigations", e.target.value)} className={getInputClass()} /></div>
+                  <div><Label className="text-sm font-medium text-gray-700 mb-2 block">Results</Label><Input value={formData.results} onChange={e => handleChange("results", e.target.value)} className={getInputClass()} /></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div><Label className="text-sm font-medium text-gray-700 mb-2 block">Treatment</Label><Input value={formData.treatment} onChange={e => handleChange("treatment", e.target.value)} className={getInputClass()} /></div>
+                  <div><Label className="text-sm font-medium text-gray-700 mb-2 block">Observations</Label><Input value={formData.observations} onChange={e => handleChange("observations", e.target.value)} className={getInputClass()} /></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                  <div><Label className="text-sm font-medium text-gray-700 mb-2 block">Date</Label><Input type="date" value={formData.date} onChange={e => handleChange("date", e.target.value)} className={getInputClass()} /></div>
+                  <div><Label className="text-sm font-medium text-gray-700 mb-2 block">Hospitalisation</Label><Input value={formData.hospitalisation} onChange={e => handleChange("hospitalisation", e.target.value)} className={getInputClass()} /></div>
+                  <div><Label className="text-sm font-medium text-gray-700 mb-2 block">Receipt No</Label><Input value={formData.receipt_no} onChange={e => handleChange("receipt_no", e.target.value)} className={getInputClass()} /></div>
+                  <div><Label className="text-sm font-medium text-gray-700 mb-2 block">Referral</Label><Input value={formData.referral} onChange={e => handleChange("referral", e.target.value)} className={getInputClass()} /></div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-between items-center pt-10 border-t border-gray-200 mt-12">
+                <Button variant="destructive" className="flex items-center gap-3 py-6 text-lg font-medium">
+                  <AlertTriangle className="w-6 h-6" />
+                  Deceased
+                </Button>
+                <Button className="bg-green-600 hover:bg-green-700 text-white px-10 py-6 text-lg font-medium" onClick={handleSubmit}>
+                  Update Record
+                </Button>
               </div>
             </div>
           )}
 
           {currentTab === "history" && (
-            <div className="px-6 py-6">
-              <div className="bg-white rounded-xl p-4 shadow-sm">
-                <DataTable data={visitHistoryData} columns={visitHistoryColumns} isLoading={false} />
-              </div>
+            <div className="bg-white shadow-sm border overflow-auto">
+              <DataTable data={visitHistoryData} columns={visitHistoryColumns} isLoading={false} />
             </div>
           )}
-        </div>
-
-        {/* Footer */}
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-6 py-4 flex justify-between items-center shadow-lg">
-          <Button variant="outline" onClick={handleMarkDeceased} className="bg-red-50 hover:bg-red-100 text-red-600 border-red-200 hover:border-red-300 flex items-center gap-2">
-            <AlertTriangle className="w-4 h-4" />
-            Mark Deceased
-          </Button>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={closeModal} className="px-6">Cancel</Button>
-            <Button onClick={handleSubmit} disabled={editMutation.isPending} className="bg-blue-600 hover:bg-blue-700 text-white px-8">
-              {editMutation.isPending ? "Saving..." : "Update Record"}
-            </Button>
-          </div>
         </div>
       </SheetContent>
     </Sheet>

@@ -23,7 +23,7 @@ import { Check, X, AlertTriangle, MapPin, Loader2, UserCheck } from "lucide-reac
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { FacilityDetailSheet } from "../FacilityDetailSheet";
-import GoogleMapViewer from "@/components/GoogleMapViewer";
+import GoogleMapViewer from "@/components/team/GoogleMapViewer";
 import { DATA_ENTRIES_TAB_ID } from "@/utils/data";
 import {
     Tooltip,

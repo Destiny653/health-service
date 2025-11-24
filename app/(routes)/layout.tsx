@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import Cookies from "js-cookie";
 import { getPersonality } from "@/lib/apis";
 import HealthFacilityLoader from "@/utils/loader";
+import Footer from "@/components/sections/Footer";
 
 const MainLayout = ({
   children,
@@ -99,12 +100,13 @@ const MainLayout = ({
         userName={`${data?.first_name} ${data?.last_name}`}
         role={data?.role.name}
       />
-
       <main className="mx-auto">
         <ActiveComponent setActiveTab={setActiveTab} />
       </main>
+      <Footer />
     </div>
   );
 };
 
 export default MainLayout;
+4

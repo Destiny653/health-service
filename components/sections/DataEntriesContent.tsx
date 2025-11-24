@@ -373,7 +373,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
   const facilities = useMemo(() => (facilitiesData?.results || []) as Facility[], [facilitiesData]);
 
   // ---- Get Selected Facility Object (Crucial for Status Logic) ----
-  const selectedFacility = useMemo(() => 
+  const selectedFacility = useMemo(() =>
     facilities.find(f => f._id === selectedFacilityId),
     [facilities, selectedFacilityId]
   );
@@ -383,40 +383,37 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
   // ---- Handle Initialization from Previous Page (LocalStorage) ----
   useEffect(() => {
     if (facilities.length > 0) {
-        const pendingFacilityId = localStorage.getItem("pendingFacilityId");
-        const pendingStatus = localStorage.getItem("pendingStatusFilter");
-        const pendingDateIso = localStorage.getItem("pendingDate");
+      const pendingFacilityId = localStorage.getItem("pendingFacilityId");
+      const pendingStatus = localStorage.getItem("pendingStatusFilter");
+      const pendingDateIso = localStorage.getItem("pendingDate");
 
-        if (pendingFacilityId) {
-            const facilityExists = facilities.some(f => f._id === pendingFacilityId);
-            if (facilityExists) {
-                setSelectedFacilityId(pendingFacilityId);
-            } else if (!selectedFacilityId) {
-                setSelectedFacilityId(facilities[0]._id);
-            }
+      if (pendingFacilityId) {
+        const facilityExists = facilities.some(f => f._id === pendingFacilityId);
+        console.log(facilityExists)
+        if (facilityExists) {
+          setSelectedFacilityId(pendingFacilityId);
         } else if (!selectedFacilityId) {
-             setSelectedFacilityId(facilities[0]._id);
+          setSelectedFacilityId(facilities[0]._id);
         }
+      } else if (!selectedFacilityId) {
+        setSelectedFacilityId(facilities[0]._id);
+      }
 
-        // pendingStatus comes from facilities content as "confirmed" or "pending"
-        if (pendingStatus) {
-            if (pendingStatus === "confirmed" || pendingStatus === "pending") {
-                setSelectedStatus(pendingStatus);
-            } else {
-                setSelectedStatus(null);
-            }
+      // pendingStatus comes from facilities content as "confirmed" or "pending"
+      if (pendingStatus) {
+        if (pendingStatus === "confirmed" || pendingStatus === "pending") {
+          setSelectedStatus(pendingStatus);
+        } else {
+          setSelectedStatus(null);
         }
+      }
 
-        if (pendingDateIso) {
-            const date = new Date(pendingDateIso);
-            if (!isNaN(date.getTime())) {
-                setSelectedDate(date);
-            }
+      if (pendingDateIso) {
+        const date = new Date(pendingDateIso);
+        if (!isNaN(date.getTime())) {
+          setSelectedDate(date);
         }
-
-        localStorage.removeItem("pendingFacilityId");
-        localStorage.removeItem("pendingStatusFilter");
-        localStorage.removeItem("pendingDate");
+      }
     }
   }, [facilities]);
 
@@ -488,15 +485,15 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
   const getStatusColor = useCallback((unitDate: Date, view: ViewType): string => {
     const unitStart = getUnitStart(unitDate, view);
     const unitEnd = getUnitEnd(unitStart, view);
-    
+
     const status = getFacilityStatusForDateRange(unitStart, unitEnd, selectedFacility);
 
     switch (status) {
-        case "complete": return STATUS_COLORS.GREEN;
-        case "in_progress": return STATUS_COLORS.YELLOW;
-        case "future": return STATUS_COLORS.GRAY;
-        case "missing": 
-        default: return STATUS_COLORS.RED;
+      case "complete": return STATUS_COLORS.GREEN;
+      case "in_progress": return STATUS_COLORS.YELLOW;
+      case "future": return STATUS_COLORS.GRAY;
+      case "missing":
+      default: return STATUS_COLORS.RED;
     }
   }, [selectedFacility, getFacilityStatusForDateRange]);
 
@@ -627,7 +624,9 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
   }, []);
 
   const handleStatusFilter = useCallback((status: string | null) => {
+    localStorage.removeItem("pendingStatusFilter");
     setSelectedStatus(prev => {
+
       if (status === null) {
         toast.info("Filter cleared");
         return null;
@@ -637,6 +636,9 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
   }, []);
 
   const handleFacilitySelect = useCallback((id: string) => {
+    localStorage.removeItem("pendingFacilityId");
+    localStorage.removeItem("pendingStatusFilter");
+    localStorage.removeItem("pendingDate");
     setSelectedFacilityId(id);
     setFacilityDropdownOpen(false);
   }, []);

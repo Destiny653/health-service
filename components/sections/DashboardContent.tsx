@@ -17,7 +17,7 @@ import {
   Cell,
 } from 'recharts';
 import { ArrowSquareOutIcon, BedIcon, BoxArrowDownIcon, DatabaseIcon, HeartIcon, TrendDownIcon, TrendUpIcon, UsersIcon } from '@phosphor-icons/react';
-import GoogleMapViewer from '../GoogleMapViewer';
+import GoogleMapViewer from '../team/GoogleMapViewer';
 
 // Colors used in the image: yellow-600, blue-600, red-600
 const COLOR_CONSULTED = '#f59e0b'; // Tailwind yellow-600
