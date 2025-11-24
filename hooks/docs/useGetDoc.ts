@@ -27,7 +27,8 @@ export interface FacilityResponse {
 export interface ExtractedField {
   value: string;
   extracted_value: string;
-  score: number;
+  extracted_score: number;
+  corrected_score: number;
   was_corrected: boolean;
   corrected_at: string;
 }
@@ -50,6 +51,7 @@ export interface RowMetadata {
   reference: string | null;
   doc_code: string;
   row_code: string;
+  image_urls: []
   created_at: string;
   modified_at: string;
   verified_at: string | null;
@@ -120,6 +122,42 @@ export type EditRowPayload = {
   referral?: FieldCorrection;
   observations?: FieldCorrection;
 };
+
+export interface FieldScore {
+  score?: number;
+  extraction_score?: number;
+  corrected_score?: number;
+}
+
+export interface Scores {
+  date?: FieldScore;
+  month_number?: FieldScore;
+  case?: FieldScore;
+  names?: FieldScore;
+  sex?: FieldScore;
+  age?: FieldScore;
+  status?: FieldScore;
+  pregnant?: FieldScore;
+  patient_code?: FieldScore;
+  occupation?: FieldScore;
+  residence?: FieldScore;
+  contact?: FieldScore;
+  past_history?: FieldScore;
+  signs_symptoms?: FieldScore;
+  diagnosis?: FieldScore;
+  investigations?: FieldScore;
+
+  // results is special because it has extraction_score + corrected_score
+  results?: FieldScore;
+
+  treatment?: FieldScore;
+  confirmatory_diagnosis?: FieldScore;
+  hospitalisation?: FieldScore;
+  receipt_no?: FieldScore;
+  referral?: FieldScore;
+  observations?: FieldScore;
+}
+
 
 export interface DocumentList {
   total_rows: number;

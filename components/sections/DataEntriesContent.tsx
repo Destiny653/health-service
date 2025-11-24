@@ -180,51 +180,46 @@ const generateExportFilename = (
   return `Patients_${cleanDistrict}_${period}${statusPart}`;
 };
 
-// Optimized document mapper - only extract needed fields
+// Updated mapper - preserves full field objects + scores
 const mapDocumentToPatient = (doc: PatientDocument): PatientDocument => ({
   _id: doc._id,
-  case: doc.case?.extracted_value || "",
-  names: doc.names?.extracted_value || "",
-  sex: doc.sex?.extracted_value || "",
-  age: doc.age?.extracted_value || "",
-  pregnant: doc.pregnant?.extracted_value || "",
-  profession: doc.occupation?.extracted_value || "",
-  residence: doc.residence?.extracted_value || "",
-  results: doc.results?.extracted_value || "",
-  contact: doc.contact?.extracted_value || "",
-  patient_code: doc.patient_code?.extracted_value || "",
-  past_history: doc.past_history?.extracted_value || "",
-  symptoms: doc.signs_symptoms?.extracted_value || "",
-  diagnosis: doc.diagnosis?.extracted_value || "",
-  investigation: doc.investigations?.extracted_value || "",
-  treatment: doc.treatment?.extracted_value || "",
-  marital_status: "",
-  care_level: "",
-  receipt_number: doc.receipt_no?.extracted_value || "",
-  referral: doc.referral?.extracted_value || "",
-  observations: doc.observations?.extracted_value || "",
-  is_rare_case: false,
-  dataIssues: [],
-  role: doc.metadata?.created_by || "User",
-  created_at: doc.metadata?.created_at,
-  status: doc.metadata?.verified_at ? "confirmed" : "pending",
-  imageUrl: doc.metadata?.reference || "",
-  date: doc.date?.extracted_value || "",
-  month_number: doc.month_number?.extracted_value || "",
-  status_extracted: doc.status?.extracted_value || "",
-  disease_id: doc.results?.disease_id || "",
-  was_processed: doc.results?.was_processed || false,
-  hospitalisation: doc.hospitalisation?.extracted_value || "",
-  is_dead: doc.metadata?.is_dead,
-  is_latest: doc.metadata?.is_latest,
-  version: doc.metadata?.version,
+  date: doc.date,
+  month_number: doc.month_number,
+  case: doc.case,
+  names: doc.names,
+  sex: doc.sex,
+  age: doc.age,
+  status: doc.status,
+  pregnant: doc.pregnant,
+  patient_code: doc.patient_code,
+  occupation: doc.occupation,
+  residence: doc.residence,
+  contact: doc.contact,
+  past_history: doc.past_history,
+  signs_symptoms: doc.signs_symptoms,
+  diagnosis: doc.diagnosis,
+  investigations: doc.investigations,
+  results: doc.results,
+  treatment: doc.treatment,
+  confirmatory_diagnosis: doc.confirmatory_diagnosis,
+  hospitalisation: doc.hospitalisation,
+  receipt_no: doc.receipt_no,
+  referral: doc.referral,
+  observations: doc.observations,
+
+  // Metadata
+  metadata: doc.metadata,
   doc_code: doc.metadata?.doc_code,
   row_code: doc.metadata?.row_code,
-  modified_at: doc.metadata?.modified_at,
+  imageUrls: doc.metadata?.image_urls || null,
   verified_at: doc.metadata?.verified_at || "",
   verified_by: doc.metadata?.verified_by || "",
-  facility_id: doc.metadata?.facility_id || "",
+  modified_at: doc.metadata?.modified_at,
   modified_by: doc.metadata?.modified_by || "",
+  facility_id: doc.metadata?.facility_id || "",
+  is_dead: doc.metadata?.is_dead || false,
+  is_latest: doc.metadata?.is_latest || false,
+  version: doc.metadata?.version,
 } as unknown as PatientDocument);
 
 // =========================================================================
@@ -553,33 +548,37 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
 
       // Date range filter
       if (created < startRange || created >= endRange) continue;
-
+      
       // Status filter (Row level check)
       // if (selectedStatus !== null) {
-      //   const docStatus = doc.metadata.verified_at ? "confirmed" : "confirmed";
-      //   if (docStatus !== selectedStatus) continue;
-      // }
-
-      // Search filter
+        //   const docStatus = doc.metadata.verified_at ? "confirmed" : "confirmed";
+        //   if (docStatus !== selectedStatus) continue;
+        // }
+        
+        // Search filter — now uses .value so full field objects (with .score) are preserved
       if (searchLower) {
         const fields = [
-          doc.names?.extracted_value,
-          doc.case?.extracted_value,
-          doc.sex?.extracted_value,
-          doc.age?.extracted_value,
-          doc.contact?.extracted_value,
-          doc.past_history?.extracted_value,
+          doc.names?.value,
+          doc.case?.value,
+          doc.sex?.value,
+          doc.age?.value,
+          doc.contact?.value,
+          doc.past_history?.value,
+          doc.patient_code?.value,
+          doc.occupation?.value,
+          doc.residence?.value,
         ];
         const matches = fields.some(f => f && String(f).toLowerCase().includes(searchLower));
         if (!matches) continue;
       }
-
+      
       results.push(mapDocumentToPatient(doc));
     }
-
+    
     return results;
   }, [allRawDocuments, startRange, endRange, debouncedSearch, selectedStatus]);
-
+  
+  console.log(filteredPatients)
 
   // Image URLs (only compute when panel is visible)
   const filteredImageUrls = useMemo(() => {
@@ -655,32 +654,34 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
 
   // ---- Table Columns ----
   const columns = useMemo<ColumnDef<PatientDocument>[]>(() => [
-    { accessorKey: "date", header: "Date" },
-    { accessorKey: "month_number", header: "Month Number" },
-    { accessorKey: "case", header: "Case #" },
-    { accessorKey: "names", header: "Patient Name" },
-    { accessorKey: "sex", header: "Sex" },
-    { accessorKey: "age", header: "Age" },
+    { accessorFn: (row) => row.date?.value || "", header: "Date" },
+    { accessorFn: (row) => row.month_number?.value || "", header: "Month Number" },
+    { accessorFn: (row) => row.case?.value || "", header: "Case #" },
+    { accessorFn: (row) => row.names?.value || "", header: "Patient Name" },
+    { accessorFn: (row) => row.sex?.value || "", header: "Sex" },
+    { accessorFn: (row) => row.age?.value || "", header: "Age" },
     {
-      accessorKey: "pregnant",
       header: "Is Pregnant",
-      cell: ({ row }) => ((row.original as any).pregnant === '2' ? 'Yes' : 'No'),
+      cell: ({ row }) => {
+        const val = row.original.pregnant?.value;
+        return val === "1" ? "Yes" : "No";
+      },
     },
-    { accessorKey: "status", header: "Status" },
-    { accessorKey: "patient_code", header: "Patient Code" },
-    { accessorKey: "profession", header: "Occupation" },
-    { accessorKey: "residence", header: "Residence" },
-    { accessorKey: "contact", header: "Contact" },
-    { accessorKey: "past_history", header: "Past History" },
-    { accessorKey: "symptoms", header: "Signs & Symptoms" },
-    { accessorKey: "diagnosis", header: "Diagnosis" },
-    { accessorKey: "results", header: "Results" },
-    { accessorKey: "treatment", header: "Treatment" },
-    { accessorKey: "investigation", header: "Investigation" },
-    { accessorKey: "hospitalisation", header: "Hospitalisation" },
-    { accessorKey: "receipt_number", header: "Receipt No." },
-    { accessorKey: "referral", header: "Referral" },
-    { accessorKey: "observations", header: "Observations" },
+    { accessorFn: (row) => row.status?.value || "", header: "Marital Status" },
+    { accessorFn: (row) => row.patient_code?.value || "", header: "Patient Code" },
+    { accessorFn: (row) => row.occupation?.value || "", header: "Occupation" },
+    { accessorFn: (row) => row.residence?.value || "", header: "Residence" },
+    { accessorFn: (row) => row.contact?.value || "", header: "Contact" },
+    { accessorFn: (row) => row.past_history?.value || "", header: "Past History" },
+    { accessorFn: (row) => row.signs_symptoms?.value || "", header: "Signs & Symptoms" },
+    { accessorFn: (row) => row.diagnosis?.value || "", header: "Diagnosis" },
+    { accessorFn: (row) => row.results?.value || "", header: "Results" },
+    { accessorFn: (row) => row.treatment?.value || "", header: "Treatment" },
+    { accessorFn: (row) => row.investigations?.value || "", header: "Investigations" },
+    { accessorFn: (row) => row.hospitalisation?.value || "", header: "Hospitalisation" },
+    { accessorFn: (row) => row.receipt_no?.value || "", header: "Receipt No." },
+    { accessorFn: (row) => row.referral?.value || "", header: "Referral" },
+    { accessorFn: (row) => row.observations?.value || "", header: "Observations" },
     {
       accessorKey: "is_dead",
       header: "Is Dead",
@@ -867,8 +868,6 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
       <PatientEditSheet
         modalOpen={modalOpen}
         selectedPatient={selectedPatient}
-        activeTab={activeTabCon}
-        setActiveTab={setActiveTabCon}
         closeModal={closeModal}
         data={filteredPatients}
       />

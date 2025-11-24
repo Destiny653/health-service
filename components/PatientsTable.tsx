@@ -25,14 +25,12 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 /* --------------------------------------------------------------- */
-/*  1. DataTable – Safe localStorage Access                        */
+/*  DataTable – Yellow text only when score < 10 (no extra text)   */
 /* --------------------------------------------------------------- */
 export function DataTable<
   TData,
@@ -54,7 +52,6 @@ export function DataTable<
   /* ---------- SAFE localStorage: Only access in browser ---------- */
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(() => {
     if (typeof window === "undefined") {
-      // SSR → return default (hide after 10th)
       const hidden: VisibilityState = {};
       initialColumns.forEach((col, idx) => {
         if (col.id && idx >= 10) hidden[col.id] = false;
@@ -62,7 +59,6 @@ export function DataTable<
       return hidden;
     }
 
-    // Client → safe to use localStorage
     try {
       const saved = localStorage.getItem("table-column-visibility");
       if (saved) return JSON.parse(saved) as VisibilityState;
@@ -70,7 +66,6 @@ export function DataTable<
       console.warn("Failed to parse saved column visibility", e);
     }
 
-    // Fallback: hide after 10th column
     const hidden: VisibilityState = {};
     initialColumns.forEach((col, idx) => {
       if (col.id && idx >= 10) hidden[col.id] = false;
@@ -78,7 +73,6 @@ export function DataTable<
     return hidden;
   });
 
-  // Save to localStorage (only in browser)
   React.useEffect(() => {
     if (typeof window !== "undefined") {
       try {
@@ -122,9 +116,6 @@ export function DataTable<
           </div>
         ) : (
           <div className="relative">
-            {/* Gear Icon – Toggle Columns */}
-
-
             {/* Table */}
             <table className="border-none w-full border-gray-200 text-sm overflow-auto">
               <thead className="bg-gray-100">
@@ -137,10 +128,7 @@ export function DataTable<
                       >
                         {h.isPlaceholder
                           ? null
-                          : flexRender(
-                            h.column.columnDef.header,
-                            h.getContext()
-                          )}
+                          : flexRender(h.column.columnDef.header, h.getContext())}
                       </th>
                     ))}
                     <th className="abolute">
@@ -159,11 +147,9 @@ export function DataTable<
                               <ChevronDown className="h-4 w-4 opacity-50" />
                             </DropdownMenuLabel>
                             <DropdownMenuSeparator />
-
                             <div className="py-1">
                               {table.getAllColumns().map((column) => {
                                 if (!column.getCanHide()) return null;
-
                                 const header = String(column.columnDef.header ?? column.id);
                                 const isVisible = column.getIsVisible();
 
@@ -176,8 +162,6 @@ export function DataTable<
                                     <span className="text-sm font-medium capitalize truncate max-w-[180px]">
                                       {header}
                                     </span>
-
-                                    {/* Custom Toggle Switch */}
                                     <div
                                       className={cn(
                                         "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
@@ -209,62 +193,33 @@ export function DataTable<
                     className="hover:bg-gray-50 transition-colors general-size font-[500] text-[#424242] cursor-pointer"
                     onClick={() => onRowClick?.(row.original)}
                   >
-                    {row.getVisibleCells().map((cell) => (
-                      <td
-                        key={cell.id}
-                        className="px-4 py-4 border-b border-gray-200 text-[16px] whitespace-nowrap overflow-hidden text-ellipsis max-w-[250px]"
-                      >
-                        {(() => {
-                          const raw =
-                            typeof cell.getValue === "function" ? cell.getValue() : undefined;
-                          const rendered = flexRender(cell.column.columnDef.cell, cell.getContext());
+                    {row.getVisibleCells().map((cell) => {
+                      // Get the actual field object to read score
+                      const fieldObject = cell.column.id
+                        ? (cell.row.original as any)[cell.column.id]
+                        : null;
+                      const score = fieldObject?.corrected_score;
+                      const isLowConfidence = score < 10;
+                      const textColor = isLowConfidence ? "text-yellow-600 font-semibold" : "text-[#424242]";
 
-                          if (Array.isArray(raw)) {
-                            const text = raw.join(", ");
-                            const isTrimmed = text.length > 14;
-                            const displayText = isTrimmed ? `${text.slice(0, 20)}...` : text;
+                      const raw = typeof cell.getValue === "function" ? cell.getValue() : undefined;
+                      const rendered = flexRender(cell.column.columnDef.cell, cell.getContext());
 
-                            return (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="cursor-pointer">{displayText}</span>
-                                  </TooltipTrigger>
-                                  {isTrimmed && (
-                                    <TooltipContent className="max-w-sm p-3 bg-white shadow-lg border rounded-md text-sm font-[500] text-gray-800">
-                                      {text}
-                                    </TooltipContent>
-                                  )}
-                                </Tooltip>
-                              </TooltipProvider>
-                            );
-                          }
-
-                          // Handle plain strings as before
-                          if (typeof raw === "string") {
-                            const isTrimmed = raw.length > 14;
-                            const displayText = isTrimmed ? `${raw.slice(0, 20)}...` : raw;
-
-                            return (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="cursor-pointer">{displayText}</span>
-                                  </TooltipTrigger>
-                                  {isTrimmed && (
-                                    <TooltipContent className="max-w-sm p-3 bg-white shadow-lg border rounded-md text-sm font-[500] text-gray-800">
-                                      {raw}
-                                    </TooltipContent>
-                                  )}
-                                </Tooltip>
-                              </TooltipProvider>
-                            );
-                          }
-
-                          return rendered;
-                        })()}
-                      </td>
-                    ))}
+                      return (
+                        <td
+                          key={cell.id}
+                          className="px-4 py-4 border-b border-gray-200 text-[16px] whitespace-nowrap overflow-hidden text-ellipsis max-w-[250px]"
+                        >
+                          <span className={textColor}>
+                            {raw !== undefined && typeof raw === "string"
+                              ? raw.length > 20
+                                ? `${raw.slice(0, 20)}...`
+                                : raw
+                              : rendered}
+                          </span>
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
@@ -283,10 +238,7 @@ export function DataTable<
                     e.preventDefault();
                     table.previousPage();
                   }}
-                  className={cn(
-                    !table.getCanPreviousPage() &&
-                    "opacity-50 cursor-not-allowed"
-                  )}
+                  className={cn(!table.getCanPreviousPage() && "opacity-50 cursor-not-allowed")}
                 />
               </PaginationItem>
 
@@ -312,9 +264,7 @@ export function DataTable<
                     e.preventDefault();
                     table.nextPage();
                   }}
-                  className={cn(
-                    !table.getCanNextPage() && "opacity-50 cursor-not-allowed"
-                  )}
+                  className={cn(!table.getCanNextPage() && "opacity-50 cursor-not-allowed")}
                 />
               </PaginationItem>
             </PaginationContent>

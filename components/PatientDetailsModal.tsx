@@ -32,16 +32,16 @@ const getInputClass = (hasError = false) =>
 const selectTriggerClass = `${inputBaseClass} border-gray-300 focus:border-b-[#04b301] data-[state=open]:border-b-[#04b301]`;
 
 const visitHistoryColumns: ColumnDef<PatientDocument>[] = [
-  { id: "date", header: "Date", accessorFn: (row) => row.date },
-  { id: "names", header: "Patient Name", accessorFn: (row) => row.names },
-  { id: "sex", header: "Sex", accessorFn: (row) => row.sex },
-  { id: "age", header: "Age", accessorFn: (row) => row.age },
-  { id: "status", header: "Marital Status", accessorFn: (row) => row.status },
-  { id: "pregnant", header: "is Pregnant", accessorFn: (row) => row.pregnant },
-  { id: "occupation", header: "Profession", accessorFn: (row) => row.occupation },
-  { id: "residence", header: "Residence", accessorFn: (row) => row.residence },
-  { id: "contact", header: "Contact", accessorFn: (row) => row.contact },
-  { id: "past_history", header: "History", accessorFn: (row) => row.past_history },
+  { id: "date", header: "Date", accessorFn: (row) => row.date?.value || "" },
+  { id: "names", header: "Patient Name", accessorFn: (row) => row.names?.value || "" },
+  { id: "sex", header: "Sex", accessorFn: (row) => row.sex?.value || "" },
+  { id: "age", header: "Age", accessorFn: (row) => row.age?.value || "" },
+  { id: "status", header: "Marital Status", accessorFn: (row) => row.status?.value || "" },
+  { id: "pregnant", header: "is Pregnant", accessorFn: (row) => (row.pregnant?.value === "1" ? "Yes" : "No") },
+  { id: "occupation", header: "Profession", accessorFn: (row) => row.occupation?.value || "" },
+  { id: "residence", header: "Residence", accessorFn: (row) => row.residence?.value || "" },
+  { id: "contact", header: "Contact", accessorFn: (row) => row.contact?.value || "" },
+  { id: "past_history", header: "History", accessorFn: (row) => row.past_history?.value || "" },
 ];
 
 interface PatientEditSheetProps {
@@ -98,31 +98,34 @@ export default function PatientEditSheet({
 
   React.useEffect(() => {
     if (selectedPatient) {
-      const mapped: any = {
-        date: selectedPatient.date || "",
-        month_number: selectedPatient.month_number || "",
-        case: selectedPatient.case || "",
-        names: selectedPatient.names || "",
-        sex: selectedPatient.sex || "",
-        age: selectedPatient.age || "",
-        status: selectedPatient.status || "",
-        pregnant: selectedPatient.pregnant === "1" || selectedPatient.pregnant === "yes" ? "yes" : "no",
-        patient_code: selectedPatient.patient_code || "",
-        occupation: selectedPatient.occupation || "",
-        residence: selectedPatient.residence || "",
-        contact: selectedPatient.contact || "",
-        past_history: selectedPatient.past_history || "",
-        signs_symptoms: selectedPatient.signs_symptoms || "",
-        diagnosis: selectedPatient.diagnosis || "",
-        investigations: selectedPatient.investigations || "",
-        results: (selectedPatient.results as any)?.value || selectedPatient.results || "",
-        treatment: selectedPatient.treatment || "",
-        confirmatory_diagnosis: selectedPatient.confirmatory_diagnosis || "",
-        hospitalisation: selectedPatient.hospitalisation || "",
-        receipt_no: selectedPatient.receipt_no || "",
-        referral: selectedPatient.referral || "",
-        observations: selectedPatient.observations || "",
+      const p = selectedPatient;
+
+      const mapped: FormDataType = {
+        date: p.date?.value || "",
+        month_number: p.month_number?.value?.toString() || "",
+        case: p.case?.value?.toString() || "",
+        names: p.names?.value || "",
+        sex: p.sex?.value || "",
+        age: p.age?.value?.toString() || "",
+        status: p.status?.value || "",
+        pregnant: p.pregnant?.value === "1" ? "yes" : "no",
+        patient_code: p.patient_code?.value || "",
+        occupation: p.occupation?.value || "",
+        residence: p.residence?.value || "",
+        contact: p.contact?.value || "",
+        past_history: p.past_history?.value || "",
+        signs_symptoms: p.signs_symptoms?.value || "",
+        diagnosis: p.diagnosis?.value || "",
+        investigations: p.investigations?.value || "",
+        results: (p.results as any)?.value || p.results?.value || "",
+        treatment: p.treatment?.value || "",
+        confirmatory_diagnosis: p.confirmatory_diagnosis?.value || "",
+        hospitalisation: p.hospitalisation?.value || "",
+        receipt_no: p.receipt_no?.value || "",
+        referral: p.referral?.value || "",
+        observations: p.observations?.value || "",
       };
+
       setFormData(mapped);
       setOriginalData(mapped);
       setErrors({});
@@ -132,7 +135,11 @@ export default function PatientEditSheet({
 
   const visitHistoryData = React.useMemo(() => {
     if (!selectedPatient || !data) return [];
-    return data.filter(r => r.names === selectedPatient.names || r.patient_code === selectedPatient.patient_code);
+    const name = selectedPatient.names?.value;
+    const code = selectedPatient.patient_code?.value;
+    return data.filter(r => 
+      r.names?.value === name || r.patient_code?.value === code
+    );
   }, [selectedPatient, data]);
 
   const handleChange = (field: keyof FormDataType, value: string) => {
@@ -149,19 +156,20 @@ export default function PatientEditSheet({
     if (!open) closeModal();
   };
 
+  console.log(visitHistoryData)
+
   if (!selectedPatient) return null;
 
   return (
     <Sheet open={modalOpen} onOpenChange={handleOpenChange}>
       <SheetContent side="bottom" className="h-[85vh] p-0 overflow-y-auto bg-gray-50">
-        {/* Tabs */}
+        {/* Tabs + Close Button */}
         <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
-          <div className="mx-auto px-6">
+          <div className="mx-auto px-6 relative">
             <div className="flex gap-12 border-b">
               <button
                 onClick={() => setCurrentTab("details")}
-                className={`py-6 px-1 text-sm font-medium transition-all relative ${currentTab === "details" ? "text-green-600" : "text-gray-500 hover:text-gray-900"
-                  }`}
+                className={`py-6 px-1 text-sm font-medium transition-all relative ${currentTab === "details" ? "text-green-600" : "text-gray-500 hover:text-gray-900"}`}
               >
                 Patient Details
                 {currentTab === "details" && (
@@ -170,8 +178,7 @@ export default function PatientEditSheet({
               </button>
               <button
                 onClick={() => setCurrentTab("history")}
-                className={`py-6 px-1 text-sm font-medium transition-all relative ${currentTab === "history" ? "text-green-600" : "text-gray-500 hover:text-gray-900"
-                  }`}
+                className={`py-6 px-1 text-sm font-medium transition-all relative ${currentTab === "history" ? "text-green-600" : "text-gray-500 hover:text-gray-900"}`}
               >
                 Visit History
                 {currentTab === "history" && (
@@ -179,30 +186,22 @@ export default function PatientEditSheet({
                 )}
               </button>
             </div>
-          </div>
-          <button
-            onClick={closeModal}
-            className="p-2 rounded-full absolute top-1/4 right-4 hover:bg-gray-100 transition-colors"
-            aria-label="Close modal"
-          >
-            <svg
-              className="w-6 h-6 text-gray-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+
+            {/* Close X Button */}
+            <button
+              onClick={closeModal}
+              className="p-2 rounded-full absolute top-1/4 right-4 hover:bg-gray-100 transition-colors"
+              aria-label="Close modal"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
+              <svg className="w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Content */}
-        <div className=" mx-auto px-6 py-8">
+        <div className="mx-auto px-6 py-8">
           {currentTab === "details" && (
             <div className="space-y-10 max-w-7xl mx-auto">
               {/* Row 1 */}
@@ -299,7 +298,7 @@ export default function PatientEditSheet({
           )}
 
           {currentTab === "history" && (
-            <div className="bg-white shadow-sm border overflow-auto">
+            <div className="bg-white shadow-sm border overflow-auto rounded-lg">
               <DataTable data={visitHistoryData} columns={visitHistoryColumns} isLoading={false} />
             </div>
           )}
