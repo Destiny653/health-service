@@ -159,12 +159,17 @@ export interface Scores {
 }
 
 
+export interface DocumentGroup {
+  image_urls: string[];
+  rows: PatientDocument[];
+}
+
 export interface DocumentList {
   total_rows: number;
   page: number;
   limit: number;
   documents: {
-    [docCode: string]: PatientDocument[];
+    [docCode: string]: DocumentGroup;
   };
 }
 

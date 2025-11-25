@@ -235,15 +235,6 @@ const DashboardContent = () => {
                 <div className=" md:width-[40vw]">
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-sm font-medium text-gray-700">Granularity</label>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleClearFilters}
-                      className="flex items-center gap-2 border-none shadow-sm text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <FilterX className="h-4 w-4" />
-                      Clear Filters
-                    </Button>
                   </div>
                   <div className="flex gap-3 w-1/2">
                     {(['daily', 'weekly', 'monthly', 'yearly'] as const).map((type) => (
@@ -252,7 +243,7 @@ const DashboardContent = () => {
                         variant={granularity === type ? "default" : "outline"}
                         size="sm"
                         onClick={() => setGranularity(type)}
-                        className={`flex-1 capitalize border-none shadow-sm py-6 px-10 ${granularity === type
+                        className={`flex-1 capitalize border-none shadow-sm rounded-sm py-6 px-10 ${granularity === type
                           ? 'bg-blue-600 text-white hover:bg-blue-700'
                           : 'bg-white hover:bg-gray-50'
                           }`}
@@ -260,6 +251,15 @@ const DashboardContent = () => {
                         {type}
                       </Button>
                     ))}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleClearFilters}
+                      className="flex items-center gap-2 py-6 border-none rounded-sm shadow-sm text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <FilterX className="h-4 w-4" />
+                      Clear Filters
+                    </Button>
                   </div>
                 </div>
 

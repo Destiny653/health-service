@@ -425,7 +425,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
   // Flatten all documents
   const allRawDocuments = useMemo(() => {
     if (!documentsData?.documents) return [];
-    return Object.values(documentsData.documents).flat();
+    return Object.values(documentsData.documents).flatMap(group => group.rows);
   }, [documentsData]);
 
   // ---- Computed Values ----
@@ -548,14 +548,14 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
 
       // Date range filter
       if (created < startRange || created >= endRange) continue;
-      
+
       // Status filter (Row level check)
       // if (selectedStatus !== null) {
-        //   const docStatus = doc.metadata.verified_at ? "confirmed" : "confirmed";
-        //   if (docStatus !== selectedStatus) continue;
-        // }
-        
-        // Search filter — now uses .value so full field objects (with .score) are preserved
+      //   const docStatus = doc.metadata.verified_at ? "confirmed" : "confirmed";
+      //   if (docStatus !== selectedStatus) continue;
+      // }
+
+      // Search filter — now uses .value so full field objects (with .score) are preserved
       if (searchLower) {
         const fields = [
           doc.names?.value,
@@ -571,21 +571,38 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
         const matches = fields.some(f => f && String(f).toLowerCase().includes(searchLower));
         if (!matches) continue;
       }
-      
+
       results.push(mapDocumentToPatient(doc));
     }
-    
+
     return results;
   }, [allRawDocuments, startRange, endRange, debouncedSearch, selectedStatus]);
-  
 
-  // Image URLs (only compute when panel is visible)
+
+  // Image URLs (only compute when panel is visible) - extract from DocumentGroup level
   const filteredImageUrls = useMemo(() => {
-    if (!showBottomPanel) return [];
-    return filteredPatients
-      .map(p => (p as any).imageUrl)
-      .filter((url): url is string => !!url);
-  }, [filteredPatients, showBottomPanel]);
+    if (!showBottomPanel || !documentsData?.documents) return [];
+
+    // Collect unique doc_codes from filtered patients
+    const docCodes = new Set<string>();
+    filteredPatients.forEach(p => {
+      const docCode = p.metadata?.doc_code;
+      if (docCode) {
+        docCodes.add(docCode);
+      }
+    });
+
+    // Get image URLs from the corresponding DocumentGroups
+    const urls: string[] = [];
+    docCodes.forEach(docCode => {
+      const documentGroup = documentsData.documents[docCode];
+      if (documentGroup?.image_urls && Array.isArray(documentGroup.image_urls)) {
+        urls.push(...documentGroup.image_urls);
+      }
+    });
+
+    return urls;
+  }, [filteredPatients, showBottomPanel, documentsData]);
 
   // ---- Stable Callbacks ----
   const handleUnitClick = useCallback((id: string) => {
@@ -652,40 +669,40 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
   }, [selectedFacilityName, activeView, selectedDate, selectedStatus, filteredPatients]);
 
   // ---- Table Columns ----
-const columns = useMemo<ColumnDef<PatientDocument>[]>(() => [
-  { accessorKey: "date", header: "Date", cell: ({ row }) => row.original.date?.value || "" },
-  { accessorKey: "month_number", header: "Month Number", cell: ({ row }) => row.original.month_number?.value || "" },
-  { accessorKey: "case", header: "Case #", cell: ({ row }) => row.original.case?.value || "" },
-  { accessorKey: "names", header: "Patient Name", cell: ({ row }) => row.original.names?.value || "" },
-  { accessorKey: "sex", header: "Sex", cell: ({ row }) => row.original.sex?.value || "" },
-  { accessorKey: "age", header: "Age", cell: ({ row }) => row.original.age?.value || "" },
-  {
-    header: "Is Pregnant",
-    cell: ({ row }) => {
-      const val = row.original.pregnant?.value;
-      return val === "1" ? "Yes" : "No";
+  const columns = useMemo<ColumnDef<PatientDocument>[]>(() => [
+    { accessorKey: "date", header: "Date", cell: ({ row }) => row.original.date?.value || "" },
+    { accessorKey: "month_number", header: "Month Number", cell: ({ row }) => row.original.month_number?.value || "" },
+    { accessorKey: "case", header: "Case #", cell: ({ row }) => row.original.case?.value || "" },
+    { accessorKey: "names", header: "Patient Name", cell: ({ row }) => row.original.names?.value || "" },
+    { accessorKey: "sex", header: "Sex", cell: ({ row }) => row.original.sex?.value || "" },
+    { accessorKey: "age", header: "Age", cell: ({ row }) => row.original.age?.value || "" },
+    {
+      header: "Is Pregnant",
+      cell: ({ row }) => {
+        const val = row.original.pregnant?.value;
+        return val === "1" ? "Yes" : "No";
+      },
     },
-  },
-  { accessorKey: "status", header: "Marital Status", cell: ({ row }) => row.original.status?.value || "" },
-  { accessorKey: "patient_code", header: "Patient Code", cell: ({ row }) => row.original.patient_code?.value || "" },
-  { accessorKey: "occupation", header: "Occupation", cell: ({ row }) => row.original.occupation?.value || "" },
-  { accessorKey: "residence", header: "Residence", cell: ({ row }) => row.original.residence?.value || "" },
-  { accessorKey: "contact", header: "Contact", cell: ({ row }) => row.original.contact?.value || "" },
-  { accessorKey: "past_history", header: "Past History", cell: ({ row }) => row.original.past_history?.value || "" },
-  { accessorKey: "signs_symptoms", header: "Signs & Symptoms", cell: ({ row }) => row.original.signs_symptoms?.value || "" },
-  { accessorKey: "diagnosis", header: "Diagnosis", cell: ({ row }) => row.original.diagnosis?.value || "" },
-  { accessorKey: "results", header: "Results", cell: ({ row }) => row.original.results?.value || "" },
-  { accessorKey: "treatment", header: "Treatment", cell: ({ row }) => row.original.treatment?.value || "" },
-  { accessorKey: "investigations", header: "Investigations", cell: ({ row }) => row.original.investigations?.value || "" },
-  { accessorKey: "hospitalisation", header: "Hospitalisation", cell: ({ row }) => row.original.hospitalisation?.value || "" },
-  { accessorKey: "receipt_no", header: "Receipt No.", cell: ({ row }) => row.original.receipt_no?.value || "" },
-  { accessorKey: "referral", header: "Referral", cell: ({ row }) => row.original.referral?.value || "" },
-  { accessorKey: "observations", header: "Observations", cell: ({ row }) => row.original.observations?.value || "" },
-  {
-    header: "Deceased",
-    cell: ({ row }) => ((row.original as any).isDead ? "Yes" : "No"),
-  },
-], []);
+    { accessorKey: "status", header: "Marital Status", cell: ({ row }) => row.original.status?.value || "" },
+    { accessorKey: "patient_code", header: "Patient Code", cell: ({ row }) => row.original.patient_code?.value || "" },
+    { accessorKey: "occupation", header: "Occupation", cell: ({ row }) => row.original.occupation?.value || "" },
+    { accessorKey: "residence", header: "Residence", cell: ({ row }) => row.original.residence?.value || "" },
+    { accessorKey: "contact", header: "Contact", cell: ({ row }) => row.original.contact?.value || "" },
+    { accessorKey: "past_history", header: "Past History", cell: ({ row }) => row.original.past_history?.value || "" },
+    { accessorKey: "signs_symptoms", header: "Signs & Symptoms", cell: ({ row }) => row.original.signs_symptoms?.value || "" },
+    { accessorKey: "diagnosis", header: "Diagnosis", cell: ({ row }) => row.original.diagnosis?.value || "" },
+    { accessorKey: "results", header: "Results", cell: ({ row }) => row.original.results?.value || "" },
+    { accessorKey: "treatment", header: "Treatment", cell: ({ row }) => row.original.treatment?.value || "" },
+    { accessorKey: "investigations", header: "Investigations", cell: ({ row }) => row.original.investigations?.value || "" },
+    { accessorKey: "hospitalisation", header: "Hospitalisation", cell: ({ row }) => row.original.hospitalisation?.value || "" },
+    { accessorKey: "receipt_no", header: "Receipt No.", cell: ({ row }) => row.original.receipt_no?.value || "" },
+    { accessorKey: "referral", header: "Referral", cell: ({ row }) => row.original.referral?.value || "" },
+    { accessorKey: "observations", header: "Observations", cell: ({ row }) => row.original.observations?.value || "" },
+    {
+      header: "Deceased",
+      cell: ({ row }) => ((row.original as any).isDead ? "Yes" : "No"),
+    },
+  ], []);
   // ---- Render ----
   const topContent = (
     <div className="flex flex-col h-full bg-white">
@@ -855,7 +872,7 @@ const columns = useMemo<ColumnDef<PatientDocument>[]>(() => [
   );
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden font-sans">
+    <div className="h-[105vh] flex flex-col overflow-hidden font-sans">
       {showBottomPanel ? (
         <HorizontalSplitPane top={topContent} bottom={bottomContent} initialPercent={65} storageKey="data-entries-split-height" />
       ) : (
