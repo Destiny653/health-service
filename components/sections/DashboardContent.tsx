@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, MapPin, Calendar as CalendarIcon } from 'lucide-react';
+import { Download, MapPin, Calendar as CalendarIcon, FilterX } from 'lucide-react';
 import {
   LineChart,
   Line,
@@ -65,12 +65,19 @@ const DashboardContent = () => {
   const [chartType, setChartType] = useState<'bar' | 'pie'>('bar');
   const [granularity, setGranularity] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('daily');
 
+  // Clear all filters
+  const handleClearFilters = () => {
+    setDateRange(undefined);
+    setSelectedHealthArea("");
+    setSelectedHealthCenter("");
+    setGranularity('daily');
+  };
+
   // Fetch child facilities only if district or health_area
   const shouldFetchChildren = userFacilityType === "district" || userFacilityType === "health_area";
   const { data: childData } = useGetChildFacilities(shouldFetchChildren ? userFacilityId : undefined);
   const childFacilities = childData?.results || [];
 
-  console.log(childFacilities)
   // Health Areas — only show if user is district
   const healthAreas = useMemo(() => {
     if (userFacilityType !== "district") return [];
@@ -109,19 +116,12 @@ const DashboardContent = () => {
       // Health center users always use their own facility ID
       facilityId = userFacilityId;
     } else if (userFacilityType === "health_area") {
-      // Health area users: use selected health center, or fallback to their own ID
-      facilityId = selectedHealthCenter || userFacilityId;
+      // Health area users: only use selected health center, undefined otherwise (no params when cleared)
+      facilityId = selectedHealthCenter || undefined;
     } else {
       // District users: use selected health center > selected health area > undefined
       facilityId = selectedHealthCenter || selectedHealthArea || undefined;
     }
-
-    console.log('🎯 Target Facility ID updated:', {
-      userFacilityType,
-      selectedHealthArea,
-      selectedHealthCenter,
-      targetFacilityId: facilityId
-    });
 
     return facilityId;
   }, [userFacilityType, userFacilityId, selectedHealthCenter, selectedHealthArea]);
@@ -137,7 +137,7 @@ const DashboardContent = () => {
   const stats = statsQuery.data;
   const isLoading = statsQuery.isLoading;
 
-  // YOUR EXACT KPI CARD RENDERING — 100% PRESERVED
+  // KPI CARD RENDERING WITH DYNAMIC FOURTH CARD
   const kpiData = useMemo(() => {
     if (!stats) return [];
 
@@ -147,7 +147,12 @@ const DashboardContent = () => {
       { title: 'Deaths', value: stats.deaths || 0, iconUp: TrendDownIcon, iconD: TrendUpIcon, color: 'text-red-600', rate: 0 },
     ];
 
-    if (!isHealthCenter) {
+    // Fourth card logic:
+    // - Health Center: Always show "Referred Cases"
+    // - District/Health Area WITHOUT facility selection: Show "Health Centers" count
+    // - District/Health Area WITH facility selection: Show "Referred Cases"
+    if (userFacilityType === "health_center") {
+      // Health centers always show referred cases
       base.push({
         title: 'Referred Cases',
         value: (stats as any).referred_cases || 0,
@@ -156,10 +161,35 @@ const DashboardContent = () => {
         color: 'text-green-600',
         rate: 12
       });
+    } else if (userFacilityType === "district" || userFacilityType === "health_area") {
+      // Check if a facility is selected
+      const hasFacilitySelected = selectedHealthCenter || selectedHealthArea;
+
+      if (hasFacilitySelected) {
+        // Show referred cases when a facility is selected
+        base.push({
+          title: 'Referred Cases',
+          value: (stats as any).referred_cases || 0,
+          iconUp: TrendDownIcon,
+          iconD: TrendUpIcon,
+          color: 'text-green-600',
+          rate: 12
+        });
+      } else {
+        // Show health centers count when no facility is selected
+        base.push({
+          title: 'Health Instituations',
+          value: (stats as any).health_institutions || 0,
+          iconUp: TrendDownIcon,
+          iconD: TrendUpIcon,
+          color: 'text-blue-600',
+          rate: 0
+        });
+      }
     }
 
     return base;
-  }, [stats, isHealthCenter]);
+  }, [stats, userFacilityType, selectedHealthCenter, selectedHealthArea]);
 
   // Line Chart Data
   const chartData = useMemo(() => {
@@ -183,16 +213,38 @@ const DashboardContent = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 antialiased">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-xl p-8 flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
+            <p className="text-gray-700 font-medium">Loading statistics...</p>
+          </div>
+        </div>
+      )}
+
       <div className=" mx-auto space-y-6">
 
-        {/* Filters — Only for district & health_area */}
-        {(userFacilityType === "district" || userFacilityType === "health_area") && (
+        {/* Filters — Visible for District, Health Area, AND Health Center */}
+        {(userFacilityType === "district" || userFacilityType === "health_area" || userFacilityType === "health_center") && (
           <Card className="border-none shadow-none bg-inherit">
             <CardContent className="p-0">
               <div className="grid grid-cols-1 md:flex justify-between gap-10">
+
                 {/* Granularity Buttons */}
                 <div className=" md:width-[40vw]">
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Granularity</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-sm font-medium text-gray-700">Granularity</label>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleClearFilters}
+                      className="flex items-center gap-2 border-none shadow-sm text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <FilterX className="h-4 w-4" />
+                      Clear Filters
+                    </Button>
+                  </div>
                   <div className="flex gap-3 w-1/2">
                     {(['daily', 'weekly', 'monthly', 'yearly'] as const).map((type) => (
                       <Button
@@ -210,9 +262,11 @@ const DashboardContent = () => {
                     ))}
                   </div>
                 </div>
+
+                {/* Date Picker and Dropdowns */}
                 <div className="flex gap-4 w-1/2">
-                  <div className="flex-1">
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Date Range</label>
+                  <div className="flex-1 ml-auto max-w-[500px]">
+                    <label className="text-sm font-medium text-gray-700 mb-2 block text-right">Date Range</label>
                     <Popover>
                       <PopoverTrigger asChild>
                         <Button variant="outline" className="w-full py-6 shadow-sm border-none justify-start text-left font-normal">
@@ -234,14 +288,15 @@ const DashboardContent = () => {
                       </PopoverContent>
                     </Popover>
                   </div>
+
+                  {/* Health Area Dropdown - ONLY District */}
                   {userFacilityType === "district" && (
-                    <div className="flex-1">
-                      <label className="text-sm font-[500] text-gray-700 mb-2 block">Health Area</label>
+                    <div className="flex-">
+                      <label className="text-sm font-[500] text-gray-700 mb-2 block text-right">Health Area</label>
                       <Select
                         value={selectedHealthArea}
                         onValueChange={(value) => {
                           setSelectedHealthArea(value);
-                          // Reset health center when health area changes
                           setSelectedHealthCenter("");
                         }}
                       >
@@ -258,10 +313,11 @@ const DashboardContent = () => {
                       </Select>
                     </div>
                   )}
-                  {/* Health Center Dropdown */}
+
+                  {/* Health Center Dropdown - ONLY District or Health Area */}
                   {(userFacilityType === "district" || userFacilityType === "health_area") && healthCenters.length > 0 && (
                     <div className="flex-1">
-                      <label className="text-sm font-medium text-gray-700 mb-2 block">Health Center</label>
+                      <label className="text-sm font-medium text-gray-700 mb-2 block text-right">Health Center</label>
                       <Select value={selectedHealthCenter} onValueChange={setSelectedHealthCenter}>
                         <SelectTrigger className="p-6 font-[500] border-none shadow-sm bg-white">
                           <SelectValue placeholder="All Health Centers" />
