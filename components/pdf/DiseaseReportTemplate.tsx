@@ -39,7 +39,7 @@ interface DiseaseReportTemplateProps {
 export const DiseaseReportTemplate = React.forwardRef<HTMLDivElement, DiseaseReportTemplateProps>(
     ({ data, metadata }, ref) => {
         return (
-            <div ref={ref} className="flex flex-col item-center overflow-hidden" style={styles.page}>
+            <div ref={ref} className="flex flex-col item-center " style={styles.page}>
                 {/* ===== TRI-COLUMN HEADER ===== */}
                 <div style={styles.header}>
                     {/* Left Column - French */}
@@ -197,20 +197,20 @@ export const DiseaseReportTemplate = React.forwardRef<HTMLDivElement, DiseaseRep
                             ))}
                         </tbody>
                     </table>
-                    <p className="text-[8px] font-bold mt-1">* Maladie a notification immediate / Immediate notification diseases</p>
+                    <p className="text-[8px] font-bold mt-1">* Maladie a notification immediate/ Immediate notification diseases</p>
                 </div>
 
                 {/* ===== FOOTER SECTION ===== */}
                 <div style={styles.footer}>
                     <div style={styles.footerRow} className="flex">
                         <div style={styles.footerField}>
-                            <div style={styles.footerLabel}>Date of submission in the health area: ............</div>
+                            <div style={styles.footerLabel} className='text-nowrap'>Date d'envoi a L'Aire de Sante/ Date of Submision to the Health Area: ...........</div>
                         </div>
                         <div style={styles.footerField}>
-                            <div style={styles.footerLabel}>Date received: ............</div>
+                            <div style={styles.footerLabel} className='text-nowrap'>Date de Reception/ Date of Reception: ............</div>
                         </div>
                         <div style={styles.footerField}>
-                            <div style={styles.footerLabel} className="text-nowrap">Nom, Signature et cache / Name, Signature and Round Stamp</div>
+                            <div style={styles.footerLabel} className="text-nowrap">Nom, Signature et cache/ Name, Signature and Round Stamp</div>
                         </div>
                     </div>
 
@@ -253,7 +253,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     header: {
         display: 'flex',
         justifyContent: 'space-between',
-        marginBottom: '10px',
+        marginBottom: '0px',
         fontSize: '8pt',
     },
     headerLeft: {
@@ -288,12 +288,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     // Subtitle
     subtitle: {
         textAlign: 'center',
-        marginBottom: '8px',
+        marginBottom: '0px',
     },
 
     // Form sections
     formSection: {
-        marginBottom: '8px',
+        marginBottom: '0px',
         fontSize: '7pt',
     },
     formRow: {
@@ -314,7 +314,7 @@ const styles: { [key: string]: React.CSSProperties } = {
 
     // Table styles
     tableWrapper: {
-        marginBottom: '8px',
+        marginBottom: '0px',
         overflowX: 'auto',
     },
     table: {
@@ -380,7 +380,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         display: 'flex',
         justifyContent: 'space-between',
         gap: '8px',
-        marginBottom: '8px',
+        marginBottom: '0px',
         fontSize: '7pt',
     },
     footerField: {

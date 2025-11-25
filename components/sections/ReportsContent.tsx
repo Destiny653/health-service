@@ -314,9 +314,25 @@ export default function ReportsContent() {
 
   const handleExportPDF = async () => {
     const filename = `Disease_Report_${activeView}_${format(new Date(), 'yyyy-MM-dd')}`;
+
     await exportHTMLToPDF(diseaseReportRef.current, filename);
   };
 
+    if(filteredReports){
+       // Store data in sessionStorage for the export page
+    localStorage.setItem('diseaseReportData', JSON.stringify(filteredReports));
+    localStorage.setItem('diseaseReportMetadata', JSON.stringify({
+      facilityName: 'Mbingo Regional Hospital',
+      region: '',
+      healthDistrict: 'Mbingo Regional Hospital',
+      healthArea: '',
+      year: '',
+      epidemiologicalWeek: 'week',
+      submissionDate: 'submissionDate',
+      receivedDate: 'receivedDate',
+      submitterName: 'name',
+    }));
+  }
   const [submissionDate, setSubmissionDate] = useState('');
   const [receivedDate, setReceivedDate] = useState('');
   const [name, setName] = useState('');
