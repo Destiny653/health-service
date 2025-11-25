@@ -188,21 +188,21 @@ const DashboardContent = () => {
         {/* Filters — Only for district & health_area */}
         {(userFacilityType === "district" || userFacilityType === "health_area") && (
           <Card className="border-none shadow-none bg-inherit">
-            <CardContent className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <CardContent className="p-0">
+              <div className="grid grid-cols-1 md:flex justify-between gap-10">
                 {/* Granularity Buttons */}
-                <div>
+                <div className=" md:width-[40vw]">
                   <label className="text-sm font-medium text-gray-700 mb-2 block">Granularity</label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-3 w-1/2">
                     {(['daily', 'weekly', 'monthly', 'yearly'] as const).map((type) => (
                       <Button
                         key={type}
                         variant={granularity === type ? "default" : "outline"}
                         size="sm"
                         onClick={() => setGranularity(type)}
-                        className={`flex-1 capitalize py-6 ${granularity === type
+                        className={`flex-1 capitalize border-none shadow-sm py-6 px-10 ${granularity === type
                           ? 'bg-blue-600 text-white hover:bg-blue-700'
-                          : 'bg-white border-gray-200 hover:bg-gray-50'
+                          : 'bg-white hover:bg-gray-50'
                           }`}
                       >
                         {type}
@@ -210,71 +210,73 @@ const DashboardContent = () => {
                     ))}
                   </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Date Range</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full py-6 shadow-sm border-none justify-start text-left font-normal">
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {dateRange?.from && dateRange?.to
-                          ? `${format(dateRange.from, "PP")} - ${format(dateRange.to, "PP")}`
-                          : "Select date range"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 font-[500]" align="start">
-                      <Calendar
-                        mode="range"
-                        selected={dateRange}
-                        onSelect={setDateRange}
-                        fromYear={2020}
-                        toYear={2030}
-                      />
-                    </PopoverContent>
-                  </Popover>
+                <div className="flex gap-4 w-1/2">
+                  <div className="flex-1">
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">Date Range</label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" className="w-full py-6 shadow-sm border-none justify-start text-left font-normal">
+                          <CalendarIcon className="mr-2 h-4 w-4" />
+                          {dateRange?.from && dateRange?.to
+                            ? `${format(dateRange.from, "PP")} - ${format(dateRange.to, "PP")}`
+                            : "Select date range"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0 font-[500]" align="start">
+                        <Calendar
+                          mode="range"
+                          className='w-full'
+                          selected={dateRange}
+                          onSelect={setDateRange}
+                          fromYear={2020}
+                          toYear={2030}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  {userFacilityType === "district" && (
+                    <div className="flex-1">
+                      <label className="text-sm font-[500] text-gray-700 mb-2 block">Health Area</label>
+                      <Select
+                        value={selectedHealthArea}
+                        onValueChange={(value) => {
+                          setSelectedHealthArea(value);
+                          // Reset health center when health area changes
+                          setSelectedHealthCenter("");
+                        }}
+                      >
+                        <SelectTrigger className="p-6 font-[500] border-none shadow-sm bg-white">
+                          <SelectValue placeholder="All Health Areas" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {healthAreas.map((area: any) => (
+                            <SelectItem key={area._id} value={area._id} className='py-4 font-[500]'>
+                              {area.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                  {/* Health Center Dropdown */}
+                  {(userFacilityType === "district" || userFacilityType === "health_area") && healthCenters.length > 0 && (
+                    <div className="flex-1">
+                      <label className="text-sm font-medium text-gray-700 mb-2 block">Health Center</label>
+                      <Select value={selectedHealthCenter} onValueChange={setSelectedHealthCenter}>
+                        <SelectTrigger className="p-6 font-[500] border-none shadow-sm bg-white">
+                          <SelectValue placeholder="All Health Centers" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {healthCenters.map((center: any) => (
+                            <SelectItem className='py-4 font-[500]' key={center._id} value={center._id}>
+                              {center.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
                 </div>
-
-                {userFacilityType === "district" && (
-                  <div>
-                    <label className="text-sm font-[500] text-gray-700 mb-2 block">Health Area</label>
-                    <Select
-                      value={selectedHealthArea}
-                      onValueChange={(value) => {
-                        setSelectedHealthArea(value);
-                        // Reset health center when health area changes
-                        setSelectedHealthCenter("");
-                      }}
-                    >
-                      <SelectTrigger className="p-6 font-[500] border-none shadow-sm bg-white">
-                        <SelectValue placeholder="All Health Areas" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {healthAreas.map((area: any) => (
-                          <SelectItem key={area._id} value={area._id} className='py-4 font-[500]'>
-                            {area.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                {/* Health Center Dropdown */}
-                {(userFacilityType === "district" || userFacilityType === "health_area") && healthCenters.length > 0 && (
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Health Center</label>
-                    <Select value={selectedHealthCenter} onValueChange={setSelectedHealthCenter}>
-                      <SelectTrigger className="p-6 font-[500] border-none shadow-sm bg-white">
-                        <SelectValue placeholder="All Health Centers" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {healthCenters.map((center: any) => (
-                          <SelectItem className='py-4 font-[500]' key={center._id} value={center._id}>
-                            {center.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
               </div>
             </CardContent>
           </Card>
