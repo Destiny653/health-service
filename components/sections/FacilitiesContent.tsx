@@ -50,16 +50,16 @@ export interface Facility {
         longitude?: number;
         latitude?: number;
     };
-    submitted_status?: Record<string, "complete" | "in_progress" | "none">;
+    submitted_status?: Record<string, "complete" | "incomplete" | "none">;
 }
 
 /* ────────────────────── TYPES ────────────────────── */
 type ViewType = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR';
-type StatusKey = 'complete' | 'in_progress' | 'missing' | 'future';
+type StatusKey = 'complete' | 'incomplete' | 'missing' | 'future';
 
 const STATUS_CONFIG = {
     complete: { label: "Completed", color: "bg-green-500", icon: Check, tooltip: "All records verified" },
-    in_progress: { label: "In Progress", color: "bg-yellow-400", icon: AlertTriangle, tooltip: "Needs attention" },
+    incomplete: { label: "In Progress", color: "bg-yellow-400", icon: AlertTriangle, tooltip: "Needs attention" },
     missing: { label: "No Data", color: "bg-red-500", icon: X, tooltip: "No submission" },
     future: { label: "Future", color: "bg-gray-400", icon: X, tooltip: "Not yet due" },
 } as const;
@@ -106,12 +106,12 @@ const getFacilityStatusForUnit = (unitDate: Date, facility: Facility, view: View
         const status = facility.submitted_status?.[key];
 
         if (status === "complete") hasComplete = true;
-        if (status === "in_progress") hasInProgress = true;
+        if (status === "incomplete") hasInProgress = true;
 
         current = addDays(current, 1);
     }
 
-    if (hasInProgress) return "in_progress";
+    if (hasInProgress) return "incomplete";
     if (hasComplete) return "complete";
     return "missing";
 };
@@ -131,7 +131,7 @@ const getGlobalStatusForUnit = (unitDate: Date, facilities: Facility[], view: Vi
         const status = getFacilityStatusForUnit(unitDate, facility, view);
 
         if (status === "complete") anyFacilityHasData = true;
-        else if (status === "in_progress") {
+        else if (status === "incomplete") {
             anyFacilityHasData = true;
             anyInProgress = true;
             allComplete = false;
@@ -141,7 +141,7 @@ const getGlobalStatusForUnit = (unitDate: Date, facilities: Facility[], view: Vi
     }
 
     if (!anyFacilityHasData) return "missing";
-    if (anyInProgress || !allComplete) return "in_progress";
+    if (anyInProgress || !allComplete) return "incomplete";
     return "complete";
 };
 
@@ -172,7 +172,7 @@ export default function FacilitiesContent({ setActiveTab }: { setActiveTab?: Rea
     const currentUserFacilityId = personel?.facility?.id;
     const currentUserName = personel?.name || "Dr. Admin User"; // Fallback name
 
-    const [selectedStatus, setSelectedStatus] = useState<"complete" | "in_progress" | "missing" | null>(null);
+    const [selectedStatus, setSelectedStatus] = useState<"complete" | "incomplete" | "missing" | null>(null);
     const [selectedParentId] = useState<string>(currentUserFacilityId || "");
     const { data, isLoading: isFetching, error } = useGetFacilities(selectedParentId);
     const facilities = data?.results || [];
@@ -281,7 +281,7 @@ export default function FacilitiesContent({ setActiveTab }: { setActiveTab?: Rea
         });
     }, [starkRows, selectedStatus]);
 
-    const handleStatusFilter = (status: "complete" | "in_progress" | "missing" | null) => {
+    const handleStatusFilter = (status: "complete" | "incomplete" | "missing" | null) => {
         setSelectedStatus(prev => (prev === status ? null : status));
     };
 
@@ -369,7 +369,7 @@ export default function FacilitiesContent({ setActiveTab }: { setActiveTab?: Rea
                         <div className="h-8 w-px bg-gray-300 mx-4" />
                         <StatusFilterButton status="complete" label="Completed" color="bg-green-500" isActive={selectedStatus === "complete"} onClick={() => handleStatusFilter("complete")} tooltip="All records verified" />
                         <div className="h-8 w-px bg-gray-300 mx-4" />
-                        <StatusFilterButton status="in_progress" label="In Progress" color="bg-yellow-400" isActive={selectedStatus === "in_progress"} onClick={() => handleStatusFilter("in_progress")} tooltip="Has errors or incomplete submissions" />
+                        <StatusFilterButton status="incomplete" label="In Progress" color="bg-yellow-400" isActive={selectedStatus === "incomplete"} onClick={() => handleStatusFilter("incomplete")} tooltip="Has errors or incomplete submissions" />
                         <div className="h-8 w-px bg-gray-300 mx-4" />
                         <StatusFilterButton status="missing" label="No Data" color="bg-red-500" isActive={selectedStatus === "missing"} onClick={() => handleStatusFilter("missing")} tooltip="No submission for this period" />
                     </TooltipProvider>
@@ -456,7 +456,7 @@ export default function FacilitiesContent({ setActiveTab }: { setActiveTab?: Rea
                                                         return;
                                                     }
 
-                                                    const targetStatus = status === "in_progress" || status === "missing" ? "pending" : "confirmed";
+                                                    const targetStatus = status === "incomplete" || status === "missing" ? "pending" : "confirmed";
 
                                                     localStorage.setItem("pendingFacilityId", row.id);
                                                     localStorage.setItem("pendingStatusFilter", targetStatus);
@@ -489,7 +489,7 @@ export default function FacilitiesContent({ setActiveTab }: { setActiveTab?: Rea
                                     Supervised By
                                 </td>
                                 {units.map(u => {
-                                    const isEligible = u.status === 'complete' || u.status === 'in_progress';
+                                    const isEligible = u.status === 'complete' || u.status === 'incomplete';
                                     const confirmedBy = supervisionState[u.id];
                                     const isSubmitting = submittingSupervisionId === u.id;
                                     

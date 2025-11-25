@@ -1,19 +1,12 @@
+import React from 'react';
+
 export default function HealthFacilityLoader() {
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-50">
-            <div className="flex flex-col items-center space-y-8">
+            <div className="flex flex-col items-center space-y-8 p-8  ">
 
-                {/* ECG Monitor Style Loader */}
-                <div className="relative w-80 h-48 bg-inherit rounded-lg overflow-hidden">
-
-                    {/* Screen grid (subtle medical monitor feel) */}
-                    <div className="absolute inset-0 opacity-20">
-                        <div className="h-full w-full bg-grid-green-500/10"
-                            style={{
-                                backgroundImage: `linear-gradient(green 1px, transparent 1px), linear-gradient(90deg, green 1px, transparent 1px)`,
-                                backgroundSize: '20px 20px'
-                            }} />
-                    </div>
+                {/* ECG Monitor Style Loader (Dark Screen) */}
+                <div className="relative w-80 h-48">
 
                     {/* ECG Heartbeat Line Animation */}
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -23,37 +16,34 @@ export default function HealthFacilityLoader() {
                             fill="none"
                             xmlns="http://www.w3.org/2000/svg"
                         >
-                            {/* Baseline */}
-                            <line x1="0" y1="100" x2="800" y2="100" stroke="#166534" strokeWidth="2" />
-
-                            {/* Animated ECG Wave - Classic QRS complex pattern */}
+                            {/* Animated ECG Wave - Classic QRS complex pattern (Main Trace) */}
                             <path
                                 d="M 0 100 
-                   L 100 100 
-                   L 120 100 
-                   L 135 50 
-                   L 140 180 
-                   L 150 80 
-                   L 160 100 
-                   L 300 100 
-                   L 320 100 
-                   L 335 50 
-                   L 340 180 
-                   L 350 80 
-                   L 360 100 
-                   L 500 100 
-                   L 520 100 
-                   L 535 50 
-                   L 540 180 
-                   L 550 80 
-                   L 560 100 
-                   L 700 100 
-                   L 720 100 
-                   L 735 50 
-                   L 740 180 
-                   L 750 80 
-                   L 760 100 
-                   L 800 100"
+                                   L 100 100 
+                                   L 120 100 
+                                   L 135 50 
+                                   L 140 180 
+                                   L 150 80 
+                                   L 160 100 
+                                   L 300 100 
+                                   L 320 100 
+                                   L 335 50 
+                                   L 340 180 
+                                   L 350 80 
+                                   L 360 100 
+                                   L 500 100 
+                                   L 520 100 
+                                   L 535 50 
+                                   L 540 180 
+                                   L 550 80 
+                                   L 560 100 
+                                   L 700 100 
+                                   L 720 100 
+                                   L 735 50 
+                                   L 740 180 
+                                   L 750 80 
+                                   L 760 100 
+                                   L 800 100"
                                 stroke="#22c55e"
                                 strokeWidth="3"
                                 strokeLinecap="round"
@@ -62,45 +52,45 @@ export default function HealthFacilityLoader() {
                                 className="animate-ecg-pulse"
                             />
 
-                            {/* Glow effect */}
+                            {/* Glow effect (slightly thicker, blurred trace) */}
                             <path
                                 d="M 0 100 
-                   L 100 100 
-                   L 120 100 
-                   L 135 50 
-                   L 140 180 
-                   L 150 80 
-                   L 160 100 
-                   L 300 100 
-                   L 320 100 
-                   L 335 50 
-                   L 340 180 
-                   L 350 80 
-                   L 360 100 
-                   L 500 100 
-                   L 520 100 
-                   L 535 50 
-                   L 540 180 
-                   L 550 80 
-                   L 560 100 
-                   L 700 100 
-                   L 720 100 
-                   L 735 50 
-                   L 740 180 
-                   L 750 80 
-                   L 760 100 
-                   L 800 100"
+                                   L 100 100 
+                                   L 120 100 
+                                   L 135 50 
+                                   L 140 180 
+                                   L 150 80 
+                                   L 160 100 
+                                   L 300 100 
+                                   L 320 100 
+                                   L 335 50 
+                                   L 340 180 
+                                   L 350 80 
+                                   L 360 100 
+                                   L 500 100 
+                                   L 520 100 
+                                   L 535 50 
+                                   L 540 180 
+                                   L 550 80 
+                                   L 560 100 
+                                   L 700 100 
+                                   L 720 100 
+                                   L 735 50 
+                                   L 740 180 
+                                   L 750 80 
+                                   L 760 100 
+                                   L 800 100"
                                 stroke="#86efac"
                                 strokeWidth="6"
                                 strokeLinecap="round"
                                 fill="none"
-                                opacity="0.6"
+                                opacity="0.4"
                                 className="animate-ecg-pulse blur-sm"
                             />
                         </svg>
                     </div>
 
-                    {/* Heart rate label (optional, professional touch) */}
+                    {/* Heart rate label */}
                     <div className="absolute top-4 left-6 text-green-400 text-sm font-mono tracking-wider">
                         HR 78 bpm
                     </div>
@@ -111,34 +101,34 @@ export default function HealthFacilityLoader() {
 
                 {/* Loading text */}
                 <div className="text-center">
-                    <p className="text-gray-700 text-lg font-medium">
-                        Loading your health profile...
+                    <p className="text-gray-700 text-xl font-medium tracking-tight">
+                        Loading vital data...
                     </p>
-                    <p className="text-sm text-gray-500 mt-2">
-                        Please wait while we retrieve your records securely
+                    <p className="text-sm text-gray-500 mt-2 max-w-xs">
+                        Establishing secure connection with the health network. Thank you for your patience.
                     </p>
                 </div>
             </div>
 
             {/* Tailwind animation for the ECG line */}
             <style jsx>{`
-        @keyframes ecg-pulse {
-          0% {
-            stroke-dasharray: 0 1000;
-            stroke-dashoffset: 0;
-          }
-          100% {
-            stroke-dasharray: 1000 0;
-            stroke-dashoffset: -1000;
-          }
-        }
+                @keyframes ecg-pulse {
+                    0% {
+                        /* Start fully offset to the left */
+                        stroke-dashoffset: 800;
+                    }
+                    100% {
+                        /* Move trace to the right, simulating sweep */
+                        stroke-dashoffset: -800;
+                    }
+                }
 
-        .animate-ecg-pulse {
-          animation: ecg-pulse 5s linear infinite;
-          stroke-dasharray: 1000;
-          stroke-dashoffset: 0;
-        }
-      `}</style>
+                .animate-ecg-pulse {
+                    /* Total length of the path for dash array */
+                    stroke-dasharray: 800; 
+                    animation: ecg-pulse 3s linear infinite; /* Faster, more urgent pulse */
+                }
+            `}</style>
         </div>
     );
 }

@@ -156,8 +156,6 @@ export default function PatientEditSheet({
     if (!open) closeModal();
   };
 
-  console.log(visitHistoryData)
-
   if (!selectedPatient) return null;
 
   return (

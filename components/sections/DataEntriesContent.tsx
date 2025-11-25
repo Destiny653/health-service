@@ -69,7 +69,7 @@ export interface Facility {
     longitude?: number;
     latitude?: number;
   };
-  submitted_status?: Record<string, "complete" | "in_progress" | "none">;
+  submitted_status?: Record<string, "complete" | "incomplete" | "none">;
 }
 
 type ViewType = "YEAR" | "MONTH" | "WEEK" | "DAY";
@@ -89,7 +89,7 @@ interface DataEntriesContentProps {
 
 const STATUS_COLORS = {
   GREEN: "bg-green-500",   // complete
-  YELLOW: "bg-yellow-400", // in_progress
+  YELLOW: "bg-yellow-400", // incomplete
   RED: "bg-red-500",       // missing / none
   GRAY: "bg-gray-300",     // future
 } as const;
@@ -450,7 +450,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
     start: Date,
     end: Date,
     facility: Facility | undefined
-  ): "complete" | "in_progress" | "missing" | "future" => {
+  ): "complete" | "incomplete" | "missing" | "future" => {
     const todayStart = startOfDay(new Date());
     if (isAfter(start, todayStart)) return "future";
     if (!facility) return "missing";
@@ -466,12 +466,12 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
       const status = facility.submitted_status?.[key];
 
       if (status === "complete") hasComplete = true;
-      if (status === "in_progress") hasInProgress = true;
+      if (status === "incomplete") hasInProgress = true;
 
       current = addDays(current, 1);
     }
 
-    if (hasInProgress) return "in_progress";
+    if (hasInProgress) return "incomplete";
     if (hasComplete) return "complete";
     return "missing";
   }, []);
@@ -485,7 +485,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
 
     switch (status) {
       case "complete": return STATUS_COLORS.GREEN;
-      case "in_progress": return STATUS_COLORS.YELLOW;
+      case "incomplete": return STATUS_COLORS.YELLOW;
       case "future": return STATUS_COLORS.GRAY;
       case "missing":
       default: return STATUS_COLORS.RED;
@@ -500,9 +500,9 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
     const unitEnd = getUnitEnd(unitStart, view);
     const status = getFacilityStatusForDateRange(unitStart, unitEnd, selectedFacility);
 
-    // Map UI filter ("confirmed"/"pending") to Facility Status ("complete"/"in_progress")
+    // Map UI filter ("confirmed"/"pending") to Facility Status ("complete"/"incomplete")
     if (selectedStatus === "confirmed" && status === "complete") return true;
-    if (selectedStatus === "pending" && status === "in_progress") return true;
+    if (selectedStatus === "pending" && status === "incomplete") return true;
 
     return false;
   }, [selectedFacility, selectedStatus, getFacilityStatusForDateRange]);
@@ -578,7 +578,6 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
     return results;
   }, [allRawDocuments, startRange, endRange, debouncedSearch, selectedStatus]);
   
-  console.log(filteredPatients)
 
   // Image URLs (only compute when panel is visible)
   const filteredImageUrls = useMemo(() => {
@@ -653,42 +652,40 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
   }, [selectedFacilityName, activeView, selectedDate, selectedStatus, filteredPatients]);
 
   // ---- Table Columns ----
-  const columns = useMemo<ColumnDef<PatientDocument>[]>(() => [
-    { accessorFn: (row) => row.date?.value || "", header: "Date" },
-    { accessorFn: (row) => row.month_number?.value || "", header: "Month Number" },
-    { accessorFn: (row) => row.case?.value || "", header: "Case #" },
-    { accessorFn: (row) => row.names?.value || "", header: "Patient Name" },
-    { accessorFn: (row) => row.sex?.value || "", header: "Sex" },
-    { accessorFn: (row) => row.age?.value || "", header: "Age" },
-    {
-      header: "Is Pregnant",
-      cell: ({ row }) => {
-        const val = row.original.pregnant?.value;
-        return val === "1" ? "Yes" : "No";
-      },
+const columns = useMemo<ColumnDef<PatientDocument>[]>(() => [
+  { accessorKey: "date", header: "Date", cell: ({ row }) => row.original.date?.value || "" },
+  { accessorKey: "month_number", header: "Month Number", cell: ({ row }) => row.original.month_number?.value || "" },
+  { accessorKey: "case", header: "Case #", cell: ({ row }) => row.original.case?.value || "" },
+  { accessorKey: "names", header: "Patient Name", cell: ({ row }) => row.original.names?.value || "" },
+  { accessorKey: "sex", header: "Sex", cell: ({ row }) => row.original.sex?.value || "" },
+  { accessorKey: "age", header: "Age", cell: ({ row }) => row.original.age?.value || "" },
+  {
+    header: "Is Pregnant",
+    cell: ({ row }) => {
+      const val = row.original.pregnant?.value;
+      return val === "1" ? "Yes" : "No";
     },
-    { accessorFn: (row) => row.status?.value || "", header: "Marital Status" },
-    { accessorFn: (row) => row.patient_code?.value || "", header: "Patient Code" },
-    { accessorFn: (row) => row.occupation?.value || "", header: "Occupation" },
-    { accessorFn: (row) => row.residence?.value || "", header: "Residence" },
-    { accessorFn: (row) => row.contact?.value || "", header: "Contact" },
-    { accessorFn: (row) => row.past_history?.value || "", header: "Past History" },
-    { accessorFn: (row) => row.signs_symptoms?.value || "", header: "Signs & Symptoms" },
-    { accessorFn: (row) => row.diagnosis?.value || "", header: "Diagnosis" },
-    { accessorFn: (row) => row.results?.value || "", header: "Results" },
-    { accessorFn: (row) => row.treatment?.value || "", header: "Treatment" },
-    { accessorFn: (row) => row.investigations?.value || "", header: "Investigations" },
-    { accessorFn: (row) => row.hospitalisation?.value || "", header: "Hospitalisation" },
-    { accessorFn: (row) => row.receipt_no?.value || "", header: "Receipt No." },
-    { accessorFn: (row) => row.referral?.value || "", header: "Referral" },
-    { accessorFn: (row) => row.observations?.value || "", header: "Observations" },
-    {
-      accessorKey: "is_dead",
-      header: "Is Dead",
-      cell: ({ row }) => ((row.original as any).isDead ? 'Yes' : 'No'),
-    },
-  ], []);
-
+  },
+  { accessorKey: "status", header: "Marital Status", cell: ({ row }) => row.original.status?.value || "" },
+  { accessorKey: "patient_code", header: "Patient Code", cell: ({ row }) => row.original.patient_code?.value || "" },
+  { accessorKey: "occupation", header: "Occupation", cell: ({ row }) => row.original.occupation?.value || "" },
+  { accessorKey: "residence", header: "Residence", cell: ({ row }) => row.original.residence?.value || "" },
+  { accessorKey: "contact", header: "Contact", cell: ({ row }) => row.original.contact?.value || "" },
+  { accessorKey: "past_history", header: "Past History", cell: ({ row }) => row.original.past_history?.value || "" },
+  { accessorKey: "signs_symptoms", header: "Signs & Symptoms", cell: ({ row }) => row.original.signs_symptoms?.value || "" },
+  { accessorKey: "diagnosis", header: "Diagnosis", cell: ({ row }) => row.original.diagnosis?.value || "" },
+  { accessorKey: "results", header: "Results", cell: ({ row }) => row.original.results?.value || "" },
+  { accessorKey: "treatment", header: "Treatment", cell: ({ row }) => row.original.treatment?.value || "" },
+  { accessorKey: "investigations", header: "Investigations", cell: ({ row }) => row.original.investigations?.value || "" },
+  { accessorKey: "hospitalisation", header: "Hospitalisation", cell: ({ row }) => row.original.hospitalisation?.value || "" },
+  { accessorKey: "receipt_no", header: "Receipt No.", cell: ({ row }) => row.original.receipt_no?.value || "" },
+  { accessorKey: "referral", header: "Referral", cell: ({ row }) => row.original.referral?.value || "" },
+  { accessorKey: "observations", header: "Observations", cell: ({ row }) => row.original.observations?.value || "" },
+  {
+    header: "Deceased",
+    cell: ({ row }) => ((row.original as any).isDead ? "Yes" : "No"),
+  },
+], []);
   // ---- Render ----
   const topContent = (
     <div className="flex flex-col h-full bg-white">
