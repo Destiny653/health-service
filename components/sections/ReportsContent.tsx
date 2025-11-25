@@ -1,11 +1,13 @@
 import * as React from "react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { format, startOfYear, addYears, startOfMonth, addMonths, startOfWeek, addWeeks, addDays, isSameDay, endOfWeek, endOfMonth, endOfYear, isSameWeek, isSameMonth, isSameYear } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useGetDiseaseStats, DiseaseReportItem as ApiDiseaseItem, StatsParams } from '@/hooks/docs/useGetDeasease';
 import { Download } from 'lucide-react';
+import { exportHTMLToPDF } from '@/utils/pdfExport';
+import DiseaseReportTemplate from '@/components/pdf/DiseaseReportTemplate';
 
 // --- MOCK DATA & CONFIGURATION ---
 
@@ -310,9 +312,19 @@ export default function ReportsContent() {
     toast.success('CSV exported!');
   };
 
+  const handleExportPDF = async () => {
+    const filename = `Disease_Report_${activeView}_${format(new Date(), 'yyyy-MM-dd')}`;
+    await exportHTMLToPDF(diseaseReportRef.current, filename);
+  };
+
   const [submissionDate, setSubmissionDate] = useState('');
   const [receivedDate, setReceivedDate] = useState('');
   const [name, setName] = useState('');
+
+  // Ref for the DiseaseReportTemplate - used for PDF export
+  const diseaseReportRef = useRef<HTMLDivElement>(null);
+  const week = selectedUnit ? format(selectedUnit.date, 'w') : '';
+  const year = selectedUnit ? format(selectedUnit.date, 'yyyy') : new Date().getFullYear().toString();
 
   return (
     <div className="min-h-screen bg-white p-4">
@@ -395,6 +407,15 @@ export default function ReportsContent() {
             >
               <Download className="h-4 w-4" />
               Export CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportPDF}
+              className="flex items-center text-white shadow-sm bg-red-600 hover:bg-red-700 py-5 gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export PDF
             </Button>
           </div>
         </div>
@@ -516,6 +537,25 @@ export default function ReportsContent() {
               * Immediate Notifiable Diseases
             </div>
           </div>
+        </div>
+
+        {/* Hidden DiseaseReportTemplate for PDF Export */}
+        <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+          <DiseaseReportTemplate
+            ref={diseaseReportRef}
+            data={filteredReports}
+            metadata={{
+              facilityName: 'Mbingo Regional Hospital',
+              region: '',
+              healthDistrict: 'Mbingo Regional Hospital',
+              healthArea: '',
+              year: year,
+              epidemiologicalWeek: week,
+              submissionDate: submissionDate,
+              receivedDate: receivedDate,
+              submitterName: name,
+            }}
+          />
         </div>
 
       </div>
