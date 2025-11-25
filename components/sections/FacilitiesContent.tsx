@@ -402,7 +402,7 @@ export default function FacilitiesContent({ setActiveTab }: { setActiveTab?: Rea
                                                     variant={activeView === v ? "default" : "ghost"}
                                                     size="sm"
                                                     onClick={() => handleViewChange(v)}
-                                                    className={activeView === v ? 'bg-[#028700] hover:bg-[#028700dc]' : ''}
+                                                    className={`${activeView === v ? 'bg-[#028700] hover:bg-[#028700dc]' : ''} py-5`}
                                                 >
                                                     {v}
                                                 </Button>

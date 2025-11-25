@@ -1,10 +1,11 @@
 import * as React from "react";
 import { useState, useMemo, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { format, startOfYear, addYears, startOfMonth, addMonths, startOfWeek, addWeeks, addDays, getDay, isSameDay, endOfWeek, endOfMonth, endOfYear, isSameWeek, isSameMonth, isSameYear } from 'date-fns';
+import { format, startOfYear, addYears, startOfMonth, addMonths, startOfWeek, addWeeks, addDays, isSameDay, endOfWeek, endOfMonth, endOfYear, isSameWeek, isSameMonth, isSameYear } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { useGetDiseaseStats, DiseaseReportItem as ApiDiseaseItem, StatsParams } from '@/hooks/docs/useGetDeasease';
+import { Download } from 'lucide-react';
 
 // --- MOCK DATA & CONFIGURATION ---
 
@@ -17,46 +18,11 @@ const View = {
 
 type ViewType = typeof View[keyof typeof View];
 
-// Color mapping for submission status
-const STATUS_COLORS = {
-  NEW_RECORD: 'bg-yellow-400',
-  UNDER_REVIEW: 'bg-green-200',
-  COMPLETE: 'bg-green-500',
-  NO_SUBMISSION: 'bg-red-500',
-  NO_DATA: 'bg-gray-300',
-} as const;
-
-type StatusColor = typeof STATUS_COLORS[keyof typeof STATUS_COLORS];
-
-// Mock function to generate submission status for a given date/unit
-const generateStatus = (date: Date): StatusColor => {
-  const day = date.getDate();
-  const month = date.getMonth();
-
-  if (day === 7 || day === 15) return STATUS_COLORS.NO_SUBMISSION;
-  if (day % 3 === 0) return STATUS_COLORS.COMPLETE;
-  if (day % 5 === 0) return STATUS_COLORS.UNDER_REVIEW;
-  if (day % 2 === 1) return STATUS_COLORS.NEW_RECORD;
-
-  // Use month data for variety in other views
-  if (month === 8) return STATUS_COLORS.UNDER_REVIEW;
-  if (month === 10) return STATUS_COLORS.COMPLETE;
-
-  return STATUS_COLORS.NO_DATA;
-};
-
-// Helper to get day abbreviation
-const dayAbbreviation = (date: Date): string => {
-  const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-  return days[getDay(date)];
-};
-
 interface TimeUnit {
   id: string;
   date: Date;
   label: string;
   value: string;
-  statusColor: StatusColor;
   isToday: boolean;
 }
 
@@ -77,87 +43,34 @@ interface DiseaseRow {
   confirmed: string;
 }
 
-// Mock diseases data
-const mockDiseases: DiseaseRow[] = [
-  { id: 1, name: "Chikungunya", isNotifiable: true, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 2, name: "Cholera", isNotifiable: true, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 3, name: "Dengue Fever", isNotifiable: true, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 4, name: "Diarrhea with dehydration", isNotifiable: false, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 5, name: "Bloody diarrhea", isNotifiable: false, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 6, name: "Dracunculiasis (Guinea worm)", isNotifiable: true, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 7, name: "Diphteria", isNotifiable: true, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 8, name: "Anthrax", isNotifiable: true, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 9, name: "Typhoid Fever", isNotifiable: true, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 10, name: "Yellow Fever", isNotifiable: true, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 11, name: "Meningitis", isNotifiable: true, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 12, name: "Dog Bite", isNotifiable: false, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 13, name: "Rabies", isNotifiable: true, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 14, name: "Snake Bite", isNotifiable: false, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 15, name: "Envenimination", isNotifiable: false, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 16, name: "Malaria", isNotifiable: false, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 17, name: "Acute Flaccid paralysis", isNotifiable: true, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 18, name: "Plague", isNotifiable: true, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 19, name: "Measles", isNotifiable: true, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 20, name: "COVID -19", isNotifiable: true, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 21, name: "Flu-like syndrome", isNotifiable: false, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 22, name: "Neonatal Tetanus", isNotifiable: true, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 23, name: "MPox (Monkey Pox)", isNotifiable: true, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 24, name: "Small Pox", isNotifiable: true, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-  { id: 25, name: "Assisted Delivery", isNotifiable: false, suspected: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, deaths: { '0-14': { m: "", f: "" }, '15-24': { m: "", f: "" }, '25-49': { m: "", f: "" }, '60+': { m: "", f: "" } }, samples: "", confirmed: "" },
-];
 
 // --- Time Unit Item Component ---
-const TimeUnitItem = ({ label, value, statusColor, isSelected }: { label: string; value: string; statusColor: StatusColor; isSelected: boolean }) => (
+const TimeUnitItem = ({ label, value, isSelected }: { label: string; value: string; isSelected: boolean }) => (
   <div className="flex flex-col items-center relative">
     <div className="text-xs font-semibold text-gray-500 mb-1">
       {label}
     </div>
     <div
-      className={`w-8 h-8 p-5 flex items-center justify-center text-sm font-bold text-white rounded-md ${statusColor} shadow-sm`}
+      className="w-8 h-8 p-7 px-7 flex items-center justify-center text-sm font-bold text-white rounded-md bg-blue-600 shadow-sm"
     >
       {value}
     </div>
     {isSelected && (
-      <div className="w-7 h-1 bg-blue-600 rounded-full mt-1 absolute -bottom-2"></div>
+      <div className="w-7 h-1 bg-blue-800 rounded-full mt-1 absolute -bottom-2"></div>
     )}
   </div>
 );
 
-// Function to fetch reports data (mock)
-const fetchReports = async (): Promise<DiseaseRow[]> => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockDiseases);
-    }, 500);
-  });
-};
+// List of known notifiable diseases
+const NOTIFIABLE_DISEASES = [
+  'Chikungunya', 'Cholera', 'Dengue Fever', 'Dracunculiasis (Guinea worm)',
+  'Diphteria', 'Anthrax', 'Typhoid Fever', 'Yellow Fever', 'Meningitis',
+  'Rabies', 'Acute Flaccid paralysis', 'Plague', 'Measles', 'COVID -19',
+  'Neonatal Tetanus', 'MPox (Monkey Pox)', 'Small Pox'
+];
 
 // 🚀 Main Application Component
 export default function ReportsContent() {
-  // Use the real useQuery hook to fetch data
-  const {
-    data: initialReports = [],
-    isLoading,
-    error,
-  } = useQuery<DiseaseRow[]>({
-    queryKey: ["reports"],
-    queryFn: fetchReports,
-  });
-
-  const [reports, setReports] = useState<DiseaseRow[]>([]);
-
-  // Error handling
-  React.useEffect(() => {
-    if (error) toast.error("Error fetching reports data");
-  }, [error]);
-
-  // Update reports state when data changes
-  useEffect(() => {
-    if (initialReports) {
-      setReports(initialReports);
-    }
-  }, [initialReports]);
-
   const baseDate = new Date('2023-06-01');
   const [activeView, setActiveView] = useState<ViewType>(View.DAY);
   const [selectedUnitId, setSelectedUnitId] = useState<string>(format(baseDate, 'yyyy-MM-dd'));
@@ -174,9 +87,8 @@ export default function ReportsContent() {
           generatedUnits.push({
             id: format(day, 'yyyy-MM-dd'),
             date: day,
-            label: dayAbbreviation(day),
+            label: format(day, 'EEE').charAt(0),
             value: format(day, 'd'),
-            statusColor: generateStatus(day),
             isToday: isSameDay(day, baseDate),
           });
         }
@@ -190,7 +102,6 @@ export default function ReportsContent() {
             date: weekStart,
             label: `W${format(weekStart, 'w')}`,
             value: format(weekStart, 'w'),
-            statusColor: generateStatus(weekStart),
             isToday: isSameWeek(weekStart, baseDate, { weekStartsOn: 1 }),
           });
         }
@@ -204,7 +115,6 @@ export default function ReportsContent() {
             date: month,
             label: format(month, 'MMM'),
             value: format(month, 'M'),
-            statusColor: generateStatus(month),
             isToday: isSameMonth(month, baseDate),
           });
         }
@@ -218,7 +128,6 @@ export default function ReportsContent() {
             date: year,
             label: '',
             value: format(year, 'yyyy'),
-            statusColor: generateStatus(year),
             isToday: isSameYear(year, baseDate),
           });
         }
@@ -257,12 +166,12 @@ export default function ReportsContent() {
   const [startRange, endRange] = useMemo(() => {
     if (!selectedUnit) return [null, null] as [Date | null, Date | null];
     const d = selectedUnit.date;
-    switch(activeView){
+    switch (activeView) {
       case View.DAY:
         return [d, d];
       case View.WEEK:
-        const weekStart = startOfWeek(d, {weekStartsOn: 1});
-        const weekEnd = endOfWeek(weekStart, {weekStartsOn: 1});
+        const weekStart = startOfWeek(d, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
         return [weekStart, weekEnd];
       case View.MONTH:
         const monthStart = startOfMonth(d);
@@ -277,6 +186,47 @@ export default function ReportsContent() {
     }
   }, [selectedUnit, activeView]);
 
+  // Fetch disease statistics from API
+  const statsParams: StatsParams = useMemo(() => ({
+    granularity: (activeView === View.DAY ? 'daily' :
+      activeView === View.WEEK ? 'weekly' :
+        activeView === View.MONTH ? 'monthly' : 'yearly') as 'daily' | 'weekly' | 'monthly' | 'yearly',
+    start_date: startRange ? format(startRange, 'yyyy-MM-dd') : undefined,
+    end_date: endRange ? format(endRange, 'yyyy-MM-dd') : undefined,
+  }), [activeView, startRange, endRange]);
+
+  const { data: apiDiseaseData, isLoading, error } = useGetDiseaseStats(statsParams);
+
+  // Error handling
+  React.useEffect(() => {
+    if (error) toast.error("Error fetching disease reports");
+  }, [error]);
+
+  // Map API data to table format
+  const reports = useMemo<DiseaseRow[]>(() => {
+    if (!apiDiseaseData) return [];
+
+    return apiDiseaseData.map((item: ApiDiseaseItem, index: number) => ({
+      id: index + 1,
+      name: item.disease,
+      isNotifiable: NOTIFIABLE_DISEASES.includes(item.disease),
+      suspected: {
+        '0-14': { m: item.suspected_cases['0_14'].m.toString(), f: item.suspected_cases['0_14'].f.toString() },
+        '15-24': { m: item.suspected_cases['15_24'].m.toString(), f: item.suspected_cases['15_24'].f.toString() },
+        '25-49': { m: item.suspected_cases['25_46'].m.toString(), f: item.suspected_cases['25_46'].f.toString() },
+        '60+': { m: item.suspected_cases['47_plus'].m.toString(), f: item.suspected_cases['47_plus'].f.toString() },
+      },
+      deaths: {
+        '0-14': { m: item.deaths['0_14'].m.toString(), f: item.deaths['0_14'].f.toString() },
+        '15-24': { m: item.deaths['15_24'].m.toString(), f: item.deaths['15_24'].f.toString() },
+        '25-49': { m: item.deaths['25_46'].m.toString(), f: item.deaths['25_46'].f.toString() },
+        '60+': { m: item.deaths['47_plus'].m.toString(), f: item.deaths['47_plus'].f.toString() },
+      },
+      samples: item.sample_cases.toString(),
+      confirmed: item.confirmed_cases.toString(),
+    }));
+  }, [apiDiseaseData]);
+
   const filteredReports = useMemo(() => reports, [reports]);
 
   const handleUnitClick = (unitId: string) => {
@@ -287,29 +237,77 @@ export default function ReportsContent() {
     setActiveView(view);
   };
 
-  const updateCell = (rowId: number, section: 'suspected' | 'deaths', ageGroup: keyof AgeGroupData, gender: 'm' | 'f', value: string) => {
-    setReports(prev => prev.map(row =>
-      row.id === rowId
-        ? {
-            ...row,
-            [section]: {
-              ...row[section],
-              [ageGroup]: {
-                ...row[section][ageGroup],
-                [gender]: value
-              }
-            }
-          }
-        : row
-    ));
+  // Export handlers
+  const handleExportExcel = () => {
+    const filename = `Disease_Report_${activeView}_${format(new Date(), 'yyyy-MM-dd')}`;
+    const exportData = filteredReports.map(row => ({
+      No: row.id.toString().padStart(2, '0'),
+      Disease: row.name,
+      'Suspected_0-14_M': row.suspected['0-14'].m,
+      'Suspected_0-14_F': row.suspected['0-14'].f,
+      'Suspected_15-24_M': row.suspected['15-24'].m,
+      'Suspected_15-24_F': row.suspected['15-24'].f,
+      'Suspected_25-49_M': row.suspected['25-49'].m,
+      'Suspected_25-49_F': row.suspected['25-49'].f,
+      'Suspected_60+_M': row.suspected['60+'].m,
+      'Suspected_60+_F': row.suspected['60+'].f,
+      'Deaths_0-14_M': row.deaths['0-14'].m,
+      'Deaths_0-14_F': row.deaths['0-14'].f,
+      'Deaths_15-24_M': row.deaths['15-24'].m,
+      'Deaths_15-24_F': row.deaths['15-24'].f,
+      'Deaths_25-49_M': row.deaths['25-49'].m,
+      'Deaths_25-49_F': row.deaths['25-49'].f,
+      'Deaths_60+_M': row.deaths['60+'].m,
+      'Deaths_60+_F': row.deaths['60+'].f,
+      Sample_Cases: row.samples,
+      Confirmed: row.confirmed,
+    }));
+
+    // Simple Excel export without using the column system
+    const XLSX = require('xlsx');
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Disease Report');
+    XLSX.writeFile(wb, `${filename}.xlsx`);
+    toast.success('Excel exported!');
   };
 
-  const updateSamples = (rowId: number, value: string) => {
-    setReports(prev => prev.map(row => row.id === rowId ? { ...row, samples: value } : row));
-  };
-
-  const updateConfirmed = (rowId: number, value: string) => {
-    setReports(prev => prev.map(row => row.id === rowId ? { ...row, confirmed: value } : row));
+  const handleExportCSV = () => {
+    const filename = `Disease_Report_${activeView}_${format(new Date(), 'yyyy-MM-dd')}`;
+    const headers = ['No', 'Disease', 'Suspected_0-14_M', 'Suspected_0-14_F', 'Suspected_15-24_M', 'Suspected_15-24_F', 'Suspected_25-49_M', 'Suspected_25-49_F', 'Suspected_60+_M', 'Suspected_60+_F', 'Deaths_0-14_M', 'Deaths_0-14_F', 'Deaths_15-24_M', 'Deaths_15-24_F', 'Deaths_25-49_M', 'Deaths_25-49_F', 'Deaths_60+_M', 'Deaths_60+_F', 'Sample_Cases', 'Confirmed'];
+    const rows = filteredReports.map(row => [
+      row.id.toString().padStart(2, '0'),
+      row.name,
+      row.suspected['0-14'].m,
+      row.suspected['0-14'].f,
+      row.suspected['15-24'].m,
+      row.suspected['15-24'].f,
+      row.suspected['25-49'].m,
+      row.suspected['25-49'].f,
+      row.suspected['60+'].m,
+      row.suspected['60+'].f,
+      row.deaths['0-14'].m,
+      row.deaths['0-14'].f,
+      row.deaths['15-24'].m,
+      row.deaths['15-24'].f,
+      row.deaths['25-49'].m,
+      row.deaths['25-49'].f,
+      row.deaths['60+'].m,
+      row.deaths['60+'].f,
+      row.samples,
+      row.confirmed,
+    ]);
+    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}.csv`;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('CSV exported!');
   };
 
   const [submissionDate, setSubmissionDate] = useState('');
@@ -323,7 +321,7 @@ export default function ReportsContent() {
           border-collapse: collapse;
           width: 100%;
           min-width: 1200px;
-          font-size: 11px;
+          font-size: 16px;
           font-family: Arial, sans-serif;
           border-right: 1px solid #333;
         }
@@ -346,20 +344,22 @@ export default function ReportsContent() {
         }
         .disease-table .subheader { 
           background-color: #e8e8e8; 
-          font-size: 10px; 
+          font-size: 15px; 
         }
         .disease-table .age-header { 
-          font-size: 9px; 
+          font-size: 14px; 
         }
         .disease-table .no-col { 
-          width: 30px; 
+          width: 30px;
+          padding-left: 8px;
+          padding-right: 8px;
         }
         .disease-table input { 
           width: 100%; 
           border: none; 
           text-align: center; 
           background: transparent; 
-          font-size: 11px; 
+          font-size: 16px; 
         }
         .disease-table input:focus { 
           outline: 1px solid #4CAF50; 
@@ -367,8 +367,8 @@ export default function ReportsContent() {
         }
       `}</style>
       <div className="mx-auto space-y-6 antialiased ">
-        
-        {/* Header: Location and Legend */}
+
+        {/* Header: Location and Export Buttons */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
           <div className="flex items-center space-x-2 bg-blue-50 py-2 px-4 rounded-md border border-blue-200">
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-600" viewBox="0 0 20 20" fill="currentColor">
@@ -377,37 +377,39 @@ export default function ReportsContent() {
             <span className="text-blue-700">Mbingo Regional Hos</span>
           </div>
 
-          <div className="flex items-center space-x-4 mt-4 md:mt-0 p-2 border rounded-lg bg-white shadow-sm">
-            <div className="flex items-center text-sm">
-              <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-              No Submission (20%)
-            </div>
-            <div className="flex items-center text-sm">
-              <div className="w-3 h-3 rounded-full bg-yellow-400 mr-2"></div>
-              New Record (40%)
-            </div>
-            <div className="flex items-center text-sm">
-              <div className="w-3 h-3 rounded-full bg-green-200 mr-2"></div>
-              Under Review (10%)
-            </div>
-            <div className="flex items-center text-sm">
-              <div className="w-3 h-3 rounded-full bg-[#028700] mr-2"></div>
-              Complete (30%)
-            </div>
+          <div className="flex items-center space-x-3 mt-4 md:mt-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportExcel}
+              className="flex items-center border border-[#028700] text-[#028700] shadow-none py-5 gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export Excel
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportCSV}
+              className="flex items-center text-white shadow-sm bg-[#028700] py-5 gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export CSV
+            </Button>
           </div>
         </div>
 
         {/* Time Selector and Units Display */}
-        <div className="p-4">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-3 border-b border-t pt-1 pb-1">
-            <div className="flex p-1 space-x-1 mb-4 md:mb-0 bg-gray-100 rounded-md px-1">
+        <div className="p-4 px-6">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-3 border-b border-t pt-1 pb-1 px-4">
+            <div className="flex p-2 space-x-1 mb-4 md:mb-0 bg-gray-100 rounded-md px-1 text-gray-[800]">
               {Object.values(View).reverse().map((view) => (
                 <Button
                   key={view}
                   variant={activeView === view ? "default" : "ghost"}
                   size="sm"
                   onClick={() => handleViewChange(view)}
-                  className={`rounded-md px-4 ${activeView === view && 'bg-[#028700] hover:bg-[#028700d8]'}`}
+                  className={`rounded-md px-4 py-5 ${activeView === view && 'bg-[#028700] hover:bg-[#028700d8]'}`}
                 >
                   {view}
                 </Button>
@@ -426,7 +428,6 @@ export default function ReportsContent() {
                     <TimeUnitItem
                       label={unit.label}
                       value={unit.value}
-                      statusColor={unit.statusColor}
                       isSelected={unit.id === selectedUnitId}
                     />
                   </button>
@@ -441,13 +442,13 @@ export default function ReportsContent() {
           ) : (
             <div className="overflow-x-auto">
               <table className="disease-table">
-                <thead>
+                <thead className="text-gray-800">
                   <tr>
-                    <th rowSpan={3} className="no-col">No</th>
+                    <th rowSpan={3} className="no-col w-[60px]">No</th>
                     <th rowSpan={3} className="disease-col">MALADIES</th>
                     <th colSpan={8} className="header-main">SUSPECTED CASES</th>
                     <th colSpan={8} className="header-main">DEATHS</th>
-                    <th rowSpan={3}>Number of sample<br/>Cases</th>
+                    <th rowSpan={3}>Number of sample<br />Cases</th>
                     <th rowSpan={3}>Confirmed</th>
                   </tr>
                   <tr>
@@ -471,29 +472,29 @@ export default function ReportsContent() {
                     <th className="age-header">M</th><th className="age-header">F</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="text-gray-800">
                   {filteredReports.map((row) => (
                     <tr key={row.id}>
-                      <td>{row.id.toString().padStart(2, '0')}</td>
+                      <td className="px-8 w-[60px]">{row.id.toString().padStart(2, '0')}</td>
                       <td className="disease-col">{row.name}{row.isNotifiable ? ' *' : ''}</td>
-                      <td><Input type="text" value={row.suspected['0-14'].m} onChange={(e) => updateCell(row.id, 'suspected', '0-14' as keyof AgeGroupData, 'm', e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
-                      <td><Input type="text" value={row.suspected['0-14'].f} onChange={(e) => updateCell(row.id, 'suspected', '0-14' as keyof AgeGroupData, 'f', e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
-                      <td><Input type="text" value={row.suspected['15-24'].m} onChange={(e) => updateCell(row.id, 'suspected', '15-24' as keyof AgeGroupData, 'm', e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
-                      <td><Input type="text" value={row.suspected['15-24'].f} onChange={(e) => updateCell(row.id, 'suspected', '15-24' as keyof AgeGroupData, 'f', e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
-                      <td><Input type="text" value={row.suspected['25-49'].m} onChange={(e) => updateCell(row.id, 'suspected', '25-49' as keyof AgeGroupData, 'm', e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
-                      <td><Input type="text" value={row.suspected['25-49'].f} onChange={(e) => updateCell(row.id, 'suspected', '25-49' as keyof AgeGroupData, 'f', e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
-                      <td><Input type="text" value={row.suspected['60+'].m} onChange={(e) => updateCell(row.id, 'suspected', '60+' as keyof AgeGroupData, 'm', e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
-                      <td><Input type="text" value={row.suspected['60+'].f} onChange={(e) => updateCell(row.id, 'suspected', '60+' as keyof AgeGroupData, 'f', e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
-                      <td><Input type="text" value={row.deaths['0-14'].m} onChange={(e) => updateCell(row.id, 'deaths', '0-14' as keyof AgeGroupData, 'm', e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
-                      <td><Input type="text" value={row.deaths['0-14'].f} onChange={(e) => updateCell(row.id, 'deaths', '0-14' as keyof AgeGroupData, 'f', e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
-                      <td><Input type="text" value={row.deaths['15-24'].m} onChange={(e) => updateCell(row.id, 'deaths', '15-24' as keyof AgeGroupData, 'm', e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
-                      <td><Input type="text" value={row.deaths['15-24'].f} onChange={(e) => updateCell(row.id, 'deaths', '15-24' as keyof AgeGroupData, 'f', e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
-                      <td><Input type="text" value={row.deaths['25-49'].m} onChange={(e) => updateCell(row.id, 'deaths', '25-49' as keyof AgeGroupData, 'm', e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
-                      <td><Input type="text" value={row.deaths['25-49'].f} onChange={(e) => updateCell(row.id, 'deaths', '25-49' as keyof AgeGroupData, 'f', e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
-                      <td><Input type="text" value={row.deaths['60+'].m} onChange={(e) => updateCell(row.id, 'deaths', '60+' as keyof AgeGroupData, 'm', e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
-                      <td><Input type="text" value={row.deaths['60+'].f} onChange={(e) => updateCell(row.id, 'deaths', '60+' as keyof AgeGroupData, 'f', e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
-                      <td><Input type="text" value={row.samples} onChange={(e) => updateSamples(row.id, e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
-                      <td><Input type="text" value={row.confirmed} onChange={(e) => updateConfirmed(row.id, e.target.value)} className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.suspected['0-14'].m} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.suspected['0-14'].f} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.suspected['15-24'].m} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.suspected['15-24'].f} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.suspected['25-49'].m} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.suspected['25-49'].f} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.suspected['60+'].m} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.suspected['60+'].f} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.deaths['0-14'].m} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.deaths['0-14'].f} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.deaths['15-24'].m} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.deaths['15-24'].f} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.deaths['25-49'].m} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.deaths['25-49'].f} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.deaths['60+'].m} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.deaths['60+'].f} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.samples} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
+                      <td><Input type="text" value={row.confirmed} readOnly className="border-none rounded-none shadow-none bg-inherit" /></td>
                     </tr>
                   ))}
                 </tbody>
