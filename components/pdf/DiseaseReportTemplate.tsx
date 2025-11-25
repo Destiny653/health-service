@@ -39,7 +39,7 @@ interface DiseaseReportTemplateProps {
 export const DiseaseReportTemplate = React.forwardRef<HTMLDivElement, DiseaseReportTemplateProps>(
     ({ data, metadata }, ref) => {
         return (
-            <div ref={ref} className=" flex flex-col item-center overflow-hidden" style={styles.page}>
+            <div ref={ref} className="flex flex-col item-center overflow-hidden" style={styles.page}>
                 {/* ===== TRI-COLUMN HEADER ===== */}
                 <div style={styles.header}>
                     {/* Left Column - French */}
@@ -50,8 +50,8 @@ export const DiseaseReportTemplate = React.forwardRef<HTMLDivElement, DiseaseRep
 
                     {/* Center Column - Logo */}
                     <div style={styles.headerCenter}>
-                        <div className='h-[60px] w-[60px]'>
-                           <img src="/images/healthlogo.png" alt="health-logo" />
+                        <div className='h-[50px] w-[50px]'>
+                            <img src="/images/healthlogo.png" alt="health-logo" />
                         </div>
                     </div>
 
@@ -63,55 +63,55 @@ export const DiseaseReportTemplate = React.forwardRef<HTMLDivElement, DiseaseRep
                 </div>
 
                 {/* ===== SUBTITLE ===== */}
-                <div style={styles.subtitle} className='flex flex-col justify-center items-center gap-2 bg-gray-100 py-2 px-1'>
-                    <h2 className='text-[9px] font-bold'>TICHE DE NOTIFICATION HEBDOMADAIRE DES MALADIES APOTENTIEL EPIDEMIQUE, AFFECTIONS PRIORITAIRES ET AUTRES EVENMENTS DE SANTE PUBLIQUE</h2>
-                    <h2 className='text-[9px] font-bold'>FORM FOR WEEKLY NTIFICATION OF SURVEILLANCE OF EPIDEMIC PRONE DISEASES, PRIORITY CONDITIONS AND OTHER PUBLIC HEALTH EVENTS </h2>
-                    <p className='text-[8px]'>(Fiche niceau de la Formation Sanitaire/ Health Unit's Form)</p>
+                <div style={styles.subtitle} className='flex flex-col justify-center items-center gap-1 bg-gray-100 py-1 px-1'>
+                    <h2 className='text-[8px] font-bold'>TICHE DE NOTIFICATION HEBDOMADAIRE DES MALADIES APOTENTIEL EPIDEMIQUE, AFFECTIONS PRIORITAIRES ET AUTRES EVENMENTS DE SANTE PUBLIQUE</h2>
+                    <h2 className='text-[8px] font-bold'>FORM FOR WEEKLY NTIFICATION OF SURVEILLANCE OF EPIDEMIC PRONE DISEASES, PRIORITY CONDITIONS AND OTHER PUBLIC HEALTH EVENTS </h2>
+                    <p className='text-[7px]'>(Fiche niceau de la Formation Sanitaire/ Health Unit's Form)</p>
                 </div>
 
                 {/* ===== FORM SECTIONS ===== */}
                 <div style={styles.formSection} className='flex justify-between gap-2'>
                     {/* Section 1 */}
-                    <div style={styles.formRow} className='flex items-center justify-center flex-col space-y-10'>
+                    <div style={styles.formRow} className='flex items-center justify-center flex-col space-y-6'>
                         <div className='flex items-center justify-center flex-col'>
-                            <strong className=''>Région / Region:</strong>
-                            <input type="text" value='' className='border border-black py-2 px-6 bg-gray-200' />
+                            <strong className='text-[7px]'>Région / Region:</strong>
+                            <input type="text" value='' className='border border-black py-1 px-4 bg-gray-200 text-[7px]' />
                         </div>
                         <div style={styles.formField} className='flex items-center justify-center flex-col'>
-                            <strong>Semaine Épidémiologique / Week:</strong>
-                            <input type="text" value='' className='border border-black py-2 px-6 bg-gray-200' />
+                            <strong className='text-[7px]'>Semaine Épidémiologique / Week:</strong>
+                            <input type="text" value='' className='border border-black py-1 px-4 bg-gray-200 text-[7px]' />
                         </div>
                     </div>
 
                     {/* Section 2 */}
                     <div style={styles.formRow} className='flex items-center justify-center flex-col'>
                         <div style={styles.formFieldFull} className='flex items-center justify-center flex-col'>
-                            <strong>District Santé / Health District:</strong>
-                            <input type="text" value='' className='border border-black py-2 px-6 w-[250px] bg-gray-200' />
+                            <strong className='text-[7px]'>District Santé / Health District:</strong>
+                            <input type="text" value='' className='border border-black py-1 px-4 w-[200px] bg-gray-200 text-[7px]' />
                         </div>
                         <div style={styles.formFieldFull} className='flex items-center justify-center flex-col'>
-                            <strong className='text-nowrap'>Nom de la Formation Santaire / Name of the Health Unit:</strong>
-                            <input type="text" value='' className='border border-black py-2 px-6 w-[280px] bg-gray-200' />
+                            <strong className='text-nowrap text-[7px]'>Nom de la Formation Santaire / Name of the Health Unit:</strong>
+                            <input type="text" value='' className='border border-black py-1 px-4 w-[220px] bg-gray-200 text-[7px]' />
                         </div>
                         <div style={styles.formFieldFull} className='flex items-center justify-center gap-2'>
-                            <strong>De / From</strong>
-                            <input type="text" value='' className='border border-black py-2 px-4 w-[120px] bg-gray-200' />
+                            <strong className='text-[7px]'>De / From</strong>
+                            <input type="text" value='' className='border border-black py-1 px-3 w-[100px] bg-gray-200 text-[7px]' />
                         </div>
                     </div>
 
                     {/* Section 3 */}
                     <div style={styles.formRow} className='flex items-center justify-center flex-col'>
                         <div style={styles.formField} className='flex items-center justify-center flex-col'>
-                            <strong>Aire de Santé / Health Area:</strong>
-                            <input type="text" value='' className='border border-black py-2 px-6 w-[250px] bg-gray-200' />
+                            <strong className='text-[7px]'>Aire de Santé / Health Area:</strong>
+                            <input type="text" value='' className='border border-black py-1 px-4 w-[200px] bg-gray-200 text-[7px]' />
                         </div>
                         <div style={styles.formFieldSmall} className='flex items-center justify-center flex-col'>
-                            <strong>Année / Year:</strong>
-                            <input type="text" value='' className='border border-black py-2 px-6 w-[120px] bg-gray-200' />
+                            <strong className='text-[7px]'>Année / Year:</strong>
+                            <input type="text" value='' className='border border-black py-1 px-4 w-[100px] bg-gray-200 text-[7px]' />
                         </div>
                         <div style={styles.formFieldSmall} className='flex items-center justify-center relative'>
-                            <strong className='absolute top-1/4 -left-11'>Au / To:</strong>
-                            <input type="text" value='' className='border border-black py-2 px-4 w-[120px] bg-gray-200' />
+                            <strong className='absolute top-1/4 -left-11 text-[7px]'>Au / To:</strong>
+                            <input type="text" value='' className='border border-black py-1 px-3 w-[100px] bg-gray-200 text-[7px]' />
                         </div>
                     </div>
                 </div>
@@ -122,10 +122,10 @@ export const DiseaseReportTemplate = React.forwardRef<HTMLDivElement, DiseaseRep
                         <thead>
                             {/* Header Row 1 - Main Categories */}
                             <tr>
-                                <th rowSpan={3} style={{ ...styles.th, width: '30px' }}>
+                                <th rowSpan={3} style={{ ...styles.th, width: '25px' }}>
                                     No
                                 </th>
-                                <th rowSpan={3} style={{ ...styles.th, width: '150px', textAlign: 'left' }}>
+                                <th rowSpan={3} style={{ ...styles.th, width: '130px', textAlign: 'left' }}>
                                     MALADIES
                                 </th>
                                 <th colSpan={8} style={styles.thMain}>
@@ -134,10 +134,10 @@ export const DiseaseReportTemplate = React.forwardRef<HTMLDivElement, DiseaseRep
                                 <th colSpan={8} style={styles.thMain}>
                                     DEATHS
                                 </th>
-                                <th rowSpan={3} style={{ ...styles.th, width: '50px' }}>
+                                <th rowSpan={3} style={{ ...styles.th, width: '40px' }}>
                                     Sample Cases
                                 </th>
-                                <th rowSpan={3} style={{ ...styles.th, width: '50px' }}>
+                                <th rowSpan={3} style={{ ...styles.th, width: '40px' }}>
                                     Confirmed
                                 </th>
                             </tr>
@@ -197,7 +197,7 @@ export const DiseaseReportTemplate = React.forwardRef<HTMLDivElement, DiseaseRep
                             ))}
                         </tbody>
                     </table>
-                    <p className="text-[10px] font-bold">* Maladie a notification immediate / Immediate notification diseases</p>
+                    <p className="text-[8px] font-bold mt-1">* Maladie a notification immediate / Immediate notification diseases</p>
                 </div>
 
                 {/* ===== FOOTER SECTION ===== */}
@@ -214,18 +214,18 @@ export const DiseaseReportTemplate = React.forwardRef<HTMLDivElement, DiseaseRep
                         </div>
                     </div>
 
-                    <section className='p-0'>
+                    <section className='p-0 mt-2'>
                         <div className='p-0 m-0 flex gap-1 items-center'>
-                            <div className='border border-black py-2 bg-gray-300 w-[200px]' />
-                            <span className="text-black text-[10px] ">Zone reservee au Ds</span>
+                            <div className='border border-black py-1.5 bg-gray-300 w-[180px]' />
+                            <span className="text-black text-[8px]">Zone reservee au Ds</span>
                         </div>
                         <div className='p-0 m-0 flex gap-1 items-center'>
-                            <div className='border-x py-2 border-black w-[200px]' />
-                            <span className="text-black text-[10px]">Zone reservee a la FOSA</span>
+                            <div className='border-x py-1.5 border-black w-[180px]' />
+                            <span className="text-black text-[8px]">Zone reservee a la FOSA</span>
                         </div>
                         <div className='p-0 m-0 flex gap-1 items-center'>
-                            <div className='border border-black py-2 bg-black w-[200px]' />
-                            <span className="text-black text-[10px]">Aucun remplissage</span>
+                            <div className='border border-black py-1.5 bg-black w-[180px]' />
+                            <span className="text-black text-[8px]">Aucun remplissage</span>
                         </div>
                     </section>
                 </div>
@@ -236,24 +236,25 @@ export const DiseaseReportTemplate = React.forwardRef<HTMLDivElement, DiseaseRep
 
 DiseaseReportTemplate.displayName = 'DiseaseReportTemplate';
 
-// Styles object for the PDF template
+// Styles object for the PDF template - Optimized for A4
 const styles: { [key: string]: React.CSSProperties } = {
     page: {
         width: '210mm',
         minHeight: '297mm',
-        padding: '10mm',
+        padding: '8mm',
         backgroundColor: 'white',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '10pt',
+        fontSize: '9pt',
         color: '#000',
+        boxSizing: 'border-box',
     },
 
     // Header styles
     header: {
         display: 'flex',
         justifyContent: 'space-between',
-        marginBottom: '20px',
-        fontSize: '9pt',
+        marginBottom: '10px',
+        fontSize: '8pt',
     },
     headerLeft: {
         textAlign: 'left',
@@ -270,35 +271,35 @@ const styles: { [key: string]: React.CSSProperties } = {
         flex: 1,
     },
     headerText: {
-        margin: '2px 0',
+        margin: '1px 0',
         fontWeight: 'bold',
-        fontSize: '9pt',
+        fontSize: '8pt',
     },
     logoPlaceholder: {
-        width: '60px',
-        height: '60px',
+        width: '50px',
+        height: '50px',
         border: '1px solid #000',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: '8pt',
+        fontSize: '7pt',
     },
 
     // Subtitle
     subtitle: {
         textAlign: 'center',
-        marginBottom: '15px',
+        marginBottom: '8px',
     },
 
     // Form sections
     formSection: {
-        marginBottom: '15px',
-        fontSize: '8pt',
+        marginBottom: '8px',
+        fontSize: '7pt',
     },
     formRow: {
         display: 'flex',
-        gap: '10px',
-        marginBottom: '6px',
+        gap: '8px',
+        marginBottom: '4px',
     },
     formField: {
         flex: 1,
@@ -308,65 +309,78 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     formFieldSmall: {
         flex: '0 0 auto',
-        minWidth: '120px',
+        minWidth: '100px',
     },
 
     // Table styles
     tableWrapper: {
-        marginBottom: '15px',
+        marginBottom: '8px',
         overflowX: 'auto',
     },
     table: {
         width: '100%',
         borderCollapse: 'collapse',
-        fontSize: '7pt',
+        fontSize: '6.5pt',
         border: '1px solid #000',
     },
     th: {
         border: '1px solid #000',
-        padding: '4px 2px',
+        padding: '5px 2px',
         backgroundColor: '#e8e8e8',
         fontWeight: 'bold',
         textAlign: 'center',
+        verticalAlign: 'middle',
+        fontSize: '6.5pt',
+        lineHeight: '1.3',
     },
     thMain: {
         border: '1px solid #000',
-        padding: '4px 2px',
+        padding: '5px 2px',
         backgroundColor: '#d0d0d0',
         fontWeight: 'bold',
         textAlign: 'center',
+        verticalAlign: 'middle',
+        fontSize: '6.5pt',
+        lineHeight: '1.3',
     },
     thAge: {
         border: '1px solid #000',
-        padding: '4px 2px',
+        padding: '5px 2px',
         backgroundColor: '#e8e8e8',
         fontWeight: 'bold',
         textAlign: 'center',
-        fontSize: '7pt',
+        verticalAlign: 'middle',
+        fontSize: '6pt',
+        lineHeight: '1.3',
     },
     thGender: {
         border: '1px solid #000',
-        padding: '4px 2px',
+        padding: '5px 2px',
         backgroundColor: '#e8e8e8',
         fontWeight: 'bold',
         textAlign: 'center',
+        verticalAlign: 'middle',
         fontSize: '6pt',
+        lineHeight: '1.3',
     },
     td: {
         border: '1px solid #000',
         padding: '4px 2px',
         textAlign: 'center',
+        verticalAlign: 'middle',
+        fontSize: '6.5pt',
+        lineHeight: '1.3',
     },
 
     // Footer styles
     footer: {
-        marginTop: '20px',
+        marginTop: '10px',
     },
     footerRow: {
         display: 'flex',
         justifyContent: 'space-between',
-        gap: '10px',
-        marginBottom: '15px',
+        gap: '8px',
+        marginBottom: '8px',
         fontSize: '7pt',
     },
     footerField: {
@@ -374,16 +388,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     footerLabel: {
         fontWeight: 'bold',
-        marginBottom: '3px',
+        marginBottom: '2px',
+        fontSize: '7pt',
     },
     footerValue: {
         borderBottom: '1px solid #000',
-        minHeight: '20px',
+        minHeight: '18px',
     },
     signatureBox: {
         border: '1px solid #000',
-        height: '40px',
-        marginTop: '3px',
+        height: '35px',
+        marginTop: '2px',
     },
     footerNote: {
         textAlign: 'center',
