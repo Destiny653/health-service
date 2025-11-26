@@ -67,6 +67,20 @@ const post = <T>(url: string, body: any) =>
 const get = <T>(url: string, config?: RequestInit) =>
   apiFetch<T>(url, { method: "GET", ...config });
 
+// PUT helper
+const put = <T>(url: string, body: any) =>
+  apiFetch<T>(url, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+
+// DELETE helper
+const del = <T>(url: string, config?: { data?: any }) =>
+  apiFetch<T>(url, {
+    method: "DELETE",
+    body: config?.data ? JSON.stringify(config.data) : undefined,
+  });
+
 // =============================================
 // Login Validation Hook (exact same behavior as before)
 // =============================================
@@ -111,10 +125,12 @@ export function useValidateLogin(
 const apiClient = {
   post,
   get,
+  put,
+  delete: del,
 };
 
 // Export as default for convenience
 export default apiClient;
 
 // Optional: Export raw helpers if needed elsewhere
-export { apiFetch, post, get };
+export { apiFetch, post, get, put, del };

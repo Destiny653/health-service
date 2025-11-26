@@ -22,9 +22,9 @@ export function useMutationRequest<T, D = unknown>(
         method === "post"
           ? await apiClient.post<T>(endpoint, data)
           : method === "put"
-          ? await apiClient.put<T>(endpoint, data)
-          : await apiClient.delete<T>(endpoint, { data });
-      return response.data;
+            ? await apiClient.put<T>(endpoint, data)
+            : await apiClient.delete<T>(endpoint, { data });
+      return response;
     },
     ...options,
   });
