@@ -35,13 +35,9 @@ export function useInlineEdit() {
 
         const { rowId, fieldName, docCode } = editingCell;
 
-        // Build the payload for the specific field
-        const payload: EditRowPayload = {
-            [fieldName]: {
-                extracted_value: newValue,
-                was_corrected: true,
-                corrected_at: new Date().toISOString(),
-            },
+        // Build the payload - API expects simple string values, not field correction objects
+        const payload: any = {
+            [fieldName]: newValue,
         };
 
         try {
