@@ -75,11 +75,11 @@ export const DiseaseReportTemplate = React.forwardRef<HTMLDivElement, DiseaseRep
                     <div style={styles.formRow} className='flex items-center justify-center flex-col space-y-6'>
                         <div className='flex items-center justify-center flex-col'>
                             <strong className='text-[7px] pb-[4px]'>Région / Region:</strong>
-                            <input type="text" value='' className='border border-black py-1 px-4 bg-gray-200 text-[7px]' />
+                            <input type="text" className='border border-black py-1 px-4 bg-gray-200 text-[7px]' />
                         </div>
                         <div style={styles.formField} className='flex items-center justify-center flex-col'>
                             <strong className='text-[7px] pb-[4px]'>Semaine Épidémiologique / Week:</strong>
-                            <input type="text" value='' className='border border-black py-1 px-4 bg-gray-200 text-[7px]' />
+                            <input type="text" className='border border-black py-1 px-4 bg-gray-200 text-[7px]' />
                         </div>
                     </div>
 
@@ -87,15 +87,15 @@ export const DiseaseReportTemplate = React.forwardRef<HTMLDivElement, DiseaseRep
                     <div style={styles.formRow} className='flex items-center justify-center flex-col'>
                         <div style={styles.formFieldFull} className='flex items-center justify-center flex-col'>
                             <strong className='text-[7px] pb-[4px]'>District Santé / Health District:</strong>
-                            <input type="text" value='' className='border border-black py-1 px-4 w-[200px] bg-gray-200 text-[7px]' />
+                            <input type="text" className='border border-black py-1 px-4 w-[200px] bg-gray-200 text-[7px]' />
                         </div>
                         <div style={styles.formFieldFull} className='flex items-center justify-center flex-col'>
                             <strong className='text-nowrap text-[7px] pb-[4px]'>Nom de la Formation Santaire / Name of the Health Unit:</strong>
-                            <input type="text" value='' className='border border-black py-1 px-4 w-[220px] bg-gray-200 text-[7px]' />
+                            <input type="text" className='border border-black py-1 px-4 w-[220px] bg-gray-200 text-[7px]' />
                         </div>
                         <div style={styles.formFieldFull} className='flex items-center justify-center gap-2'>
                             <strong className='text-[7px] pb-[4px]'>De / From</strong>
-                            <input type="text" value='' className='border border-black py-1 px-3 w-[100px] bg-gray-200 text-[7px]' />
+                            <input type="text" className='border border-black py-1 px-3 w-[100px] bg-gray-200 text-[7px]' />
                         </div>
                     </div>
 
@@ -103,15 +103,15 @@ export const DiseaseReportTemplate = React.forwardRef<HTMLDivElement, DiseaseRep
                     <div style={styles.formRow} className='flex items-center justify-center flex-col'>
                         <div style={styles.formField} className='flex items-center justify-center flex-col'>
                             <strong className='text-[7px] pb-[4px]'>Aire de Santé / Health Area:</strong>
-                            <input type="text" value='' className='border border-black py-1 px-4 w-[200px] bg-gray-200 text-[7px]' />
+                            <input type="text" className='border border-black py-1 px-4 w-[200px] bg-gray-200 text-[7px]' />
                         </div>
                         <div style={styles.formFieldSmall} className='flex items-center justify-center flex-col'>
                             <strong className='text-[7px] pb-[4px]'>Année / Year:</strong>
-                            <input type="text" value='' className='border border-black py-1 px-4 w-[100px] bg-gray-200 text-[7px]' />
+                            <input type="text" className='border border-black py-1 px-4 w-[100px] bg-gray-200 text-[7px]' />
                         </div>
                         <div style={styles.formFieldSmall} className='flex items-center justify-center relative'>
                             <strong className='absolute top-1/4 -left-11 text-[7px]'>Au / To:</strong>
-                            <input type="text" value='' className='border border-black py-1 px-3 w-[100px] bg-gray-200 text-[7px]' />
+                            <input type="text" className='border border-black py-1 px-3 w-[100px] bg-gray-200 text-[7px]' />
                         </div>
                     </div>
                 </div>

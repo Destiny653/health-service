@@ -318,8 +318,8 @@ export default function ReportsContent() {
     await exportHTMLToPDF(diseaseReportRef.current, filename);
   };
 
-    if(filteredReports){
-       // Store data in sessionStorage for the export page
+  if (filteredReports) {
+    // Store data in sessionStorage for the export page
     localStorage.setItem('diseaseReportData', JSON.stringify(filteredReports));
     localStorage.setItem('diseaseReportMetadata', JSON.stringify({
       facilityName: 'Mbingo Regional Hospital',
@@ -344,6 +344,16 @@ export default function ReportsContent() {
 
   return (
     <div className="min-h-screen bg-white p-4">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-xl p-8 flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
+            <p className="text-gray-700 font-medium">Loading statistics...</p>
+          </div>
+        </div>
+      )}
+
       <style>{`
         .disease-table {
           border-collapse: collapse;

@@ -194,7 +194,7 @@ export default function FacilitiesContent({ setActiveTab }: { setActiveTab?: Rea
     /* ────────────────────── DUMMY API SIMULATION ────────────────────── */
     const handleSupervisionConfirm = async (unitId: string) => {
         setSubmittingSupervisionId(unitId);
-        
+
         // Simulate API latency
         await new Promise((resolve) => setTimeout(resolve, 1500));
 
@@ -217,20 +217,20 @@ export default function FacilitiesContent({ setActiveTab }: { setActiveTab?: Rea
 
         for (let i = offset; i < offset + count; i++) {
             const d = activeView === 'DAY' ? addDays(center, i) :
-                      activeView === 'WEEK' ? addWeeks(center, i) :
-                      activeView === 'MONTH' ? addMonths(center, i) :
-                      addYears(center, i);
+                activeView === 'WEEK' ? addWeeks(center, i) :
+                    activeView === 'MONTH' ? addMonths(center, i) :
+                        addYears(center, i);
 
             const unitDate = getUnitStart(d, activeView);
             const id = format(unitDate, activeView === 'WEEK' ? 'yyyy-ww' : activeView === 'YEAR' ? 'yyyy' : activeView === 'MONTH' ? 'yyyy-MM' : 'yyyy-MM-dd');
 
             const label = activeView === 'DAY' ? dayAbbreviation(unitDate) :
-                          activeView === 'WEEK' ? `W${format(unitDate, 'w')}` :
-                          activeView === 'MONTH' ? format(unitDate, 'MMM') : '';
+                activeView === 'WEEK' ? `W${format(unitDate, 'w')}` :
+                    activeView === 'MONTH' ? format(unitDate, 'MMM') : '';
 
             const value = activeView === 'YEAR' ? format(unitDate, 'yyyy') :
-                          activeView === 'MONTH' ? format(unitDate, 'M') :
-                          activeView === 'WEEK' ? format(unitDate, 'w') : format(unitDate, 'd');
+                activeView === 'MONTH' ? format(unitDate, 'M') :
+                    activeView === 'WEEK' ? format(unitDate, 'w') : format(unitDate, 'd');
 
             const globalStatus = getGlobalStatusForUnit(unitDate, facilities, activeView);
 
@@ -356,6 +356,16 @@ export default function FacilitiesContent({ setActiveTab }: { setActiveTab?: Rea
 
     return (
         <div className="flex flex-col h-screen bg-white overflow-hidden">
+            {/* Loading Overlay */}
+            {isFetching && (
+                <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
+                    <div className="bg-white rounded-lg shadow-xl p-8 flex flex-col items-center space-y-4">
+                        <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
+                        <p className="text-gray-700 font-medium">Loading statistics...</p>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b bg-gray-50">
                 <Badge variant="secondary" className="flex items-center gap-2 px-3 py-1 text-sm bg-purple-100 text-purple-700">
@@ -492,13 +502,13 @@ export default function FacilitiesContent({ setActiveTab }: { setActiveTab?: Rea
                                     const isEligible = u.status === 'complete' || u.status === 'incomplete';
                                     const confirmedBy = supervisionState[u.id];
                                     const isSubmitting = submittingSupervisionId === u.id;
-                                    
+
                                     return (
                                         <td key={u.id} className="py-4 border-l border-gray-200 align-bottom pb-2">
                                             <div className="flex flex-col items-center justify-end h-32 w-full">
                                                 {isEligible ? (
                                                     confirmedBy ? (
-                                                         /* Vertical Confirmed User Name */
+                                                        /* Vertical Confirmed User Name */
                                                         <div className="flex items-center justify-center gap-2 h-full opacity-80 hover:opacity-100 transition-opacity">
                                                             <UserCheck className="w-4 h-4 text-green-600 mb-2" />
                                                             <span className="text-[10px] font-semibold text-gray-700 uppercase tracking-widest [writing-mode:vertical-lr] rotate-180 whitespace-nowrap">
@@ -541,15 +551,15 @@ export default function FacilitiesContent({ setActiveTab }: { setActiveTab?: Rea
                     {isFetching && <div className="p-8 text-center text-gray-500">Loading facilities...</div>}
                     {!isFetching && filteredRows.length === 0 && (
                         <div className="p-8 text-center text-gray-500">
-                            {selectedStatus === null 
-                                ? "No facilities found." 
+                            {selectedStatus === null
+                                ? "No facilities found."
                                 : `No facilities with "${STATUS_CONFIG[selectedStatus].label}" status in the current view`}
                         </div>
                     )}
                 </div>
             </div>
 
-          <FacilityDetailSheet
+            <FacilityDetailSheet
                 open={sheetOpen}
                 onOpenChange={setSheetOpen}
                 activeTab={_activeTab}
