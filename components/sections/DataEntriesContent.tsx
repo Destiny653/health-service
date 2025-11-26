@@ -52,6 +52,8 @@ import { HorizontalSplitPane } from "../HorizontantalSplitPane";
 import { useGetFacilities } from "../facility/hooks/useFacility";
 import { PatientDocument, useGetDocumentsByFacility } from "../../hooks/docs/useGetDoc";
 import { UserData } from "@/payload";
+import { useInlineEdit } from "@/hooks/docs/useInlineEdit";
+import { InlineEditField } from "../InlineEditField";
 
 // --- INTERFACES ---
 export interface Facility {
@@ -639,6 +641,28 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
     setSelectedPatient(null);
   }, []);
 
+  // ---- Inline Edit Integration ----
+  const { editingCell, tempValue, setTempValue, startEdit, cancelEdit, confirmEdit, isLoading: isEditLoading } = useInlineEdit();
+
+  const handleCellClick = useCallback((rowId: string, fieldName: string, currentValue: string, docCode: string) => {
+    startEdit(rowId, fieldName, docCode, currentValue);
+  }, [startEdit]);
+
+  const handleEditConfirm = useCallback((newValue: string) => {
+    confirmEdit(newValue);
+  }, [confirmEdit]);
+
+  const handleEditCancel = useCallback(() => {
+    cancelEdit();
+  }, [cancelEdit]);
+
+  // Determine field type for inline editing
+  const getFieldType = (fieldName: string): "text" | "number" | "date" => {
+    if (fieldName === "date") return "date";
+    if (fieldName === "age" || fieldName === "month_number" || fieldName === "case") return "number";
+    return "text";
+  };
+
   const toggleBottomPanel = useCallback(() => {
     setShowBottomPanel(prev => !prev);
   }, []);
@@ -869,7 +893,20 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
           data={filteredPatients}
           columns={columns}
           isLoading={isLoading}
-          onRowClick={handleRowClick}
+          onEditClick={handleRowClick}
+          editingCell={editingCell}
+          onCellClick={handleCellClick}
+          editingComponent={
+            editingCell ? (
+              <InlineEditField
+                value={tempValue}
+                fieldType={getFieldType(editingCell.fieldName)}
+                onConfirm={handleEditConfirm}
+                onCancel={handleEditCancel}
+                isLoading={isEditLoading}
+              />
+            ) : null
+          }
           pagination={{ pageIndex, pageSize }}
           onPaginationChange={handlePaginationChange}
         />

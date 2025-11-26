@@ -249,7 +249,7 @@ async function editDocumentRow({
   const res = await fetch(
     `${API_BASE}/document/${doc_code}/${row_id}/edit`,
     {
-      method: "PATCH", // or "PUT" – change if your API uses PUT
+      method: "PUT", // or "PUT" – change if your API uses PUT
       headers: {
         "Content-Type": "application/json",
         ...getAuthHeader(),

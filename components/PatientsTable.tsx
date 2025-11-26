@@ -10,7 +10,7 @@ import {
   VisibilityState,
 } from "@tanstack/react-table";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronDown, Loader2, Settings } from "lucide-react";
+import { ChevronDown, Loader2, Settings, Edit } from "lucide-react";
 import {
   Pagination,
   PaginationContent,
@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { InlineEditField } from "./InlineEditField";
 
 /* --------------------------------------------------------------- */
 /*  DataTable – Yellow text only when score < 10 (no extra text)   */
@@ -39,14 +40,20 @@ export function DataTable<
   data,
   columns: initialColumns,
   isLoading,
-  onRowClick,
+  onEditClick,
+  editingCell,
+  onCellClick,
+  editingComponent,
   pagination,
   onPaginationChange,
 }: {
   data: TData[];
   columns: ColumnDef<TData, TMeta>[];
   isLoading?: boolean;
-  onRowClick?: (row: TData) => void;
+  onEditClick?: (row: TData) => void;
+  editingCell?: { rowId: string; fieldName: string } | null;
+  onCellClick?: (rowId: string, fieldName: string, currentValue: string, docCode: string) => void;
+  editingComponent?: React.ReactNode;
   pagination?: {
     pageIndex: number;
     pageSize: number;
@@ -204,41 +211,83 @@ export function DataTable<
                 ))}
               </thead>
               <tbody>
-                {table.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className="hover:bg-gray-50 transition-colors general-size font-[500] text-[#424242] cursor-pointer"
-                    onClick={() => onRowClick?.(row.original)}
-                  >
-                    {row.getVisibleCells().map((cell) => {
-                      // Get the actual field object to read score
-                      const fieldObject = cell.column.id
-                        ? (cell.row.original as any)[cell.column.id]
-                        : null;
-                      const score = fieldObject?.corrected_score;
-                      const isLowConfidence = score < 10;
-                      const textColor = isLowConfidence ? "text-yellow-600 font-semibold" : "text-[#424242]";
+                {table.getRowModel().rows.map((row) => {
+                  const rowData = row.original as any;
+                  const rowId = rowData._id || rowData.metadata?.row_code || row.id;
+                  const docCode = rowData.metadata?.doc_code || rowData.doc_code || "";
 
-                      const raw = typeof cell.getValue === "function" ? cell.getValue() : undefined;
-                      const rendered = flexRender(cell.column.columnDef.cell, cell.getContext());
+                  return (
+                    <tr
+                      key={row.id}
+                      className="hover:bg-gray-50 transition-colors general-size font-[500] text-[#424242]"
+                    >
+                      {row.getVisibleCells().map((cell) => {
+                        // Get the actual field object to read score
+                        const fieldObject = cell.column.id
+                          ? (cell.row.original as any)[cell.column.id]
+                          : null;
+                        const score = fieldObject?.corrected_score;
+                        const fieldValue = String(fieldObject?.value || "");
+                        const isLowConfidence = score < 10;
+                        const isEmpty = !fieldValue || fieldValue.trim() === "";
+                        const isEditable = isLowConfidence || isEmpty;
+                        const textColor = isLowConfidence ? "text-yellow-600 font-semibold" : "text-[#424242]";
 
-                      return (
-                        <td
-                          key={cell.id}
-                          className="px-4 py-4 border-b border-gray-200 text-[16px] whitespace-nowrap overflow-hidden text-ellipsis max-w-[250px]"
+                        const raw = typeof cell.getValue === "function" ? cell.getValue() : undefined;
+                        const rendered = flexRender(cell.column.columnDef.cell, cell.getContext());
+
+                        const isCurrentlyEditing =
+                          editingCell?.rowId === rowId &&
+                          editingCell?.fieldName === cell.column.id;
+
+                        return (
+                          <td
+                            key={cell.id}
+                            className={cn(
+                              "px-4 py-4 border-b border-gray-200 text-[16px]",
+                              isCurrentlyEditing
+                                ? "whitespace-nowrap"
+                                : "whitespace-nowrap overflow-hidden text-ellipsis max-w-[250px]",
+                              isEditable && !isCurrentlyEditing && "cursor-pointer hover:bg-blue-50"
+                            )}
+                            onClick={(e) => {
+                              if (isEditable && !isCurrentlyEditing && onCellClick && cell.column.id) {
+                                e.stopPropagation();
+                                onCellClick(rowId, cell.column.id, fieldValue, docCode);
+                              }
+                            }}
+                          >
+                            {isCurrentlyEditing ? (
+                              editingComponent
+                            ) : (
+                              <span className={textColor}>
+                                {raw !== undefined && typeof raw === "string"
+                                  ? raw.length > 20
+                                    ? `${raw.slice(0, 20)}...`
+                                    : raw
+                                  : rendered}
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
+                      {/* Edit Button Column */}
+                      <td className="px-4 py-4 border-b border-gray-200 text-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditClick?.(row.original);
+                          }}
+                          className="h-8 w-8 p-0 hover:bg-blue-100"
                         >
-                          <span className={textColor}>
-                            {raw !== undefined && typeof raw === "string"
-                              ? raw.length > 20
-                                ? `${raw.slice(0, 20)}...`
-                                : raw
-                              : rendered}
-                          </span>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                          <Edit className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
