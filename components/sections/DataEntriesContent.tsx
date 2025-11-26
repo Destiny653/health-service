@@ -895,6 +895,16 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
 
   return (
     <div className="h-[105vh] flex flex-col overflow-hidden font-sans">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg shadow-xl p-8 flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600"></div>
+            <p className="text-gray-700 font-medium">Loading statistics...</p>
+          </div>
+        </div>
+      )}
+
       {showBottomPanel ? (
         <HorizontalSplitPane top={topContent} bottom={bottomContent} initialPercent={65} storageKey="data-entries-split-height" />
       ) : (
