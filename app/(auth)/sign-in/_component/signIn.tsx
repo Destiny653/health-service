@@ -83,11 +83,11 @@ export default function SignIn() {
     z.infer<typeof formSchema>
   >({
     mutationFn: async (data) => {
-      const res = await apiClient.post("/auth/login", {
+      const res = await apiClient.post<{ message: string }>("/auth/login", {
         username: data.username,
         password: data.password,
       });
-      return res.data;
+      return res;
     },
     onSuccess: (data) => {
       const message = data.message || "OTP code has been sent to your email.";
@@ -137,9 +137,8 @@ export default function SignIn() {
                   <Input
                     placeholder="Username"
                     {...field}
-                    className={`rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 ${
-                      fieldState.error ? "border-red-500" : "focus:border-b-[#04b301]"
-                    }`}
+                    className={`rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 ${fieldState.error ? "border-red-500" : "focus:border-b-[#04b301]"
+                      }`}
                   />
                 </FormControl>
                 <Mail size={20} className="absolute right-3 top-12 -translate-y-1/2 text-gray-400" />
@@ -160,9 +159,8 @@ export default function SignIn() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     {...field}
-                    className={`rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 ${
-                      fieldState.error ? "border-red-500" : "focus:border-b-[#04b301]"
-                    }`}
+                    className={`rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 ${fieldState.error ? "border-red-500" : "focus:border-b-[#04b301]"
+                      }`}
                   />
                 </FormControl>
                 <span

@@ -1,37 +1,74 @@
-import axios from "axios";
+// lib/api.ts  (or utils/api.ts — put this anywhere you like)
 import Cookies from "js-cookie";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, UseMutationOptions } from "@tanstack/react-query";
 
+const API_BASE_URL = "http://173.249.30.54/dappa";
 
-const apiClient = axios.create({
-  baseURL: "http://173.249.30.54/dappa", // make sure this is correct
-  timeout: 10000,
-});
-
-// Add token to every request automatically
-apiClient.interceptors.request.use((config) => {
+// Reusable authenticated fetch with global 401 handling
+async function apiFetch<T>(
+  input: string,
+  init?: RequestInit
+): Promise<T> {
   const token = Cookies.get("authToken");
+
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  // Merge any existing headers from init
+  if (init?.headers) {
+    Object.assign(headers, init.headers);
+  }
+
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`;
   }
-  return config;
-});
 
-// Optional: handle 401 globally
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      Cookies.remove("authToken");
-      localStorage.clear();
-      window.location.href = "/sign-in";
+  const response = await fetch(`${API_BASE_URL}${input}`, {
+    ...init,
+    headers,
+    credentials: "include", // optional, remove if not using httpOnly cookies
+  });
+
+  // Global 401 handling: clear auth and redirect
+  if (response.status === 401) {
+    Cookies.remove("authToken");
+    localStorage.clear();
+    window.location.href = "/sign-in";
+    // Prevent further execution
+    throw new Error("Unauthorized");
+  }
+
+  if (!response.ok) {
+    let errorMessage = "Something went wrong";
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorMessage;
+    } catch {
+      errorMessage = `HTTP ${response.status}`;
     }
-    return Promise.reject(error);
+    throw new Error(errorMessage);
   }
-);
 
-export default apiClient;
+  // Handle empty responses (204 No Content)
+  if (response.status === 204) return null as T;
 
+  return response.json();
+}
+
+// POST helper
+const post = <T>(url: string, body: any) =>
+  apiFetch<T>(url, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+
+// GET helper (add more as needed: put, del, etc.)
+const get = <T>(url: string) => apiFetch<T>(url, { method: "GET" });
+
+// =============================================
+// Login Validation Hook (exact same behavior as before)
+// =============================================
 
 interface LoginPayload {
   username: string;
@@ -46,19 +83,37 @@ interface LoginResponse {
 }
 
 async function validateLogin({ username, password, otp }: LoginPayload) {
-  const response = await apiClient.post<LoginResponse>(
-    `/auth/login/validate?otp=${otp}`,
-    {
-      username,
-      password,
-    }
-  );
+  const data = await post<LoginResponse>(`/auth/login/validate?otp=${otp}`, {
+    username,
+    password,
+  });
 
-  return response.data;
+  // Save new token if returned
+  if (data.accessToken) {
+    Cookies.set("authToken", data.accessToken, { expires: 7 });
+  }
+
+  return data;
 }
 
-export function useValidateLogin() {
-  return useMutation({
+// Export the hook
+export function useValidateLogin(
+  options?: UseMutationOptions<LoginResponse, Error, LoginPayload>
+) {
+  return useMutation<LoginResponse, Error, LoginPayload>({
     mutationFn: validateLogin,
+    ...options,
   });
 }
+
+// Create axios-like API client interface
+const apiClient = {
+  post,
+  get,
+};
+
+// Export as default for convenience
+export default apiClient;
+
+// Optional: Export raw helpers if needed elsewhere
+export { apiFetch, post, get };

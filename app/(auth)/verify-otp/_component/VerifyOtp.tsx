@@ -63,11 +63,11 @@ export default function VerifyOtpPage() {
             const creds = getTempCredentials();
             if (!creds) throw new Error("Session expired. Please sign in again.");
 
-            const res = await apiClient.post(`/auth/login/validate?otp=${otp}`, {
+            const res = await apiClient.post<{ access_token: string }>(`/auth/login/validate?otp=${otp}`, {
                 username: creds.username,
                 password: creds.password
             });
-            return res.data;
+            return res;
         },
         onSuccess: (data) => {
             // Save real token
@@ -95,11 +95,11 @@ export default function VerifyOtpPage() {
             const creds = getTempCredentials();
             if (!creds) throw new Error("Session expired. Please sign in again.");
 
-            const res = await apiClient.post("/auth/login", {
+            const res = await apiClient.post<{ message: string }>("/auth/login", {
                 username: creds.username,
                 password: creds.password,
             });
-            return res.data;
+            return res;
         },
         onSuccess: (data) => {
             toast.success(data.message || "New OTP sent to your email!");
