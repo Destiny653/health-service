@@ -356,6 +356,8 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [facilityDropdownOpen, setFacilityDropdownOpen] = useState(false);
   const [selectedFacilityId, setSelectedFacilityId] = useState<string | null>(null);
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
 
   // Debounced search for performance
   const debouncedSearch = useDebounce(searchTerm, DEBOUNCE_MS);
@@ -578,14 +580,21 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
     return results;
   }, [allRawDocuments, startRange, endRange, debouncedSearch, selectedStatus]);
 
+  // Paginated patients for the current view
+  const paginatedPatients = useMemo(() => {
+    const start = pageIndex * pageSize;
+    const end = start + pageSize;
+    return filteredPatients.slice(start, end);
+  }, [filteredPatients, pageIndex, pageSize]);
+
 
   // Image URLs (only compute when panel is visible) - extract from DocumentGroup level
   const filteredImageUrls = useMemo(() => {
     if (!showBottomPanel || !documentsData?.documents) return [];
 
-    // Collect unique doc_codes from filtered patients
+    // Collect unique doc_codes from current page patients
     const docCodes = new Set<string>();
-    filteredPatients.forEach(p => {
+    paginatedPatients.forEach(p => {
       const docCode = p.metadata?.doc_code;
       if (docCode) {
         docCodes.add(docCode);
@@ -602,7 +611,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
     });
 
     return urls;
-  }, [filteredPatients, showBottomPanel, documentsData]);
+  }, [paginatedPatients, showBottomPanel, documentsData]);
 
   // ---- Stable Callbacks ----
   const handleUnitClick = useCallback((id: string) => {
@@ -667,6 +676,11 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
     const filename = generateExportFilename(selectedFacilityName, activeView, selectedDate, selectedStatus);
     exportToExcel(filteredPatients, columns, filename);
   }, [selectedFacilityName, activeView, selectedDate, selectedStatus, filteredPatients]);
+
+  const handlePaginationChange = useCallback((pagination: { pageIndex: number; pageSize: number }) => {
+    setPageIndex(pagination.pageIndex);
+    setPageSize(pagination.pageSize);
+  }, []);
 
   // ---- Table Columns ----
   const columns = useMemo<ColumnDef<PatientDocument>[]>(() => [
@@ -850,9 +864,17 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
             <Button className="bg-[#028700] text-white hover:bg-[#028700c5]">New Record</Button>
           </div>
         </div>
-        <DataTable data={filteredPatients} columns={columns} isLoading={isLoading} onRowClick={handleRowClick} />
-      </div>
-    </div>
+
+        <DataTable
+          data={filteredPatients}
+          columns={columns}
+          isLoading={isLoading}
+          onRowClick={handleRowClick}
+          pagination={{ pageIndex, pageSize }}
+          onPaginationChange={handlePaginationChange}
+        />
+      </div >
+    </div >
   );
 
   const bottomContent = (
@@ -865,7 +887,7 @@ export default function DataEntriesContent({ setActiveTab }: DataEntriesContentP
         </div>
       ) : (
         <p className="text-center text-gray-500 mt-10">
-          {isLoading ? "Loading..." : "No images found for selected records."}
+          {isLoading ? "Loading..." : "No images found for records on this page."}
         </p>
       )}
     </div>

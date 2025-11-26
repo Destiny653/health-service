@@ -40,14 +40,24 @@ export function DataTable<
   columns: initialColumns,
   isLoading,
   onRowClick,
+  pagination,
+  onPaginationChange,
 }: {
   data: TData[];
   columns: ColumnDef<TData, TMeta>[];
   isLoading?: boolean;
   onRowClick?: (row: TData) => void;
+  pagination?: {
+    pageIndex: number;
+    pageSize: number;
+  };
+  onPaginationChange?: (pagination: { pageIndex: number; pageSize: number }) => void;
 }) {
-  const [pageIndex, setPageIndex] = React.useState(0);
-  const [pageSize] = React.useState(10);
+  const [internalPageIndex, setInternalPageIndex] = React.useState(0);
+  const [internalPageSize] = React.useState(10);
+
+  const pageIndex = pagination ? pagination.pageIndex : internalPageIndex;
+  const pageSize = pagination ? pagination.pageSize : internalPageSize;
 
   /* ---------- SAFE localStorage: Only access in browser ---------- */
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>(() => {
@@ -92,11 +102,18 @@ export function DataTable<
     },
     onPaginationChange: (updater) => {
       if (typeof updater === "function") {
-        setPageIndex((old) =>
-          updater({ pageIndex: old, pageSize }).pageIndex
-        );
+        const newPagination = updater({ pageIndex, pageSize });
+        if (onPaginationChange) {
+          onPaginationChange(newPagination);
+        } else {
+          setInternalPageIndex(newPagination.pageIndex);
+        }
       } else {
-        setPageIndex(updater.pageIndex);
+        if (onPaginationChange) {
+          onPaginationChange({ pageIndex: updater.pageIndex, pageSize });
+        } else {
+          setInternalPageIndex(updater.pageIndex);
+        }
       }
     },
     onColumnVisibilityChange: setColumnVisibility,
