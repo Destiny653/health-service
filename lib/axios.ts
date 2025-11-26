@@ -64,7 +64,8 @@ const post = <T>(url: string, body: any) =>
   });
 
 // GET helper (add more as needed: put, del, etc.)
-const get = <T>(url: string) => apiFetch<T>(url, { method: "GET" });
+const get = <T>(url: string, config?: RequestInit) =>
+  apiFetch<T>(url, { method: "GET", ...config });
 
 // =============================================
 // Login Validation Hook (exact same behavior as before)
