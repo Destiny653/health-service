@@ -74,11 +74,11 @@ export const DiseaseReportTemplate = React.forwardRef<HTMLDivElement, DiseaseRep
                     {/* Section 1 */}
                     <div style={styles.formRow} className='flex items-center justify-center flex-col space-y-6'>
                         <div className='flex items-center justify-center flex-col'>
-                            <strong className='text-[7px]'>Région / Region:</strong>
+                            <strong className='text-[7px] pb-[4px]'>Région / Region:</strong>
                             <input type="text" value='' className='border border-black py-1 px-4 bg-gray-200 text-[7px]' />
                         </div>
                         <div style={styles.formField} className='flex items-center justify-center flex-col'>
-                            <strong className='text-[7px]'>Semaine Épidémiologique / Week:</strong>
+                            <strong className='text-[7px] pb-[4px]'>Semaine Épidémiologique / Week:</strong>
                             <input type="text" value='' className='border border-black py-1 px-4 bg-gray-200 text-[7px]' />
                         </div>
                     </div>
@@ -86,15 +86,15 @@ export const DiseaseReportTemplate = React.forwardRef<HTMLDivElement, DiseaseRep
                     {/* Section 2 */}
                     <div style={styles.formRow} className='flex items-center justify-center flex-col'>
                         <div style={styles.formFieldFull} className='flex items-center justify-center flex-col'>
-                            <strong className='text-[7px]'>District Santé / Health District:</strong>
+                            <strong className='text-[7px] pb-[4px]'>District Santé / Health District:</strong>
                             <input type="text" value='' className='border border-black py-1 px-4 w-[200px] bg-gray-200 text-[7px]' />
                         </div>
                         <div style={styles.formFieldFull} className='flex items-center justify-center flex-col'>
-                            <strong className='text-nowrap text-[7px]'>Nom de la Formation Santaire / Name of the Health Unit:</strong>
+                            <strong className='text-nowrap text-[7px] pb-[4px]'>Nom de la Formation Santaire / Name of the Health Unit:</strong>
                             <input type="text" value='' className='border border-black py-1 px-4 w-[220px] bg-gray-200 text-[7px]' />
                         </div>
                         <div style={styles.formFieldFull} className='flex items-center justify-center gap-2'>
-                            <strong className='text-[7px]'>De / From</strong>
+                            <strong className='text-[7px] pb-[4px]'>De / From</strong>
                             <input type="text" value='' className='border border-black py-1 px-3 w-[100px] bg-gray-200 text-[7px]' />
                         </div>
                     </div>
@@ -102,11 +102,11 @@ export const DiseaseReportTemplate = React.forwardRef<HTMLDivElement, DiseaseRep
                     {/* Section 3 */}
                     <div style={styles.formRow} className='flex items-center justify-center flex-col'>
                         <div style={styles.formField} className='flex items-center justify-center flex-col'>
-                            <strong className='text-[7px]'>Aire de Santé / Health Area:</strong>
+                            <strong className='text-[7px] pb-[4px]'>Aire de Santé / Health Area:</strong>
                             <input type="text" value='' className='border border-black py-1 px-4 w-[200px] bg-gray-200 text-[7px]' />
                         </div>
                         <div style={styles.formFieldSmall} className='flex items-center justify-center flex-col'>
-                            <strong className='text-[7px]'>Année / Year:</strong>
+                            <strong className='text-[7px] pb-[4px]'>Année / Year:</strong>
                             <input type="text" value='' className='border border-black py-1 px-4 w-[100px] bg-gray-200 text-[7px]' />
                         </div>
                         <div style={styles.formFieldSmall} className='flex items-center justify-center relative'>
@@ -197,35 +197,35 @@ export const DiseaseReportTemplate = React.forwardRef<HTMLDivElement, DiseaseRep
                             ))}
                         </tbody>
                     </table>
-                    <p className="text-[8px] font-bold mt-1">* Maladie a notification immediate/ Immediate notification diseases</p>
                 </div>
+                <p className="text-[8px] font-bold mt-">* Maladie a notification immediate/ Immediate notification diseases</p>
 
                 {/* ===== FOOTER SECTION ===== */}
                 <div style={styles.footer}>
                     <div style={styles.footerRow} className="flex">
                         <div style={styles.footerField}>
-                            <div style={styles.footerLabel} className='text-nowrap'>Date d'envoi a L'Aire de Sante/ Date of Submision to the Health Area: ...........</div>
+                            <div className='text-nowrap text-[8px]'>Date d'envoi a L'Aire de Sante/ Date of Submision to the Health Area: ...........</div>
                         </div>
                         <div style={styles.footerField}>
-                            <div style={styles.footerLabel} className='text-nowrap'>Date de Reception/ Date of Reception: ............</div>
+                            <div className='text-nowrap text-[8px]'>Date de Reception/ Date of Reception: ............</div>
                         </div>
                         <div style={styles.footerField}>
-                            <div style={styles.footerLabel} className="text-nowrap">Nom, Signature et cache/ Name, Signature and Round Stamp</div>
+                            <div className='text-nowrap text-[8px]'>Nom, Signature et cache/ Name, Signature and Round Stamp</div>
                         </div>
                     </div>
 
                     <section className='p-0 mt-2'>
                         <div className='p-0 m-0 flex gap-1 items-center'>
                             <div className='border border-black py-1.5 bg-gray-300 w-[180px]' />
-                            <span className="text-black text-[8px]">Zone reservee au Ds</span>
+                            <span className="text-black text-[8px] relative bottom-1">Zone reservee au Ds</span>
                         </div>
                         <div className='p-0 m-0 flex gap-1 items-center'>
                             <div className='border-x py-1.5 border-black w-[180px]' />
-                            <span className="text-black text-[8px]">Zone reservee a la FOSA</span>
+                            <span className="text-black text-[8px] relative bottom-1">Zone reservee a la FOSA</span>
                         </div>
                         <div className='p-0 m-0 flex gap-1 items-center'>
                             <div className='border border-black py-1.5 bg-black w-[180px]' />
-                            <span className="text-black text-[8px]">Aucun remplissage</span>
+                            <span className="text-black text-[8px] relative bottom-1">Aucun remplissage</span>
                         </div>
                     </section>
                 </div>
@@ -238,6 +238,7 @@ DiseaseReportTemplate.displayName = 'DiseaseReportTemplate';
 
 // Styles object for the PDF template - Optimized for A4
 const styles: { [key: string]: React.CSSProperties } = {
+
     page: {
         width: '210mm',
         minHeight: '297mm',
@@ -298,8 +299,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     formRow: {
         display: 'flex',
-        gap: '8px',
+        gap: '6px',
         marginBottom: '4px',
+        marginTop: '4px',
     },
     formField: {
         flex: 1,
@@ -316,6 +318,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     tableWrapper: {
         marginBottom: '0px',
         overflowX: 'auto',
+        height: '100%',
     },
     table: {
         width: '100%',
@@ -352,10 +355,13 @@ const styles: { [key: string]: React.CSSProperties } = {
         verticalAlign: 'middle',
         fontSize: '6pt',
         lineHeight: '1.3',
+        paddingTop: '0',
+
     },
     thGender: {
         border: '1px solid #000',
         padding: '5px 2px',
+        paddingTop: '0',
         backgroundColor: '#e8e8e8',
         fontWeight: 'bold',
         textAlign: 'center',
@@ -365,7 +371,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     td: {
         border: '1px solid #000',
-        padding: '4px 2px',
+        padding: '8px 2px',
+        paddingTop: '0px',
         textAlign: 'center',
         verticalAlign: 'middle',
         fontSize: '6.5pt',
