@@ -79,14 +79,6 @@ const MainLayout = ({
     filteredNavItems.find((item) => item.id === activeTab)?.Component ||
     DashboardContent;
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <HealthFacilityLoader />
-      </div>
-    );
-  }
 
   if (!data || !userFacility) return null;
 
