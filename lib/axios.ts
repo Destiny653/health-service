@@ -2,7 +2,7 @@
 import Cookies from "js-cookie";
 import { useMutation, UseMutationOptions } from "@tanstack/react-query";
 
-const API_BASE_URL = "http://173.249.30.54/dappa";
+const API_BASE_URL = "/api/proxy";
 
 // Reusable authenticated fetch with global 401 handling
 async function apiFetch<T>(
