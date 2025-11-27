@@ -1,14 +1,13 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   async rewrites() {
     return [
       {
-        source: "/api/proxy/:path*",
-        destination: "http://173.249.30.54/dappa/:path*",
+        source: "/api/:path*",
+        destination: "http://173.249.30.54/dappa/:path*", // your backend (HTTP)
       },
     ];
   },
 };
 
-export default nextConfig;
+module.exports = nextConfig;

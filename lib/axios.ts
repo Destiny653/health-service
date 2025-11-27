@@ -3,6 +3,7 @@ import Cookies from "js-cookie";
 import { useMutation, UseMutationOptions } from "@tanstack/react-query";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+export const BASE_URL = 'api'
 
 // Reusable authenticated fetch with global 401 handling
 async function apiFetch<T>(

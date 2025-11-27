@@ -1,5 +1,6 @@
 "use client";
 
+import { BASE_URL } from "@/lib/axios";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Cookies from "js-cookie";
 import { toast } from "sonner";
@@ -48,7 +49,7 @@ export interface CreateUserPayload {
 
 /* ——— API FUNCTIONS ——— */
 
-const API_BASE =  process.env.NEXT_PUBLIC_API_URL || "http://173.249.30.54/dappa";
+const API_BASE =  process.env.NEXT_PUBLIC_API_URL || BASE_URL;
 
 async function fetchFacilityPersonalities(facilityId: string): Promise<TeamMembersResponse> {
   const token = Cookies.get("authToken");
