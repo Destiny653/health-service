@@ -2,7 +2,7 @@
 import Cookies from "js-cookie";
 import { useMutation, UseMutationOptions } from "@tanstack/react-query";
 
-const API_BASE_URL = "/api/proxy";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 // Reusable authenticated fetch with global 401 handling
 async function apiFetch<T>(

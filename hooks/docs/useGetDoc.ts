@@ -175,7 +175,7 @@ export interface DocumentList {
 
 
 // -------------------- API BASE --------------------
-const API_BASE = "http://173.249.30.54/dappa";
+const API_BASE =  process.env.NEXT_PUBLIC_API_URL || "http://173.249.30.54/dappa";
 
 // Helper to get auth token
 const getAuthHeader = () => {

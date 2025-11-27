@@ -5,7 +5,7 @@ import { PersonalityData } from "@/types";
 // 1. Get User Personality / Profile
 export const getPersonality = async () => {
   const token = Cookies.get("authToken");
-  const res = await fetch("http://173.249.30.54/dappa/personality/", {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/personality/`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",

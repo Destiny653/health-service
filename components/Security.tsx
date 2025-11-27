@@ -54,7 +54,7 @@ export default function Security() {
         const token = Cookies.get("authToken");
 
         try {
-            const res = await fetch('http://173.249.30.54/dappa/change-password/', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/change-password/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

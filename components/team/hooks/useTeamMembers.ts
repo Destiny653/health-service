@@ -48,12 +48,14 @@ export interface CreateUserPayload {
 
 /* ——— API FUNCTIONS ——— */
 
+const API_BASE =  process.env.NEXT_PUBLIC_API_URL || "http://173.249.30.54/dappa";
+
 async function fetchFacilityPersonalities(facilityId: string): Promise<TeamMembersResponse> {
   const token = Cookies.get("authToken");
   if (!token) throw new Error("Authentication token missing");
 
   const res = await fetch(
-    `http://173.249.30.54/dappa/facility/${facilityId}/personalities?page=1&limit=100`,
+    `${API_BASE}/${facilityId}/personalities?page=1&limit=100`,
     {
       method: "GET",
       headers: {
@@ -74,7 +76,7 @@ async function fetchFacilityPersonalities(facilityId: string): Promise<TeamMembe
 async function fetchTeamMembers(): Promise<TeamMembersResponse> {
   const token = Cookies.get("authToken");
 
-  const res = await fetch("http://173.249.30.54/dappa/facility/personalities", {
+  const res = await fetch(`${API_BASE}/facility/personalities`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
@@ -87,7 +89,7 @@ async function fetchTeamMembers(): Promise<TeamMembersResponse> {
 async function createUser(payload: CreateUserPayload) {
   const token = Cookies.get("authToken");
 
-  const res = await fetch("http://173.249.30.54/dappa/auth/create-user", {
+  const res = await fetch(`${API_BASE}/auth/create-user`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
