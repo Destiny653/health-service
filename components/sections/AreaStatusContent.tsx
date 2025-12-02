@@ -1,68 +1,93 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { GoogleMap, useJsApiLoader, HeatmapLayer } from "@react-google-maps/api";
 import { TrendingUp } from "lucide-react";
 import { Card } from "../ui/card";
-
-interface DiseaseStat {
-    name: string;
-    cases: number;
-    trend: number;
-}
-
-const diseaseStats: DiseaseStat[] = [
-    { name: "Maleria", cases: 235, trend: 18 },
-    { name: "Typhoid", cases: 25, trend: 18 },
-    { name: "Syphilis", cases: 46, trend: 10 },
-    { name: "Dog Bite", cases: 6, trend: 15 },
-    { name: "Snake Bite", cases: 347, trend: 10 },
-    { name: "Rabies", cases: 300, trend: 15 },
-    { name: "Yellow Fever", cases: 8, trend: 19 },
-    { name: "Menigitis", cases: 40, trend: 18 },
-];
-
-const rawHeatmapData = [
-    { lat: 39.0906, lng: -77.1533, weight: 50 },
-    { lat: 36.2072, lng: -77.0369, weight: 80 },
-    { lat: 38.8951, lng: -77.0364, weight: 90 },
-    { lat: 38.9697, lng: -77.0891, weight: 70 },
-    { lat: 39.0469, lng: -77.1187, weight: 65 },
-    { lat: 38.9847, lng: -77.0947, weight: 75 },
-    { lat: 39.0042, lng: -77.0195, weight: 60 },
-    { lat: 38.85, lng: -77.04, weight: 85 },
-    { lat: 38.88, lng: -77.00, weight: 95 },
-    { lat: 38.90, lng: -77.05, weight: 88 },
-    { lat: 38.92, lng: -77.03, weight: 82 },
-    { lat: 38.87, lng: -77.08, weight: 78 },
-    { lat: 39.02, lng: -77.10, weight: 72 },
-    { lat: 38.95, lng: -77.08, weight: 90 },
-    { lat: 38.98, lng: -77.02, weight: 68 },
-    { lat: 38.85, lng: -76.98, weight: 60 },
-    { lat: 39.10, lng: -77.20, weight: 55 },
-];
+import { useGetFacilities } from "@/components/facility/hooks/useFacility";
+import { useGetCasesStats, CasesStatsResponse } from "@/hooks/docs/useGetStatistics";
 
 const mapContainerStyle = { width: "100%", height: "100%" };
-const center = { lat: 38.9072, lng: -77.0369 }; // Washington DC area for realistic heatmap
+const center = { lat: 4.0511, lng: 9.7679 }; // Default to Douala/Wouri area
 const libraries: ("visualization")[] = ["visualization"];
+
+// ID from user request, assumed to be Wouri District or similar parent
+const PARENT_FACILITY_ID = "69207e34d5291f6e10b4a5d9";
 
 export default function AreaStatusContent() {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+    const [selectedFacilityId, setSelectedFacilityId] = useState<string>("");
+    const [timeGranularity, setTimeGranularity] = useState<"daily" | "weekly" | "monthly" | "yearly">("daily");
 
     const { isLoaded } = useJsApiLoader({
         googleMapsApiKey: apiKey,
         libraries,
     });
 
-    const heatmapData = useMemo(() => {
-        if (!isLoaded || !window.google) return [];
+    // Fetch Facilities for Dropdown
+    const { data: facilitiesData, isLoading: isLoadingFacilities } = useGetFacilities(PARENT_FACILITY_ID);
 
-        return rawHeatmapData.flatMap((point) =>
-            Array(point.weight)
-                .fill(0)
-                .map(() => new google.maps.LatLng(point.lat, point.lng))
-        );
-    }, [isLoaded]);
+    // Fetch Cases Statistics
+    const { data: casesStats, isLoading: isLoadingStats } = useGetCasesStats({
+        facility_id: PARENT_FACILITY_ID,
+        granularity: timeGranularity,
+        child_facility_id: selectedFacilityId || undefined
+    });
+
+    // Process Cases Data for Sidebar
+    const processedStats = useMemo(() => {
+        if (!casesStats) return [];
+        
+        // casesStats is an array of objects: [{ "DiseaseName": { ... } }, ...]
+        return casesStats.map(item => {
+            const diseaseName = Object.keys(item)[0];
+            const data = item[diseaseName];
+            // Calculate trend if available, otherwise 0
+            // Note: API response shown doesn't have explicit trend percentage, 
+            // so we might need to calculate it from time_stats or use 0 for now.
+            return {
+                name: diseaseName,
+                cases: data.total_cases,
+                trend: 0, // Placeholder as trend isn't in the immediate snippet
+                facilityData: data.facility
+            };
+        });
+    }, [casesStats]);
+
+    // Process Heatmap Data
+    const heatmapData = useMemo(() => {
+        if (!isLoaded || !window.google || !casesStats) return [];
+
+        const points: google.maps.LatLng[] = [];
+
+        casesStats.forEach(item => {
+            const diseaseName = Object.keys(item)[0];
+            const diseaseData = item[diseaseName];
+            
+            Object.values(diseaseData.facility).forEach(facility => {
+                const { latitude, longitude } = facility.info;
+                // Check if lat/lng exist and are valid numbers
+                if (latitude && longitude) {
+                    // Add points based on total_cases weight
+                    // For heatmap, we can add the point multiple times or use weighted location if supported by library wrapper
+                    // The wrapper supports weighted locations but the simple array<LatLng> is easier if we just flatten
+                    // However, creating 1000 points for 1000 cases might be heavy.
+                    // Let's try to use WeightedLocation if possible, or just 1 point per case up to a limit.
+                    // For now, let's just add one point per facility with cases, 
+                    // or if we want to show intensity, we might need to use the 'weight' property of HeatmapLayer data.
+                    // But the react-google-maps-api HeatmapLayer accepts MVCArray<LatLng | WeightedLocation>
+                    
+                    // Let's use WeightedLocation for better performance
+                    points.push({
+                        location: new google.maps.LatLng(latitude, longitude),
+                        weight: facility.total_cases
+                    } as any); 
+                }
+            });
+        });
+
+        return points;
+    }, [isLoaded, casesStats]);
 
     return (
         <div className="h-screen bg-gray-100 flex flex-col">
@@ -72,11 +97,18 @@ export default function AreaStatusContent() {
                     <span className="text-blue-700 font-semibold text-sm">Wouri District</span>
                 </div>
                 <div className="relative">
-                    <select className="px-4 py-2 bg-blue-50 rounded border border-blue-300 text-blue-700 font-semibold text-sm appearance-none pr-8 cursor-pointer">
-                        <option>Health Area 01</option>
-                        <option>Health Area 02</option>
-                        <option>Health Area 03</option>
-                        <option>Health Area 04</option>
+                    <select 
+                        className="px-4 py-2 bg-blue-50 rounded border border-blue-300 text-blue-700 font-semibold text-sm appearance-none pr-8 cursor-pointer"
+                        value={selectedFacilityId}
+                        onChange={(e) => setSelectedFacilityId(e.target.value)}
+                        disabled={isLoadingFacilities}
+                    >
+                        <option value="">All Health Areas</option>
+                        {facilitiesData?.results?.map((facility) => (
+                            <option key={facility._id} value={facility._id}>
+                                {facility.name}
+                            </option>
+                        ))}
                     </select>
                     <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-700 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -85,17 +117,19 @@ export default function AreaStatusContent() {
 
                 {/* Time Granularity Buttons - Moved to Left */}
                 <div className="flex items-center border bg-gray-100 rounded overflow-hidden ml-4">
-                    {["Year", "Month", "Week"].map((item) => (
+                    {(["yearly", "monthly", "weekly", "daily"] as const).map((item) => (
                         <button
                             key={item}
-                            className="px-4 py- h-10 text-sm font-medium text-gray-700  hover:bg-gray-50 border-r border-gray-300 last:border-r-0"
+                            onClick={() => setTimeGranularity(item)}
+                            className={`px-4 py- h-10 text-sm font-medium border-r border-gray-300 last:border-r-0 capitalize ${
+                                timeGranularity === item 
+                                    ? "text-white bg-green-600 hover:bg-green-700" 
+                                    : "text-gray-700 hover:bg-gray-50"
+                            }`}
                         >
                             {item}
                         </button>
                     ))}
-                    <button className="px-4 py- h-10 text-sm font-medium text-white bg-green-600 hover:bg-green-700">
-                        Day
-                    </button>
                 </div>
 
                 <div className="ml-auto flex items-center gap-2">
@@ -136,32 +170,38 @@ export default function AreaStatusContent() {
                 {/* Sidebar */}
                 <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
                     <div className="flex-1 overflow-y-auto">
-                        {diseaseStats.map((disease, i) => (
-                            <div
-                                key={i}
-                                className="px-5 py-4 border-b border-gray-100 hover:bg-gray-50 transition"
-                            >
-                                <div className="flex justify-between items-start mb-2">
-                                    <h3 className="font-semibold text-gray-900">{disease.name}</h3>
-                                    <svg width="60" height="30" viewBox="0 0 60 30" className="text-orange-300">
-                                        <path
-                                            d="M0 25 L10 18 L20 22 L30 12 L40 16 L50 10 L60 14"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            strokeWidth="2.5"
-                                            strokeLinecap="round"
-                                        />
-                                    </svg>
-                                </div>
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-gray-900 font-bold">{disease.cases} Cases</span>
-                                    <div className="flex items-center text-red-600 text-xs font-medium">
-                                        <TrendingUp className="w-3.5 h-3.5 mr-1" />
-                                        {disease.trend}% from Last week
+                        {isLoadingStats ? (
+                            <div className="p-5 text-center text-gray-500">Loading statistics...</div>
+                        ) : processedStats.length === 0 ? (
+                            <div className="p-5 text-center text-gray-500">No data available</div>
+                        ) : (
+                            processedStats.map((disease, i) => (
+                                <div
+                                    key={i}
+                                    className="px-5 py-4 border-b border-gray-100 hover:bg-gray-50 transition"
+                                >
+                                    <div className="flex justify-between items-start mb-2">
+                                        <h3 className="font-semibold text-gray-900">{disease.name}</h3>
+                                        <svg width="60" height="30" viewBox="0 0 60 30" className="text-orange-300">
+                                            <path
+                                                d="M0 25 L10 18 L20 22 L30 12 L40 16 L50 10 L60 14"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2.5"
+                                                strokeLinecap="round"
+                                            />
+                                        </svg>
+                                    </div>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-gray-900 font-bold">{disease.cases} Cases</span>
+                                        <div className="flex items-center text-red-600 text-xs font-medium">
+                                            <TrendingUp className="w-3.5 h-3.5 mr-1" />
+                                            {disease.trend}% from Last week
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))
+                        )}
                     </div>
                 </div>
 

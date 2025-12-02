@@ -236,6 +236,50 @@ export interface DiseaseStat {
   confirmed_cases: number;
 }
 
+// Cases by Symptoms/Filter
+export interface CasesBySymptoms {
+  total_cases: number;
+  symptoms: string[];
+  cases_by_date: { [date: string]: number };
+  cases_by_age_sex: AgeGroupedCases;
+}
+
+// Facility information within cases response
+export interface FacilityInfo {
+  facility_name: string;
+  facility_type: string;
+  address: string | null;
+  longitude: number | null;
+  latitude: number | null;
+}
+
+// Facility cases breakdown
+export interface FacilityCases {
+  total_cases: number;
+  info: FacilityInfo;
+  time_stats: { [date: string]: number };
+}
+
+// Disease cases response (nested by disease name)
+export interface DiseaseCases {
+  total_cases: number;
+  facility: {
+    [facilityId: string]: FacilityCases;
+  };
+}
+
+// General Cases Statistics response (nested by disease name)
+export type CasesStatsResponse = {
+  [diseaseName: string]: DiseaseCases;
+}[];
+
+// Parameters for cases/by-symptoms endpoint
+export interface CasesBySymptomsParams extends StatsParams {
+  facility_id?: string;
+  symptoms?: string; // comma-separated symptoms
+  combination_type?: "all" | "any";
+}
+
 // -------------------- API BASE & HELPERS --------------------
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || BASE_URL;
 
@@ -408,6 +452,66 @@ async function fetchDiseaseStats(params: StatsParams): Promise<DiseaseStat[]> {
   return res.json();
 }
 
+// 7. Get Cases by Symptoms (for filtering)
+async function fetchCasesBySymptoms(params: CasesBySymptomsParams): Promise<CasesBySymptoms> {
+  const query = new URLSearchParams({
+    granularity: params.granularity || "daily",
+  });
+  if (params.start_date) query.append("start_date", params.start_date);
+  if (params.end_date) query.append("end_date", params.end_date);
+  if (params.facility_id) query.append("facility_id", params.facility_id);
+  if (params.symptoms) query.append("symptoms", params.symptoms);
+  if (params.combination_type) query.append("combination_type", params.combination_type);
+  if (params.child_facility_id) query.append("child_facility_id", params.child_facility_id);
+
+  const res = await fetch(
+    `${API_BASE}/statistics/cases/by-symptoms?${query.toString()}`,
+    {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        ...getAuthHeader(),
+      },
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err || "Failed to load cases by symptoms");
+  }
+
+  return res.json();
+}
+
+// 8. Get Cases Statistics (for sidebar)
+async function fetchCasesStats(params: StatsParams & { facility_id?: string }): Promise<CasesStatsResponse> {
+  const query = new URLSearchParams({
+    granularity: params.granularity || "daily",
+  });
+  if (params.start_date) query.append("start_date", params.start_date);
+  if (params.end_date) query.append("end_date", params.end_date);
+  if (params.facility_id) query.append("facility_id", params.facility_id);
+  if (params.child_facility_id) query.append("child_facility_id", params.child_facility_id);
+
+  const res = await fetch(
+    `${API_BASE}/statistics/cases?${query.toString()}`,
+    {
+      method: "GET",
+      headers: {
+        accept: "application/json",
+        ...getAuthHeader(),
+      },
+    }
+  );
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(err || "Failed to load cases statistics");
+  }
+
+  return res.json();
+}
+
 
 // -------------------- REACT QUERY HOOKS (Original) --------------------
 
@@ -476,5 +580,31 @@ export function useGetDiseaseStats(params: StatsParams = {}) {
   return useQuery<DiseaseStat[], Error>({
     queryKey: ["statistics", "disease", defaultParams],
     queryFn: () => fetchDiseaseStats(defaultParams),
+  });
+}
+
+// Hook: Get Cases by Symptoms (for filtering)
+export function useGetCasesBySymptoms(params: CasesBySymptomsParams = {}) {
+  const defaultParams: CasesBySymptomsParams = {
+    granularity: "daily",
+    combination_type: "all",
+    ...params
+  };
+  return useQuery<CasesBySymptoms, Error>({
+    queryKey: ["statistics", "cases-by-symptoms", defaultParams],
+    queryFn: () => fetchCasesBySymptoms(defaultParams),
+    enabled: !!params.symptoms, // Only fetch if symptoms are provided
+  });
+}
+
+// Hook: Get Cases Statistics (for sidebar)
+export function useGetCasesStats(params: StatsParams & { facility_id?: string } = {}) {
+  const defaultParams: StatsParams & { facility_id?: string } = {
+    granularity: "daily" as Granularity,
+    ...params
+  };
+  return useQuery<CasesStatsResponse, Error>({
+    queryKey: ["statistics", "cases", defaultParams],
+    queryFn: () => fetchCasesStats(defaultParams),
   });
 }
