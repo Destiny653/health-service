@@ -1,11 +1,29 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useCallback, memo, useRef } from "react";
 import { GoogleMap, useJsApiLoader, HeatmapLayer } from "@react-google-maps/api";
 import { TrendingUp } from "lucide-react";
 import { Card } from "../ui/card";
 import { useGetFacilities } from "@/components/facility/hooks/useFacility";
 import { useGetCasesStats, CasesStatsResponse } from "@/hooks/docs/useGetStatistics";
+import { 
+    format, 
+    startOfYear, 
+    addYears, 
+    startOfMonth, 
+    addMonths, 
+    startOfWeek, 
+    addWeeks, 
+    addDays, 
+    getDay, 
+    isSameDay, 
+    startOfDay, 
+    isAfter 
+} from "date-fns";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 const mapContainerStyle = { width: "100%", height: "100%" };
 const center = { lat: 4.0511, lng: 9.7679 }; // Default to Douala/Wouri area
@@ -14,15 +32,172 @@ const libraries: ("visualization")[] = ["visualization"];
 // ID from user request, assumed to be Wouri District or similar parent
 const PARENT_FACILITY_ID = "69207e34d5291f6e10b4a5d9";
 
+// --- Date Logic Helpers (Ported from DataEntriesContent) ---
+type ViewType = "YEAR" | "MONTH" | "WEEK" | "DAY";
+
+interface TimeUnit {
+  id: string;
+  date: Date;
+  label: string;
+  value: string;
+  isToday: boolean;
+}
+
+const VIEW_OPTIONS = [
+  { label: "YEAR" as ViewType, tooltip: "View data grouped by year" },
+  { label: "MONTH" as ViewType, tooltip: "View data grouped by month" },
+  { label: "WEEK" as ViewType, tooltip: "View data grouped by week" },
+  { label: "DAY" as ViewType, tooltip: "View data grouped by day" },
+] as const;
+
+const DAY_ABBRS = ["S", "M", "T", "W", "T", "F", "S"] as const;
+const UNIT_COUNTS = { DAY: 7, WEEK: 8, MONTH: 8, YEAR: 7 } as const;
+
+const getStartOfToday = (): Date => startOfDay(new Date());
+const dayAbbreviation = (date: Date): string => DAY_ABBRS[getDay(date)];
+
+const getUnitStart = (date: Date, view: ViewType): Date => {
+  switch (view) {
+    case "DAY": return startOfDay(date);
+    case "WEEK": return startOfWeek(date, { weekStartsOn: 1 });
+    case "MONTH": return startOfMonth(date);
+    case "YEAR": return startOfYear(date);
+  }
+};
+
+const getUnitEnd = (start: Date, view: ViewType): Date => {
+  switch (view) {
+    case "DAY": return addDays(start, 1);
+    case "WEEK": return addWeeks(start, 1);
+    case "MONTH": return addMonths(start, 1);
+    case "YEAR": return addYears(start, 1);
+  }
+};
+
+const addByView = (date: Date, amount: number, view: ViewType): Date => {
+  switch (view) {
+    case "DAY": return addDays(date, amount);
+    case "WEEK": return addWeeks(date, amount);
+    case "MONTH": return addMonths(date, amount);
+    case "YEAR": return addYears(date, amount);
+  }
+};
+
+const getUnitId = (date: Date, view: ViewType): string => {
+  switch (view) {
+    case "DAY": return format(date, "yyyy-MM-dd");
+    case "WEEK": return format(startOfWeek(date, { weekStartsOn: 1 }), "yyyy-ww");
+    case "MONTH": return format(startOfMonth(date), "yyyy-MM");
+    case "YEAR": return format(startOfYear(date), "yyyy");
+  }
+};
+
+const getUnitLabel = (date: Date, view: ViewType): string => {
+  switch (view) {
+    case "YEAR": return "";
+    case "WEEK": return "W" + format(date, "w");
+    case "MONTH": return format(date, "MMM");
+    case "DAY": return dayAbbreviation(date);
+  }
+};
+
+const getUnitValue = (date: Date, view: ViewType): string => {
+  switch (view) {
+    case "YEAR": return format(date, "yyyy");
+    case "WEEK": return format(date, "w");
+    case "MONTH": return format(date, "M");
+    case "DAY": return format(date, "d");
+  }
+};
+
+// --- Components ---
+
+const TimeUnitItem = memo(({
+  label,
+  value,
+  isSelected
+}: {
+  label: string;
+  value: string;
+  isSelected: boolean;
+}) => (
+  <div className="flex flex-col items-center relative">
+    <div className="text-xs font-semibold text-gray-500 mb-1">{label}</div>
+    <div
+      className={cn(
+        "w-8 h-8 flex items-center py-5 px-6 justify-center text-sm font-bold text-white rounded-md shadow-sm transition-transform",
+        isSelected ? "bg-blue-600 scale-110 ring-2 ring-blue-300" : "bg-gray-400 hover:bg-gray-500 scale-100 hover:scale-105"
+      )}
+    >
+      {value}
+    </div>
+    {isSelected && (
+      <div className="w-7 h-1 bg-blue-600 rounded-full mt-1 absolute -bottom-2 animate-pulse" />
+    )}
+  </div>
+));
+TimeUnitItem.displayName = "TimeUnitItem";
+
 export default function AreaStatusContent() {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
     const [selectedFacilityId, setSelectedFacilityId] = useState<string>("");
-    const [timeGranularity, setTimeGranularity] = useState<"daily" | "weekly" | "monthly" | "yearly">("daily");
+    
+    // --- Date State & Logic ---
+    const today = useRef(getStartOfToday()).current;
+    const [selectedDate, setSelectedDate] = useState<Date>(today);
+    const [activeView, setActiveView] = useState<ViewType>("DAY");
 
     const { isLoaded } = useJsApiLoader({
         googleMapsApiKey: apiKey,
         libraries,
     });
+
+    // Computed Values for Date Logic
+    const selectedUnitId = useMemo(
+        () => getUnitId(selectedDate, activeView),
+        [selectedDate, activeView]
+    );
+
+    const [startRange, endRange] = useMemo(() => {
+        const start = getUnitStart(selectedDate, activeView);
+        return [start, getUnitEnd(start, activeView)] as const;
+    }, [selectedDate, activeView]);
+
+    // Generate visible time units
+    const units = useMemo(() => {
+        const result: TimeUnit[] = [];
+        const count = UNIT_COUNTS[activeView];
+        const half = Math.floor(count / 2);
+
+        for (let i = -half; i <= half; i++) {
+            const date = addByView(selectedDate, i, activeView);
+            const unitDate = getUnitStart(date, activeView);
+
+            result.push({
+                id: getUnitId(unitDate, activeView),
+                date: unitDate,
+                label: getUnitLabel(unitDate, activeView),
+                value: getUnitValue(unitDate, activeView),
+                isToday: isSameDay(unitDate, new Date()),
+            });
+        }
+        return result;
+    }, [selectedDate, activeView]);
+
+    // Callbacks
+    const handleUnitClick = useCallback((id: string) => {
+        const unit = units.find(u => u.id === id);
+        if (unit) setSelectedDate(getUnitStart(unit.date, activeView));
+    }, [units, activeView]);
+
+    const handleCalendarSelect = useCallback((date: Date | undefined) => {
+        if (date) setSelectedDate(startOfDay(date));
+    }, []);
+
+    const handleViewChange = useCallback((view: ViewType) => {
+        setActiveView(view);
+        setSelectedDate(prev => getUnitStart(prev, view));
+    }, []);
 
     // Fetch Facilities for Dropdown
     const { data: facilitiesData, isLoading: isLoadingFacilities } = useGetFacilities(PARENT_FACILITY_ID);
@@ -30,25 +205,23 @@ export default function AreaStatusContent() {
     // Fetch Cases Statistics
     const { data: casesStats, isLoading: isLoadingStats } = useGetCasesStats({
         facility_id: PARENT_FACILITY_ID,
-        granularity: timeGranularity,
-        child_facility_id: selectedFacilityId || undefined
+        granularity: activeView === "YEAR" ? "yearly" : activeView === "MONTH" ? "monthly" : activeView === "WEEK" ? "weekly" : "daily",
+        child_facility_id: selectedFacilityId || undefined,
+        start_date: format(startRange, "yyyy-MM-dd"),
+        end_date: format(endRange, "yyyy-MM-dd"),
     });
 
     // Process Cases Data for Sidebar
     const processedStats = useMemo(() => {
         if (!casesStats) return [];
         
-        // casesStats is an array of objects: [{ "DiseaseName": { ... } }, ...]
         return casesStats.map(item => {
             const diseaseName = Object.keys(item)[0];
             const data = item[diseaseName];
-            // Calculate trend if available, otherwise 0
-            // Note: API response shown doesn't have explicit trend percentage, 
-            // so we might need to calculate it from time_stats or use 0 for now.
             return {
                 name: diseaseName,
                 cases: data.total_cases,
-                trend: 0, // Placeholder as trend isn't in the immediate snippet
+                trend: 0, 
                 facilityData: data.facility
             };
         });
@@ -66,18 +239,7 @@ export default function AreaStatusContent() {
             
             Object.values(diseaseData.facility).forEach(facility => {
                 const { latitude, longitude } = facility.info;
-                // Check if lat/lng exist and are valid numbers
                 if (latitude && longitude) {
-                    // Add points based on total_cases weight
-                    // For heatmap, we can add the point multiple times or use weighted location if supported by library wrapper
-                    // The wrapper supports weighted locations but the simple array<LatLng> is easier if we just flatten
-                    // However, creating 1000 points for 1000 cases might be heavy.
-                    // Let's try to use WeightedLocation if possible, or just 1 point per case up to a limit.
-                    // For now, let's just add one point per facility with cases, 
-                    // or if we want to show intensity, we might need to use the 'weight' property of HeatmapLayer data.
-                    // But the react-google-maps-api HeatmapLayer accepts MVCArray<LatLng | WeightedLocation>
-                    
-                    // Let's use WeightedLocation for better performance
                     points.push({
                         location: new google.maps.LatLng(latitude, longitude),
                         weight: facility.total_cases
@@ -92,79 +254,72 @@ export default function AreaStatusContent() {
     return (
         <div className="h-screen bg-gray-100 flex flex-col">
             {/* Top Header Bar */}
-            <div className="bg-white px-6 py-6 flex items-center gap-3">
-                <div className="px-4 py-2 bg-blue-50 rounded border border-blue-300">
-                    <span className="text-blue-700 font-semibold text-sm">Wouri District</span>
-                </div>
-                <div className="relative">
-                    <select 
-                        className="px-4 py-2 bg-blue-50 rounded border border-blue-300 text-blue-700 font-semibold text-sm appearance-none pr-8 cursor-pointer"
-                        value={selectedFacilityId}
-                        onChange={(e) => setSelectedFacilityId(e.target.value)}
-                        disabled={isLoadingFacilities}
-                    >
-                        <option value="">All Health Areas</option>
-                        {facilitiesData?.results?.map((facility) => (
-                            <option key={facility._id} value={facility._id}>
-                                {facility.name}
-                            </option>
-                        ))}
-                    </select>
-                    <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-700 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                </div>
-
-                {/* Time Granularity Buttons - Moved to Left */}
-                <div className="flex items-center border bg-gray-100 rounded overflow-hidden ml-4">
-                    {(["yearly", "monthly", "weekly", "daily"] as const).map((item) => (
-                        <button
-                            key={item}
-                            onClick={() => setTimeGranularity(item)}
-                            className={`px-4 py- h-10 text-sm font-medium border-r border-gray-300 last:border-r-0 capitalize ${
-                                timeGranularity === item 
-                                    ? "text-white bg-green-600 hover:bg-green-700" 
-                                    : "text-gray-700 hover:bg-gray-50"
-                            }`}
-                        >
-                            {item}
-                        </button>
-                    ))}
-                </div>
-
-                <div className="ml-auto flex items-center gap-2">
-                    {/* Date Strip */}
-                    <div className="flex items-center gap-1">
-                        {[
-                            { day: "M", num: 1, color: "bg-yellow-400" },
-                            { day: "T", num: 2, color: "bg-green-600" },
-                            { day: "T", num: 3, color: "bg-green-600" },
-                            { day: "T", num: 4, color: "bg-green-600", active: true },
-                            { day: "F", num: 5, color: "bg-green-700" },
-                            { day: "S", num: 6, color: "bg-yellow-400" },
-                            { day: "S", num: 7, color: "bg-red-600" },
-                            { day: "M", num: 8, color: "bg-yellow-400" },
-                            { day: "T", num: 9, color: "bg-green-600" },
-                            { num: 10, color: "bg-gray-400" },
-                        ].map((d) => (
-                            <div
-                                key={d.num}
-                                className="flex flex-col items-center justify-end"
-                                style={{ minWidth: '28px' }}
+            <div className="bg-white px-6 py-4 flex flex-col gap-4 shadow-sm z-10">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="px-4 py-2 bg-blue-50 rounded border border-blue-300">
+                            <span className="text-blue-700 font-semibold text-sm">Wouri District</span>
+                        </div>
+                        <div className="relative">
+                            <select 
+                                className="px-4 py-2 bg-blue-50 rounded border border-blue-300 text-blue-700 font-semibold text-sm appearance-none pr-8 cursor-pointer"
+                                value={selectedFacilityId}
+                                onChange={(e) => setSelectedFacilityId(e.target.value)}
+                                disabled={isLoadingFacilities}
                             >
-                                {d.day && <span className="text-[10px] font-semibold text-gray-600 mb-1 h-3 flex items-center">{d.day}</span>}
-                                {!d.day && <div className="h-3 mb-1"></div>}
-                                <button
-                                    className={`w-7 h-7 rounded text-white font-bold text-lg flex items-center justify-center p-6 transition-all ${d.active ? "ring-2 ring-blue-500 ring-offset-1" : ""
-                                        } ${d.color}`}
-                                >
-                                    {d.num}
-                                </button>
+                                <option value="">All Health Areas</option>
+                                {facilitiesData?.results?.map((facility) => (
+                                    <option key={facility._id} value={facility._id}>
+                                        {facility.name}
+                                    </option>
+                                ))}
+                            </select>
+                            <svg className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-blue-700 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                    </div>
+
+                    {/* Time Navigation (Ported UI) */}
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" className="w-[200px] justify-start text-left font-normal h-10">
+                                        <span className="mr-2 uppercase text-xs font-semibold">
+                                            {activeView === "YEAR" && format(selectedDate, "yyyy")}
+                                            {activeView === "MONTH" && format(selectedDate, "MMMM yyyy")}
+                                            {activeView === "WEEK" && "Week " + format(startOfWeek(selectedDate, { weekStartsOn: 1 }), "w, yyyy")}
+                                            {activeView === "DAY" && format(selectedDate, "PPP")}
+                                        </span>
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0" align="start">
+                                    <Calendar mode="single" selected={selectedDate} onSelect={handleCalendarSelect} fromYear={2015} toYear={2030} />
+                                </PopoverContent>
+                            </Popover>
+                            <div className="flex p-1 space-x-1 bg-gray-100 rounded-md">
+                                {VIEW_OPTIONS.map(v => (
+                                    <Button key={v.label} variant={v.label === activeView ? "default" : "ghost"} size="sm" onClick={() => handleViewChange(v.label)}
+                                        className={cn("rounded-md px-3 h-8 text-xs", v.label === activeView && "bg-[#028700] hover:bg-[#028700c9]")}>
+                                        {v.label}
+                                    </Button>
+                                ))}
                             </div>
-                        ))}
+                        </div>
+                        
+                        {/* Date Strip */}
+                        <div className="flex space-x-2 bg-gray-50 rounded-md px-3 py-2 overflow-x-auto date-scroll border border-gray-100">
+                            {units.map(u => (
+                                <button key={u.id} onClick={() => handleUnitClick(u.id)} className="time-unit-button p-1 rounded-md focus:outline-none">
+                                    <TimeUnitItem label={u.label} value={u.value} isSelected={u.id === selectedUnitId} />
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
+
             {/* Main Content: Sidebar + Map */}
             <div className="flex-1 flex overflow-hidden">
                 {/* Sidebar */}
