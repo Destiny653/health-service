@@ -237,11 +237,24 @@ export interface DiseaseStat {
 }
 
 // Cases by Symptoms/Filter
-export interface CasesBySymptoms {
+// Cases by Symptoms/Filter
+export interface CasesBySymptomsResponse {
   total_cases: number;
-  symptoms: string[];
-  cases_by_date: { [date: string]: number };
-  cases_by_age_sex: AgeGroupedCases;
+  facilities: {
+    [facilityId: string]: {
+      total_cases: number;
+      info: FacilityInfo;
+      time_stats: { [date: string]: number };
+    }
+  };
+  search_criteria: {
+    symptoms: string[];
+    combination_type: string;
+    facility_type: string;
+    start_date: string | null;
+    end_date: string | null;
+    granularity: string;
+  };
 }
 
 // Facility information within cases response
@@ -453,7 +466,7 @@ async function fetchDiseaseStats(params: StatsParams): Promise<DiseaseStat[]> {
 }
 
 // 7. Get Cases by Symptoms (for filtering)
-async function fetchCasesBySymptoms(params: CasesBySymptomsParams): Promise<CasesBySymptoms> {
+async function fetchCasesBySymptoms(params: CasesBySymptomsParams): Promise<CasesBySymptomsResponse> {
   const query = new URLSearchParams({
     granularity: params.granularity || "daily",
   });
@@ -590,7 +603,7 @@ export function useGetCasesBySymptoms(params: CasesBySymptomsParams = {}) {
     combination_type: "all",
     ...params
   };
-  return useQuery<CasesBySymptoms, Error>({
+  return useQuery<CasesBySymptomsResponse, Error>({
     queryKey: ["statistics", "cases-by-symptoms", defaultParams],
     queryFn: () => fetchCasesBySymptoms(defaultParams),
     enabled: !!params.symptoms, // Only fetch if symptoms are provided
