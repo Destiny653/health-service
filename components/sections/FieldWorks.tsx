@@ -9,6 +9,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils"
 import { Live } from "../field/Live";
 import { Campaigns } from "../field/Campaigns";
+import { Zones } from "../field/Zones";
+import { Teams } from "../field/Teams";
 
 // Sample data - replace with actual data from your API
 const CAMPAIGNS = [
@@ -126,9 +128,9 @@ export default function FieldWorks() {
     const [selectedDate, setSelectedDate] = useState("today");
 
     return (
-        <Tabs defaultValue="live" className="flex h-screen bg-gray-50">
+        <Tabs defaultValue="live" className="flex h-screen bg-white">
             {/* Sidebar Navigation */}
-            <div className="w-64 border-r border-gray-200 bg-white">
+            <div className="w-64  bg-gray-50">
                 <div className="p-6">
                     <h1 className="text-2xl font-bold text-gray-900">Field</h1>
                 </div>
@@ -136,35 +138,35 @@ export default function FieldWorks() {
                 <TabsList className="grid w-full grid-cols-1 h-auto justify-start rounded-none bg-transparent p-0">
                     <TabsTrigger
                         value="live"
-                        className="w-full justify-start rounded-none border-l-4 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gray-50 px-6 py-4"
+                        className="w-full justify-start rounded-none data-[state=active]:bg-gray-50 px-6 py-4"
                     >
                         <Radio className="mr-3 h-5 w-5 data-[state=active]:text-green-500 text-[#D0BEBE]" />
-                        <span className="font-medium">Live</span>
+                        <span className="font-medium data-[state=active]:text-green-500 text-gray-600">Live</span>
                         <div className="ml-auto h-2 w-2 rounded-full bg-green-500"></div>
                     </TabsTrigger>
 
                     <TabsTrigger
                         value="campaigns"
-                        className="w-full justify-start rounded-none border-l-4 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gray-50 px-6 py-4"
+                        className="w-full justify-start rounded-none data-[state=active]:bg-gray-50 px-6 py-4"
                     >
-                        <MegaphoneIcon className="mr-3 h-5 w-5 transform scale-x-[-1] text-[#D0BEBE]" />
-                        <span className="font-medium text-gray-600">Campaigns</span>
+                        <MegaphoneIcon className="mr-3 h-5 w-5 transform scale-x-[-1] data-[state=active]:text-green-500 text-[#D0BEBE]" />
+                        <span className="font-medium data-[state=active]:text-green-500 text-gray-600">Campaigns</span>
                     </TabsTrigger>
 
                     <TabsTrigger
                         value="zones"
-                        className="w-full justify-start rounded-none border-l-4 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gray-50 px-6 py-4"
+                        className="w-full justify-start rounded-none data-[state=active]:bg-gray-50 px-6 py-4"
                     >
-                        <MapPinSimpleAreaIcon className="mr-3 h-5 w-5 text-[#D0BEBE]" />
-                        <span className="font-medium text-gray-600">Zones</span>
+                        <MapPinSimpleAreaIcon className="mr-3 h-5 w-5 data-[state=active]:text-green-500 text-[#D0BEBE]" />
+                        <span className="font-medium data-[state=active]:text-green-500 text-gray-600">Zones</span>
                     </TabsTrigger>
 
                     <TabsTrigger
                         value="teams"
-                        className="w-full justify-start rounded-none border-l-4 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gray-50 px-6 py-4"
+                        className="w-full justify-start rounded-none data-[state=active]:bg-gray-50 px-6 py-4"
                     >
-                        <UsersThreeIcon className="mr-3 h-5 w-5 text-[#D0BEBE]" />
-                        <span className="font-medium text-gray-600">Teams</span>
+                        <UsersThreeIcon className="mr-3 h-5 w-5 data-[state=active]:text-green-500 text-[#D0BEBE]" />
+                        <span className="font-medium data-[state=active]:text-green-500 text-gray-600">Teams</span>
                     </TabsTrigger>
                 </TabsList>
             </div>
@@ -180,14 +182,12 @@ export default function FieldWorks() {
                     <Campaigns />
                 </TabsContent>
 
-                <TabsContent value="zones" className="h-full p-8">
-                    <h2 className="text-2xl font-bold">Zones</h2>
-                    <p className="text-gray-600">View and edit vaccination zones.</p>
+                <TabsContent value="zones" className="h-full m-0">
+                    <Zones />
                 </TabsContent>
 
-                <TabsContent value="teams" className="h-full p-8">
-                    <h2 className="text-2xl font-bold">Teams</h2>
-                    <p className="text-gray-600">Manage field teams and assignments.</p>
+                <TabsContent value="teams" className="h-full m-0">
+                    <Teams />
                 </TabsContent>
             </div>
         </Tabs>

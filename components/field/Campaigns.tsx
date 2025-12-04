@@ -40,6 +40,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+} from "@/components/ui/sheet";
 
 // Types
 type CampaignStatus = "live" | "complete" | "paused" | "cancelled";
@@ -417,262 +423,239 @@ export function Campaigns() {
                 </Card>
             </div>
 
-            {/* Slide-in Panel */}
-            {isPanelOpen && (
-                <>
-                    {/* Backdrop */}
-                    <div
-                        className="fixed inset-0 z-40 transition-opacity duration-300"
-                        onClick={() => setIsPanelOpen(false)}
-                    />
+            {/* Sheet Modal */}
+            <Sheet open={isPanelOpen} onOpenChange={setIsPanelOpen}>
+                <SheetContent className="w-[70vw] sm:max-w-none p-0">
+                    {/* Header with tabs */}
+                    <div className="relative flex border-b gap-[14vw]">
+                        {/* Title */}
+                        <SheetHeader className="px-6 py-4 border-gray-200">
+                            <SheetTitle className="text-lg font-semibold text-gray-900">New Campaign</SheetTitle>
+                        </SheetHeader>
 
-                    {/* Panel */}
-                    <div
-                        className={cn(
-                            "fixed top-0 right-0 h-full w-[70vw] bg-white shadow-2xl z-50",
-                            "transform transition-transform duration-300 ease-in-out",
-                            isPanelOpen ? "translate-x-0" : "translate-x-full"
-                        )}
-                    >
-                        {/* Header with tabs */}
-                        <div className="relative flex border-b gap-[14vw]">
-                            {/* Title */}
-                            <div className="px-6 py-4 border-gray-200">
-                                <h2 className="text-lg font-semibold text-gray-900">New Campaign</h2>
-                            </div>
-
-                            <div className="flex items-center gap-0 border-gray-200 max-w-[40vw]">
-                                {/* Details Tab - flat left, pointed right */}
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setActiveTab("details")}
-                                        className={cn(
-                                            "px-10 py-4 font-medium relative w-[200px] left-6",
-                                            activeTab === "details"
-                                                ? "bg-green-700 text-white"
-                                                : "bg-gray-100 text-gray-600"
-                                        )}
-                                        style={{
-                                            clipPath: "polygon(0% 0%, 75% 0%, 100% 50%, 75% 100%, 0% 100%)"
-                                        }}
-                                    >
-                                        Details
-                                    </button>
-                                </div>
-
-                                {/* Members Tab - pointed left (inward), pointed right */}
-                                <div className="relative -ml-5">
-                                    <button
-                                        onClick={() => setActiveTab("members")}
-                                        className={cn(
-                                            "px-8 py-4 font-medium relative pl-10 w-[200px]",
-                                            activeTab === "members"
-                                                ? "bg-green-700 text-white"
-                                                : "bg-gray-100 text-gray-600"
-                                        )}
-                                        style={{
-                                            clipPath: "polygon(75% 0%, 100% 50%, 75% 100%, 0% 100%, 25% 50%, 0% 0%)"
-                                        }}
-                                    >
-                                        Members
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Close button */}
-                            <button
-                                onClick={() => setIsPanelOpen(false)}
-                                className="absolute top-2 right-4 text-gray-600 hover:text-gray-800"
-                            >
-                                <X className="h-5 w-5" />
-                            </button>
-                        </div>
-
-                        {/* Content */}
-                        <div className="p-6 h-[calc(100vh-200px)] max-w-[800px] mx-auto overflow-y-auto  animate-in fade-in duration-300 slide-in-from-right-5">
-                            {activeTab === "details" && (
-                                <div className="space-y-6 animate-in fade-in duration-300 slide-in-from-right-5">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Campaign Name
-                                        </label>
-                                        <Input
-                                            value={campaignName}
-                                            onChange={(e) => setCampaignName(e.target.value)}
-                                            placeholder="Douala 44"
-                                            className="rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 focus:border-b-[#04b301] focus-visible:ring-0"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Team ID
-                                        </label>
-                                        <Input
-                                            value={teamId}
-                                            onChange={(e) => setTeamId(e.target.value)}
-                                            placeholder="00254"
-                                            className="rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 focus:border-b-[#04b301] focus-visible:ring-0"
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                Start Date
-                                            </label>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        className={cn(
-                                                            "w-full justify-start text-left font-normal rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 focus:border-b-[#04b301] hover:bg-blue-50",
-                                                            !startDate && "text-muted-foreground"
-                                                        )}
-                                                    >
-                                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                                        {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                    <Calendar
-                                                        mode="single"
-                                                        selected={startDate}
-                                                        onSelect={setStartDate}
-                                                        initialFocus
-                                                    />
-                                                </PopoverContent>
-                                            </Popover>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                End Date
-                                            </label>
-                                            <Popover>
-                                                <PopoverTrigger asChild>
-                                                    <Button
-                                                        variant="outline"
-                                                        className={cn(
-                                                            "w-full justify-start text-left font-normal rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 focus:border-b-[#04b301] hover:bg-blue-50",
-                                                            !endDate && "text-muted-foreground"
-                                                        )}
-                                                    >
-                                                        <CalendarIcon className="mr-2 h-4 w-4" />
-                                                        {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
-                                                    </Button>
-                                                </PopoverTrigger>
-                                                <PopoverContent className="w-auto p-0" align="start">
-                                                    <Calendar
-                                                        mode="single"
-                                                        selected={endDate}
-                                                        onSelect={setEndDate}
-                                                        initialFocus
-                                                    />
-                                                </PopoverContent>
-                                            </Popover>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                                            Description
-                                        </label>
-                                        <Textarea
-                                            value={description}
-                                            onChange={(e) => setDescription(e.target.value)}
-                                            placeholder="some description"
-                                            className="rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 focus:border-b-[#04b301] focus-visible:ring-0 min-h-[150px]"
-                                        />
-                                    </div>
-                                </div>
-                            )}
-
-                            {activeTab === "members" && (
-                                <div className="space-y-6 animate-in fade-in duration-300 slide-in-from-right-5">
-                                    <Card className="flex flex-col gap-6 p-4 shadow-sm border-none rounded-sm bg-gray-50">
-                                        <section className="flex gap-4 items-end">
-                                            <div className="flex-1">
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                    Select Zone
-                                                </label>
-                                                <Select value={selectedZone} onValueChange={setSelectedZone}>
-                                                    <SelectTrigger className="rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 focus:border-b-[#04b301] focus:ring-0">
-                                                        <SelectValue placeholder="Grand Hanga" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="Grand Hanga">Grand Hanga</SelectItem>
-                                                        <SelectItem value="Polio 2024">Polio 2024</SelectItem>
-                                                        <SelectItem value="Zone 3">Zone 3</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-
-                                            <div className="flex-1">
-                                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                                    Team
-                                                </label>
-                                                <Select value={selectedTeam} onValueChange={setSelectedTeam}>
-                                                    <SelectTrigger className="rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 focus:border-b-[#04b301] focus:ring-0">
-                                                        <SelectValue placeholder="Team 123" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        <SelectItem value="Team 123">Team 123</SelectItem>
-                                                        <SelectItem value="Theresia Mbah">Theresia Mbah</SelectItem>
-                                                        <SelectItem value="Peters Nze">Peters Nze</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                            </div>
-                                        </section>
-
-                                        <Button
-                                            onClick={handleAddMember}
-                                            className="bg-green-600 hover:bg-green-700 w-fit py-6 ml-auto text-white rounded-sm"
-                                        >
-                                            <Plus className="h-4 w-4 mr-2" />
-                                            Add
-                                        </Button>
-                                    </Card>
-
-                                    {/* Members Table */}
-                                    <div className="border border-gray-200 rounded-sm overflow-hidden">
-                                        <table className="w-full text-sm">
-                                            <thead className="bg-gray-50">
-                                                <tr>
-                                                    <th className="text-left px-4 py-3 text-gray-600 font-medium">ID</th>
-                                                    <th className="text-left px-4 py-3 text-gray-600 font-medium">Zone</th>
-                                                    <th className="text-left px-4 py-3 text-gray-600 font-medium">Team</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {members.map((member) => (
-                                                    <tr key={member.id} className="border-t border-gray-100">
-                                                        <td className="px-4 py-3 text-gray-700">{member.id}</td>
-                                                        <td className="px-4 py-3 text-gray-700">{member.zone}</td>
-                                                        <td className="px-4 py-3 text-gray-700">{member.team}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Footer with Save button */}
-                        <div className="absolute bottom-0 right-0 left-0 p-6 border-t border-gray-200 bg-white">
-                            <div className="flex justify-end">
-                                <Button
-                                    onClick={handleSave}
-                                    className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 rounded-sm"
+                        <div className="flex items-center gap-0 border-gray-200 max-w-[40vw]">
+                            {/* Details Tab - flat left, pointed right */}
+                            <div className="relative">
+                                <button
+                                    onClick={() => setActiveTab("details")}
+                                    className={cn(
+                                        "px-10 py-4 font-medium relative w-[200px] left-6",
+                                        activeTab === "details"
+                                            ? "bg-green-700 text-white"
+                                            : "bg-gray-100 text-gray-600"
+                                    )}
+                                    style={{
+                                        clipPath: "polygon(0% 0%, 75% 0%, 100% 50%, 75% 100%, 0% 100%)"
+                                    }}
                                 >
-                                    Save
-                                </Button>
+                                    Details
+                                </button>
+                            </div>
+
+                            {/* Members Tab - pointed left (inward), pointed right */}
+                            <div className="relative -ml-5">
+                                <button
+                                    onClick={() => setActiveTab("members")}
+                                    className={cn(
+                                        "px-8 py-4 font-medium relative pl-10 w-[200px]",
+                                        activeTab === "members"
+                                            ? "bg-green-700 text-white"
+                                            : "bg-gray-100 text-gray-600"
+                                    )}
+                                    style={{
+                                        clipPath: "polygon(75% 0%, 100% 50%, 75% 100%, 0% 100%, 25% 50%, 0% 0%)"
+                                    }}
+                                >
+                                    Members
+                                </button>
                             </div>
                         </div>
                     </div>
-                </>
-            )}
+
+                    {/* Content */}
+                    <div className="p-6 h-[calc(100vh-200px)] max-w-[800px] mx-auto overflow-y-auto  animate-in fade-in duration-300 slide-in-from-right-5">
+                        {activeTab === "details" && (
+                            <div className="space-y-6 animate-in fade-in duration-300 slide-in-from-right-5">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Campaign Name
+                                    </label>
+                                    <Input
+                                        value={campaignName}
+                                        onChange={(e) => setCampaignName(e.target.value)}
+                                        placeholder="Douala 44"
+                                        className="rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 focus:border-b-[#04b301] focus-visible:ring-0"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Team ID
+                                    </label>
+                                    <Input
+                                        value={teamId}
+                                        onChange={(e) => setTeamId(e.target.value)}
+                                        placeholder="00254"
+                                        className="rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 focus:border-b-[#04b301] focus-visible:ring-0"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            Start Date
+                                        </label>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    className={cn(
+                                                        "w-full justify-start text-left font-normal rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 focus:border-b-[#04b301] hover:bg-blue-50",
+                                                        !startDate && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={startDate}
+                                                    onSelect={setStartDate}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                                            End Date
+                                        </label>
+                                        <Popover>
+                                            <PopoverTrigger asChild>
+                                                <Button
+                                                    variant="outline"
+                                                    className={cn(
+                                                        "w-full justify-start text-left font-normal rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 focus:border-b-[#04b301] hover:bg-blue-50",
+                                                        !endDate && "text-muted-foreground"
+                                                    )}
+                                                >
+                                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                                    {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+                                                </Button>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-auto p-0" align="start">
+                                                <Calendar
+                                                    mode="single"
+                                                    selected={endDate}
+                                                    onSelect={setEndDate}
+                                                    initialFocus
+                                                />
+                                            </PopoverContent>
+                                        </Popover>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Description
+                                    </label>
+                                    <Textarea
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                        placeholder="some description"
+                                        className="rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 focus:border-b-[#04b301] focus-visible:ring-0 min-h-[150px]"
+                                    />
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === "members" && (
+                            <div className="space-y-6 animate-in fade-in duration-300 slide-in-from-right-5">
+                                <Card className="flex flex-col gap-6 p-4 shadow-sm border-none rounded-sm bg-gray-50">
+                                    <section className="flex gap-4 items-end">
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Select Zone
+                                            </label>
+                                            <Select value={selectedZone} onValueChange={setSelectedZone}>
+                                                <SelectTrigger className="rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 focus:border-b-[#04b301] focus:ring-0">
+                                                    <SelectValue placeholder="Grand Hanga" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Grand Hanga">Grand Hanga</SelectItem>
+                                                    <SelectItem value="Polio 2024">Polio 2024</SelectItem>
+                                                    <SelectItem value="Zone 3">Zone 3</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+
+                                        <div className="flex-1">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Team
+                                            </label>
+                                            <Select value={selectedTeam} onValueChange={setSelectedTeam}>
+                                                <SelectTrigger className="rounded-none shadow-none py-6 px-5 border-b-2 border-x-0 border-t-0 bg-blue-50 focus:border-b-[#04b301] focus:ring-0">
+                                                    <SelectValue placeholder="Team 123" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    <SelectItem value="Team 123">Team 123</SelectItem>
+                                                    <SelectItem value="Theresia Mbah">Theresia Mbah</SelectItem>
+                                                    <SelectItem value="Peters Nze">Peters Nze</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
+                                    </section>
+
+                                    <Button
+                                        onClick={handleAddMember}
+                                        className="bg-green-600 hover:bg-green-700 w-fit py-6 ml-auto text-white rounded-sm"
+                                    >
+                                        <Plus className="h-4 w-4 mr-2" />
+                                        Add
+                                    </Button>
+                                </Card>
+
+                                {/* Members Table */}
+                                <div className="border border-gray-200 rounded-sm overflow-hidden">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="text-left px-4 py-3 text-gray-600 font-medium">ID</th>
+                                                <th className="text-left px-4 py-3 text-gray-600 font-medium">Zone</th>
+                                                <th className="text-left px-4 py-3 text-gray-600 font-medium">Team</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {members.map((member) => (
+                                                <tr key={member.id} className="border-t border-gray-100">
+                                                    <td className="px-4 py-3 text-gray-700">{member.id}</td>
+                                                    <td className="px-4 py-3 text-gray-700">{member.zone}</td>
+                                                    <td className="px-4 py-3 text-gray-700">{member.team}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Footer with Save button */}
+                    <div className="absolute bottom-0 right-0 left-0 p-6 border-t border-gray-200 bg-white">
+                        <div className="flex justify-end">
+                            <Button
+                                onClick={handleSave}
+                                className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 rounded-sm"
+                            >
+                                Save
+                            </Button>
+                        </div>
+                    </div>
+                </SheetContent>
+            </Sheet>
         </>
     );
 }
