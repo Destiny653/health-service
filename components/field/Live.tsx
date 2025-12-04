@@ -66,7 +66,7 @@ function SearchableDropdown({ options, value, onChange, placeholder, icon }: Sea
             <PopoverTrigger asChild>
                 <button
                     className={cn(
-                        "flex items-center gap-2 rounded-md bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-gray-50 transition-colors min-w-[160px]",
+                        "flex items-center gap-2 bg-white rounded-sm px-4 py-2 text-sm font-medium shadow-sm hover:bg-gray-50 transition-colors min-w-[160px]",
                         "border border-gray-100"
                     )}
                 >
@@ -184,32 +184,36 @@ export function Live({
 
                     {/* Floating Zone Info Card - exactly like in your screenshot */}
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                        <div className="pointer-events-auto w-80 rounded-lg bg-green-700 p-5 text-white shadow-2xl">
-                            <h3 className="mb-3 text-lg font-semibold">Polio 2024</h3>
-                            <p className="mb-4 text-2xl font-bold">#25684</p>
+                        <div className="pointer-events-auto w-80 bg-white text-[#D0BEBE] shadow-2xl rounded-sm overflow-hidden">
+                            <section className="bg-green-700">
+                                <h3 className="mb-3 text-lg font-semibold p-4 text-white">Polio 2024</h3>
+                            </section>
+                            <section className="p-5">
 
-                            <div className="mb-4 flex items-center gap-2">
-                                <MapPin className="h-5 w-5" />
-                                <span className="font-medium">Nguélie Zone</span>
-                            </div>
 
-                            <div className="mb-6 text-sm">
-                                <span>2 sq kilometer Covered</span>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                                <Users className="h-5 w-5" />
-                                <span className="font-medium">Team 123</span>
-                            </div>
-
-                            <div className="mt-3 space-y-2 text-sm">
-                                <div className="flex items-center justify-between">
-                                    <span>Emmanuel Abanda</span>
-                                    <span className="rounded-full bg-green-500 px-3 py-1 text-xs font-medium">TeamLead</span>
+                                <div className="mb-4 flex items-center gap-2">
+                                    <MapPin className="h-5 w-5" />
+                                    <span className="font-medium text-gray-700">Nguélie Zone</span>
                                 </div>
-                                <div>Tercy Peterson</div>
-                                <div>Adangwa Paulson</div>
-                            </div>
+
+                                <div className="mb-6 text-sm">
+                                    <span>2 sq kilometer Covered</span>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <Users className="h-5 w-5" />
+                                    <span className="font-medium text-gray-700">Team 123</span>
+                                </div>
+
+                                <div className="mt-3 space-y-2 text-sm">
+                                    <div className="flex items-center justify-between">
+                                        <span>Emmanuel Abanda</span>
+                                        <span className="rounded-full bg-green-500 text-white px-3 py-1 text-xs font-medium">TeamLead</span>
+                                    </div>
+                                    <div>Tercy Peterson</div>
+                                    <div>Adangwa Paulson</div>
+                                </div>
+                            </section>
                         </div>
                     </div>
                 </div>

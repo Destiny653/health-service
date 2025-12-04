@@ -8,6 +8,7 @@ import { useState, useMemo } from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { cn } from "@/lib/utils"
 import { Live } from "../field/Live";
+import { Campaigns } from "../field/Campaigns";
 
 // Sample data - replace with actual data from your API
 const CAMPAIGNS = [
@@ -125,61 +126,58 @@ export default function FieldWorks() {
     const [selectedDate, setSelectedDate] = useState("today");
 
     return (
-        <div className="flex h-screen bg-gray-50">
+        <Tabs defaultValue="live" className="flex h-screen bg-gray-50">
             {/* Sidebar Navigation */}
             <div className="w-64 border-r border-gray-200 bg-white">
                 <div className="p-6">
                     <h1 className="text-2xl font-bold text-gray-900">Field</h1>
                 </div>
 
-                <Tabs defaultValue="live" className="w-full" orientation="vertical">
-                    <TabsList className="grid w-full grid-cols-1 h-full justify-start rounded-none bg-transparent p-0">
-                        <TabsTrigger
-                            value="live"
-                            className="w-full justify-start rounded-none border-l-4 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gray-50 px-6 py-4"
-                        >
-                            <Radio className="mr-3 h-5 w-5 data-[state=active]:text-green-500 text-[#D0BEBE]" />
-                            <span className="font-medium">Live</span>
-                            <div className="ml-auto h-2 w-2 rounded-full bg-green-500"></div>
-                        </TabsTrigger>
+                <TabsList className="grid w-full grid-cols-1 h-auto justify-start rounded-none bg-transparent p-0">
+                    <TabsTrigger
+                        value="live"
+                        className="w-full justify-start rounded-none border-l-4 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gray-50 px-6 py-4"
+                    >
+                        <Radio className="mr-3 h-5 w-5 data-[state=active]:text-green-500 text-[#D0BEBE]" />
+                        <span className="font-medium">Live</span>
+                        <div className="ml-auto h-2 w-2 rounded-full bg-green-500"></div>
+                    </TabsTrigger>
 
-                        <TabsTrigger
-                            value="campaigns"
-                            className="w-full justify-start rounded-none border-l-4 border-transparent data-[state=active]:border-gray-400 px-6 py-4"
-                        >
-                            <MegaphoneIcon className="mr-3 h-5 w-5 transform scale-x-[-1] text-[#D0BEBE]" />
-                            <span className="font-medium text-gray-600">Campaigns</span>
-                        </TabsTrigger>
+                    <TabsTrigger
+                        value="campaigns"
+                        className="w-full justify-start rounded-none border-l-4 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gray-50 px-6 py-4"
+                    >
+                        <MegaphoneIcon className="mr-3 h-5 w-5 transform scale-x-[-1] text-[#D0BEBE]" />
+                        <span className="font-medium text-gray-600">Campaigns</span>
+                    </TabsTrigger>
 
-                        <TabsTrigger
-                            value="zones"
-                            className="w-full justify-start rounded-none border-l-4 border-transparent data-[state=active]:border-gray-400 px-6 py-4"
-                        >
-                            <MapPinSimpleAreaIcon className="mr-3 h-5 w-5 text-[#D0BEBE]" />
-                            <span className="font-medium text-gray-600">Zones</span>
-                        </TabsTrigger>
+                    <TabsTrigger
+                        value="zones"
+                        className="w-full justify-start rounded-none border-l-4 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gray-50 px-6 py-4"
+                    >
+                        <MapPinSimpleAreaIcon className="mr-3 h-5 w-5 text-[#D0BEBE]" />
+                        <span className="font-medium text-gray-600">Zones</span>
+                    </TabsTrigger>
 
-                        <TabsTrigger
-                            value="teams"
-                            className="w-full justify-start rounded-none border-l-4 border-transparent data-[state=active]:border-gray-400 px-6 py-4"
-                        >
-                            <UsersThreeIcon className="mr-3 h-5 w-5 text-[#D0BEBE]" />
-                            <span className="font-medium text-gray-600">Teams</span>
-                        </TabsTrigger>
-                    </TabsList>
-                </Tabs>
+                    <TabsTrigger
+                        value="teams"
+                        className="w-full justify-start rounded-none border-l-4 border-transparent data-[state=active]:border-green-500 data-[state=active]:bg-gray-50 px-6 py-4"
+                    >
+                        <UsersThreeIcon className="mr-3 h-5 w-5 text-[#D0BEBE]" />
+                        <span className="font-medium text-gray-600">Teams</span>
+                    </TabsTrigger>
+                </TabsList>
             </div>
 
-            {/* Main Content - Only visible when Live is selected (as in your screenshot) */}
-            <Tabs defaultValue="live" className="flex-1">
+            {/* Main Content */}
+            <div className="flex-1">
                 <TabsContent value="live" className="h-full m-0">
-                   <Live selectedCampaign={selectedCampaign} setSelectedCampaign={setSelectedCampaign} selectedZone={selectedZone} setSelectedZone={setSelectedZone} selectedTeam={selectedTeam} setSelectedTeam={setSelectedTeam} selectedDate={selectedDate} setSelectedDate={setSelectedDate}  />
+                    <Live selectedCampaign={selectedCampaign} setSelectedCampaign={setSelectedCampaign} selectedZone={selectedZone} setSelectedZone={setSelectedZone} selectedTeam={selectedTeam} setSelectedTeam={setSelectedTeam} selectedDate={selectedDate} setSelectedDate={setSelectedDate} />
                 </TabsContent>
 
-                {/* Placeholder tabs - you can fill these later */}
-                <TabsContent value="campaigns" className="h-full p-8">
-                    <h2 className="text-2xl font-bold">Campaigns</h2>
-                    <p className="text-gray-600">List and manage all campaigns here.</p>
+                {/* Campaigns Tab */}
+                <TabsContent value="campaigns" className="h-full m-0">
+                    <Campaigns />
                 </TabsContent>
 
                 <TabsContent value="zones" className="h-full p-8">
@@ -191,7 +189,7 @@ export default function FieldWorks() {
                     <h2 className="text-2xl font-bold">Teams</h2>
                     <p className="text-gray-600">Manage field teams and assignments.</p>
                 </TabsContent>
-            </Tabs>
-        </div>
+            </div>
+        </Tabs>
     )
 }
