@@ -1,9 +1,9 @@
 "use client";
 
-import { NAV_ITEMS } from "@/utils/data";
+import { NavItem } from "@/utils/data";
 import Image from "next/image";
 import { FC, useState } from "react";
-import { LogOut } from "lucide-react";
+import { LogOut, ChevronLeft, ChevronRight, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,26 +16,27 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 import { UserData } from "@/payload";
+import { cn } from "@/lib/utils";
 
-interface AppHeaderProps {
+interface AppSidebarProps {
   activeTab: string;
   setActiveTab: React.Dispatch<React.SetStateAction<string>>;
-  navItems: typeof NAV_ITEMS;
+  navItems: NavItem[];
   userName?: string;
   email?: string;
   role?: string;
 }
 
-const AppHeader: FC<AppHeaderProps> = ({ activeTab, setActiveTab, navItems, userName, email, role }) => {
+const AppSidebar: FC<AppSidebarProps> = ({ activeTab, setActiveTab, navItems, userName, email, role }) => {
   const router = useRouter();
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
-  const userDataString = localStorage.getItem('userData');
+  const userDataString = typeof window !== 'undefined' ? localStorage.getItem('userData') : null;
   const personel: UserData = userDataString ? JSON.parse(userDataString) : null;
   const facilityType = personel?.facility_type;
 
   const handleSignOut = () => {
-    // Clear localStorage / cookies
     localStorage.removeItem("userInfo");
     localStorage.removeItem("app:activeTab");
     document.cookie = "authToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
@@ -43,76 +44,141 @@ const AppHeader: FC<AppHeaderProps> = ({ activeTab, setActiveTab, navItems, user
     router.push("/sign-in");
   };
 
-  const isActiveProfile = activeTab === navItems[0].id;
+  const isActiveProfile = activeTab === navItems[0]?.id;
+
+  // Filter nav items that should be displayed (exclude settings from main nav, it's in profile)
+  const displayNavItems = navItems.filter(item => item.id !== 'settings');
 
   return (
-    <header className="bg-[#037C01] shadow-xl">
-      <div className="mx-auto flex justify-between items-stretch h-16 px-4 sm:px-6 lg:px-8">
+    <TooltipProvider delayDuration={0}>
+      <aside
+        className={cn(
+          "bg-[#037C01] h-screen flex flex-col shadow-xl transition-all duration-300 ease-in-out relative",
+          isExpanded ? "w-64" : "w-20"
+        )}
+      >
+        {/* Toggle Button */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="absolute -right-3 top-20 bg-white rounded-full p-1.5 shadow-lg border border-gray-200 hover:bg-gray-50 z-50"
+        >
+          {isExpanded ? (
+            <ChevronLeft className="w-4 h-4 text-gray-600" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-gray-600" />
+          )}
+        </button>
+
         {/* Logo Section */}
-        <div onClick={() => setActiveTab( facilityType == 'health_center'? navItems[0].id : navItems[1].id)} className="flex items-center  space-x-4 cursor-pointer">
-          <Image src="/images/logo.png" alt="logo" width={120} height={500} />
+        <div
+          onClick={() => setActiveTab(facilityType === 'health_center' ? navItems[0]?.id : navItems[1]?.id)}
+          className={cn(
+            "flex items-center justify-center py-4 cursor-pointer border-b border-green-600",
+            isExpanded ? "px-4" : "px-2"
+          )}
+        >
+          {isExpanded ? (
+            <Image src="/images/logo.png" alt="logo" width={120} height={40} />
+          ) : (
+            <Image src="/images/min-logo.png" alt="logo" width={30} height={30} className="object-contain" />
+          )}
         </div>
 
         {/* Navigation Links */}
-        <nav className="flex items-stretch space-x-0 pl-[5%]">
-          {navItems.filter(item => item.label !== "").map(item => {
+        <nav className="flex-1 flex flex-col py-4 space-y-1 px-2">
+          {displayNavItems.map(item => {
             const isActive = activeTab === item.id;
+            const Icon = item.icon;
+
             return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`
-                  h-full px-5 flex items-center text-[17px] font-semibold transition-all duration-200 relative
-                  ${isActive ? "bg-[#FFFFFF33] text-[#55FF18]" : "text-green-100 hover:bg-[#FFFFFF33]"}
-                  ${isActive ? "after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1 after:bg-[#55FF18] after:rounded-t-sm" : ""}
-                `}
-              >
-                {item.label}
-              </button>
+              <Tooltip key={item.id}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => setActiveTab(item.id)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 w-full",
+                      isActive
+                        ? "bg-[#FFFFFF33] text-[#55FF18]"
+                        : "text-green-100 hover:bg-[#FFFFFF33]",
+                      !isExpanded && "justify-center"
+                    )}
+                  >
+                    <Icon className="w-6 h-6 flex-shrink-0" />
+                    {isExpanded && (
+                      <span className="text-sm font-semibold whitespace-nowrap overflow-hidden">
+                        {item.label}
+                      </span>
+                    )}
+                  </button>
+                </TooltipTrigger>
+                {!isExpanded && (
+                  <TooltipContent side="right" className="bg-gray-900 text-white rounded-md px-3 py-1.5 text-sm">
+                    {item.label}
+                  </TooltipContent>
+                )}
+              </Tooltip>
             );
           })}
         </nav>
 
         {/* User Profile & Sign Out */}
-        <div className="flex items-center space-x-0">
-          {/* Profile Info */}
-          <button
-            onClick={() => setActiveTab(navItems[0].id)}
-            disabled={ facilityType == 'health_center'}
-            className={`
-              h-full px-5 flex items-center text-sm font-semibold transition-all duration-200 relative
-              ${isActiveProfile && (facilityType !== 'health_center') ? "bg-[#FFFFFF33] text-[#55FF18]"  : "text-green-100 hover:bg-[#FFFFFF33]"}
-            `}
-          >
-            <div className="flex items-center space-x-3 text-left text-white px-2">
-              <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-green-700 font-extrabold text-lg shadow-inner border border-white">
-                {userName ? userName.charAt(0).toUpperCase() : "A"}
-              </div>
-              <div className="text-sm">
-                <div className="font-semibold">{userName || "User"}</div>
-                <div className="font-[400]">{email}</div>
-                {/* <div className="text-xs text-green-200">{role ? role.toUpperCase() : "..."}</div> */}
-              </div>
-            </div>
-          </button>
-
-          {/* Sign Out Button */}
-          <TooltipProvider>
+        <div className="border-t border-green-600 p-2 space-y-2">
+          {/* Settings Button (if applicable) */}
+          {navItems.find(item => item.id === 'settings') && facilityType !== 'health_center' && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button
-                  // variant="ghost"
-                  className="rounded-full p-3 shadow-none hover:bg-[#cacaca86] bg-inherit"
-                  onClick={() => setIsSignOutOpen(true)}
+                <button
+                  onClick={() => setActiveTab('settings')}
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 w-full",
+                    isActiveProfile
+                      ? "bg-[#FFFFFF33] text-[#55FF18]"
+                      : "text-green-100 hover:bg-[#FFFFFF33]",
+                    !isExpanded && "justify-center"
+                  )}
                 >
-                  <LogOut size={20} className="text-white hover:text-black" />
-                </Button>
+                  <User className="w-5 h-5 flex-shrink-0" />
+                  {isExpanded && (
+                    <div className="flex flex-col items-start text-left overflow-hidden">
+                      <span className="text-sm font-semibold truncate w-full">{userName || "User"}</span>
+                      <span className="text-xs text-green-200 truncate w-full">{email}</span>
+                    </div>
+                  )}
+                </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" className=" text-white rounded-md px-3 py-1 text-sm">
+              {!isExpanded && (
+                <TooltipContent side="right" className="bg-gray-900 text-white rounded-md px-3 py-1.5 text-sm">
+                  <div className="flex flex-col">
+                    <span className="font-semibold">{userName || "User"}</span>
+                    <span className="text-xs text-gray-300">{email}</span>
+                  </div>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          )}
+
+          {/* Sign Out Button */}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => setIsSignOutOpen(true)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 w-full text-green-100 hover:bg-red-500/20 hover:text-red-300",
+                  !isExpanded && "justify-center"
+                )}
+              >
+                <LogOut className="w-5 h-5 flex-shrink-0" />
+                {isExpanded && (
+                  <span className="text-sm font-semibold">Sign Out</span>
+                )}
+              </button>
+            </TooltipTrigger>
+            {!isExpanded && (
+              <TooltipContent side="right" className="bg-gray-900 text-white rounded-md px-3 py-1.5 text-sm">
                 Sign Out
               </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+            )}
+          </Tooltip>
         </div>
 
         {/* Sign Out Confirmation Modal */}
@@ -134,9 +200,9 @@ const AppHeader: FC<AppHeaderProps> = ({ activeTab, setActiveTab, navItems, user
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
-    </header>
+      </aside>
+    </TooltipProvider>
   );
 };
 
-export default AppHeader;
+export default AppSidebar;
